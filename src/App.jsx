@@ -109,6 +109,8 @@ export default function FitStud() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [showStats, setShowStats] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const [theme, setTheme] = useState(() => load("fs_theme", "dark"));
   const [videoPlayer, setVideoPlayer] = useState(null);
   const [showPlanner, setShowPlanner] = useState(false);
   const [plannerPrompt, setPlannerPrompt] = useState("");
@@ -128,6 +130,7 @@ export default function FitStud() {
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => { if (workouts) save("fs_workouts", workouts); }, [workouts]);
+  useEffect(() => { save("fs_theme", theme); }, [theme]);
   useEffect(() => { save("fs_setdata", setData); }, [setData]);
   useEffect(() => { save("fs_history", history); }, [history]);
   useEffect(() => { save("fs_library", library); }, [library]);
@@ -245,6 +248,111 @@ export default function FitStud() {
     return {totalVolume, totalReps, totalSets, exStats};
   };
 
+  const QUOTES = [
+    { msg: "You showed up. That's already more than most people did today.", emoji: "🔥" },
+    { msg: "Every rep, every set — you're building a version of yourself that won't quit.", emoji: "💪" },
+    { msg: "The pain you feel today is the strength you'll feel tomorrow.", emoji: "⚡" },
+    { msg: "You didn't come this far to only come this far. Keep going.", emoji: "🚀" },
+    { msg: "Champions aren't born. They're built — exactly like you're doing right now.", emoji: "🏆" },
+    { msg: "One workout closer to the body and life you're working for.", emoji: "🎯" },
+    { msg: "Discipline is choosing what you want most over what you want now. You chose right.", emoji: "👑" },
+    { msg: "Your future self is thanking you right now.", emoji: "✨" },
+    { msg: "Greatness isn't given. It's earned. Today you earned it.", emoji: "💎" },
+    { msg: "The hardest part was starting. You did that. The rest is just details.", emoji: "🦁" },
+  ];
+  const getQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
+
+  const THEMES = {
+    dark: {
+      bg: "linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)",
+      card: "rgba(255,255,255,0.03)",
+      cardBorder: "rgba(255,255,255,0.07)",
+      cardActive: "rgba(220,38,38,0.08)",
+      cardActiveBorder: "rgba(220,38,38,0.3)",
+      accent: "linear-gradient(135deg,#dc2626,#991b1b)",
+      accentSolid: "#dc2626",
+      accentLight: "rgba(220,38,38,0.15)",
+      accentBorder: "rgba(220,38,38,0.3)",
+      accentText: "#fca5a5",
+      accentMuted: "rgba(220,38,38,0.1)",
+      text: "#f8fafc",
+      textSub: "#94a3b8",
+      textMuted: "#475569",
+      textDim: "#334155",
+      header: "rgba(255,255,255,0.02)",
+      headerBorder: "rgba(255,255,255,0.06)",
+      input: "rgba(255,255,255,0.07)",
+      inputBorder: "rgba(255,255,255,0.12)",
+      modal: "#13151f",
+      dayActive: "linear-gradient(135deg,#dc2626,#991b1b)",
+      dayActiveBorder: "#dc2626",
+      dayToday: "rgba(220,38,38,0.1)",
+      handle: "#334155",
+      statBg: "rgba(220,38,38,0.08)",
+      statBorder: "rgba(220,38,38,0.2)",
+      toggleBg: "rgba(255,255,255,0.04)",
+    },
+    light: {
+      bg: "linear-gradient(135deg,#f8fafc 0%,#f1f5f9 50%,#e2e8f0 100%)",
+      card: "rgba(255,255,255,0.9)",
+      cardBorder: "rgba(0,0,0,0.08)",
+      cardActive: "rgba(220,38,38,0.06)",
+      cardActiveBorder: "rgba(220,38,38,0.3)",
+      accent: "linear-gradient(135deg,#dc2626,#991b1b)",
+      accentSolid: "#dc2626",
+      accentLight: "rgba(220,38,38,0.1)",
+      accentBorder: "rgba(220,38,38,0.3)",
+      accentText: "#dc2626",
+      accentMuted: "rgba(220,38,38,0.08)",
+      text: "#0f172a",
+      textSub: "#475569",
+      textMuted: "#64748b",
+      textDim: "#94a3b8",
+      header: "rgba(255,255,255,0.8)",
+      headerBorder: "rgba(0,0,0,0.08)",
+      input: "rgba(0,0,0,0.04)",
+      inputBorder: "rgba(0,0,0,0.12)",
+      modal: "#ffffff",
+      dayActive: "linear-gradient(135deg,#dc2626,#991b1b)",
+      dayActiveBorder: "#dc2626",
+      dayToday: "rgba(220,38,38,0.08)",
+      handle: "#cbd5e1",
+      statBg: "rgba(220,38,38,0.06)",
+      statBorder: "rgba(220,38,38,0.2)",
+      toggleBg: "rgba(0,0,0,0.04)",
+    },
+    black: {
+      bg: "#000000",
+      card: "rgba(255,255,255,0.04)",
+      cardBorder: "rgba(255,255,255,0.06)",
+      cardActive: "rgba(220,38,38,0.1)",
+      cardActiveBorder: "rgba(220,38,38,0.4)",
+      accent: "linear-gradient(135deg,#dc2626,#b91c1c)",
+      accentSolid: "#dc2626",
+      accentLight: "rgba(220,38,38,0.15)",
+      accentBorder: "rgba(220,38,38,0.4)",
+      accentText: "#fca5a5",
+      accentMuted: "rgba(220,38,38,0.1)",
+      text: "#ffffff",
+      textSub: "#a1a1aa",
+      textMuted: "#52525b",
+      textDim: "#27272a",
+      header: "rgba(255,255,255,0.02)",
+      headerBorder: "rgba(255,255,255,0.04)",
+      input: "rgba(255,255,255,0.06)",
+      inputBorder: "rgba(255,255,255,0.1)",
+      modal: "#111111",
+      dayActive: "linear-gradient(135deg,#dc2626,#b91c1c)",
+      dayActiveBorder: "#dc2626",
+      dayToday: "rgba(220,38,38,0.12)",
+      handle: "#27272a",
+      statBg: "rgba(220,38,38,0.1)",
+      statBorder: "rgba(220,38,38,0.25)",
+      toggleBg: "rgba(255,255,255,0.04)",
+    },
+  };
+  const t = THEMES[theme] || THEMES.dark;
+
   const addManual = () => {
     if (!newEx.name || !newEx.sets || !newEx.reps) return;
     addExerciseToDay(selectedDay, {id:nextId++, name:newEx.name, sets:parseInt(newEx.sets), reps:parseInt(newEx.reps), video:newEx.video||""});
@@ -332,7 +440,7 @@ export default function FitStud() {
   while (calCells.length % 7 !== 0) calCells.push(null);
 
   const stats = buildStats();
-  const inp = {width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.05)", border:"1.5px solid rgba(255,255,255,0.1)", borderRadius:12, color:"#f1f5f9", fontSize:15, outline:"none", boxSizing:"border-box"};
+  const inp = {width:"100%", padding:"12px 14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box"};
 
   // First time setup screen
   if (showSetup) {
@@ -366,27 +474,34 @@ export default function FitStud() {
   }
 
   return (
-    <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#e2e8f0", paddingBottom:80}}>
+    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"'DM Sans',system-ui,sans-serif", color:t.text, paddingBottom:80}}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Header */}
-      <div style={{padding:"24px 20px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(255,255,255,0.02)"}}>
+      <div style={{padding:"24px 20px 16px", borderBottom:"1px solid " + t.headerBorder, background:t.header}}>
         <div style={{fontSize:11, letterSpacing:3, textTransform:"uppercase", color:"#64748b", marginBottom:4}}>Your</div>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-          <div style={{fontSize:28, fontWeight:700, letterSpacing:-1, color:"#f8fafc"}}>Fit Stud</div>
+          <div style={{fontSize:28, fontWeight:700, letterSpacing:-1, color:t.text}}>Fit Stud</div>
           <div style={{display:"flex", gap:8}}>
-            <button onClick={() => setShowLibrary(true)} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, padding:"8px 12px", color:"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>📚 Library</button>
-            <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:12, padding:"8px 12px", color:"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓 Plan</button>
+            <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚 Library</button>
+            <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓 Plan</button>
           </div>
         </div>
-        <div style={{fontSize:13, color:"#475569", marginTop:2}}>{FULL_DAYS[now.getDay()]} · {MONTHS[todayMonth]} {todayYear}</div>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:8}}>
+          <div style={{fontSize:13, color:t.textMuted}}>{FULL_DAYS[now.getDay()]} · {MONTHS[todayMonth]} {todayYear}</div>
+          <div style={{display:"flex", gap:6}}>
+            {[["dark","🌙"],["black","⚫"],["light","☀️"]].map(([th, icon]) => (
+              <button key={th} onClick={() => setTheme(th)} style={{width:28, height:28, borderRadius:"50%", border:theme===th?"2px solid #dc2626":"1px solid rgba(255,255,255,0.15)", background:theme===th?"#dc2626":"rgba(255,255,255,0.05)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{icon}</button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* View toggle */}
-      <div style={{display:"flex", margin:"12px 16px 0", background:"rgba(255,255,255,0.04)", borderRadius:12, padding:4}}>
-        {["week","month"].map(v => (
-          <button key={v} onClick={() => setView(v)} style={{flex:1, padding:"9px", borderRadius:9, border:"none", cursor:"pointer", background:view===v?"linear-gradient(135deg,#4f46e5,#7c3aed)":"transparent", color:view===v?"#fff":"#64748b", fontSize:13, fontWeight:600}}>
-            {v === "week" ? "📅 Week" : "🗓 Month"}
+      <div style={{display:"flex", margin:"12px 16px 0", background:t.toggleBg, borderRadius:12, padding:4}}>
+        {[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"]].map(([v,label]) => (
+          <button key={v} onClick={() => setView(v)} style={{flex:1, padding:"9px", borderRadius:9, border:"none", cursor:"pointer", background:view===v?t.accent:"transparent", color:view===v?"#fff":t.textMuted, fontSize:12, fontWeight:600}}>
+            {label}
           </button>
         ))}
       </div>
@@ -401,7 +516,7 @@ export default function FitStud() {
               const isSel = day === selectedDay;
               const isToday = day === today;
               return (
-                <button key={day} onClick={() => {setSelectedDay(day); setShowStats(false);}} style={{flex:"0 0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 14px", borderRadius:16, minWidth:48, cursor:"pointer", border:isSel?"1.5px solid #6366f1":"1.5px solid rgba(255,255,255,0.07)", background:isSel?"linear-gradient(135deg,#4f46e5,#7c3aed)":isToday?"rgba(99,102,241,0.1)":"rgba(255,255,255,0.03)"}}>
+                <button key={day} onClick={() => {setSelectedDay(day); setShowStats(false);}} style={{flex:"0 0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 14px", borderRadius:16, minWidth:48, cursor:"pointer", border:isSel?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, background:isSel?t.accent:isToday?t.dayToday:t.card}}>
                   <span style={{fontSize:11, letterSpacing:1, color:isSel?"#c7d2fe":"#64748b", textTransform:"uppercase"}}>{day}</span>
                   <span style={{width:28, height:28, borderRadius:"50%", background:isSel?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:isSel?"#fff":"#94a3b8"}}>
                     {p ? (p.done===p.total?"✓":String(p.done)) : (safeWorkouts[day]?.length ? String(safeWorkouts[day].length) : "—")}
@@ -414,15 +529,15 @@ export default function FitStud() {
           {/* Day header */}
           <div style={{padding:"0 20px 16px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
             <div>
-              <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9"}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
-              <div style={{fontSize:15, fontWeight:600, color:"#a5b4fc", marginTop:2}}>{DAY_FOCUS[selectedDay]}</div>
+              <div style={{fontSize:20, fontWeight:700, color:t.text}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
+              <div style={{fontSize:15, fontWeight:600, color:t.accentText, marginTop:2}}>{DAY_FOCUS[selectedDay]}</div>
               <div style={{fontSize:12, color:"#475569", marginTop:2}}>{exercises.length} exercise{exercises.length!==1?"s":""}</div>
             </div>
             <div style={{display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end"}}>
-              {allDone && <button onClick={() => {saveToHistory(); saveToLibrary(); setShowStats(true);}} style={{background:"linear-gradient(135deg,#059669,#10b981)", border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer"}}>📊 Stats</button>}
+              {allDone && <button onClick={() => {saveToHistory(); saveToLibrary(); setShowCongrats(true);}} style={{background:"linear-gradient(135deg,#059669,#10b981)", border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer"}}>📊 Stats</button>}
               <button onClick={() => setShowHistory(true)} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"8px 12px", color:"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>📖</button>
               <button onClick={() => setEditMode(e => !e)} style={{background:editMode?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.05)", border:editMode?"1px solid rgba(251,191,36,0.4)":"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"8px 12px", color:editMode?"#fbbf24":"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>
-              <button onClick={() => setShowAdd(true)} style={{background:"linear-gradient(135deg,#4f46e5,#7c3aed)", border:"none", borderRadius:12, padding:"8px 14px", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer"}}>+ Add</button>
+              <button onClick={() => setShowAdd(true)} style={{background:t.accent, border:"none", borderRadius:12, padding:"8px 14px", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer"}}>+ Add</button>
             </div>
           </div>
 
@@ -437,7 +552,7 @@ export default function FitStud() {
               const done = doneCount(ex.id, ex.sets);
               const finished = done === ex.sets;
               return (
-                <div key={ex.id} style={{background:finished?"rgba(99,102,241,0.08)":"rgba(255,255,255,0.03)", border:finished?"1.5px solid rgba(99,102,241,0.3)":"1.5px solid rgba(255,255,255,0.07)", borderRadius:20, padding:"16px"}}>
+                <div key={ex.id} style={{background:finished?t.cardActive:t.card, border:finished?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, borderRadius:20, padding:"16px"}}>
                   {/* Edit controls */}
                   {editMode && (
                     <div style={{display:"flex", gap:6, marginBottom:10, alignItems:"center"}}>
@@ -451,11 +566,11 @@ export default function FitStud() {
                   {/* Card header */}
                   <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12}}>
                     <div>
-                      <div style={{fontSize:17, fontWeight:700, color:finished?"#a5b4fc":"#f1f5f9"}}>{ex.name}</div>
+                      <div style={{fontSize:17, fontWeight:700, color:finished?t.accentText:t.text}}>{ex.name}</div>
                       <div style={{fontSize:12, color:"#64748b", marginTop:3}}>{ex.sets} sets · target {ex.reps} reps · {done}/{ex.sets} done</div>
                     </div>
                     <div style={{display:"flex", gap:8, alignItems:"center"}}>
-                      {ex.video && <button onClick={() => setVideoPlayer({videoId:ex.video, title:ex.name})} style={{background:"rgba(239,68,68,0.15)", border:"1px solid rgba(239,68,68,0.3)", borderRadius:8, padding:"4px 8px", color:"#f87171", fontSize:11, fontWeight:600, cursor:"pointer"}}>▶ Watch</button>}
+                      {ex.video && <button onClick={() => setVideoPlayer({videoId:ex.video, title:ex.name})} style={{background:t.accentLight, border:"1px solid " + t.accentBorder, borderRadius:8, padding:"4px 8px", color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>▶ Watch</button>}
                       {!editMode && <button onClick={() => removeExercise(ex.id)} style={{background:"rgba(255,255,255,0.05)", border:"none", borderRadius:8, padding:"4px 8px", color:"#475569", fontSize:13, cursor:"pointer"}}>✕</button>}
                     </div>
                   </div>
@@ -477,7 +592,7 @@ export default function FitStud() {
                       const s = getSet(ex.id, i);
                       const last = getLastRecord(ex.name, i);
                       return (
-                        <div key={i} style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, alignItems:"center", background:s.done?"rgba(99,102,241,0.1)":"rgba(255,255,255,0.03)", border:s.done?"1px solid rgba(99,102,241,0.25)":"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"8px 6px"}}>
+                        <div key={i} style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, alignItems:"center", background:s.done?t.accentMuted:t.card, border:s.done?"1px solid " + t.accentSolid:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 6px"}}>
                           <div style={{fontSize:11, fontWeight:700, color:s.done?"#a5b4fc":"#475569", textAlign:"center"}}>S{i+1}</div>
                           <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"4px 2px", minHeight:40}}>
                             {last ? (
@@ -487,9 +602,9 @@ export default function FitStud() {
                               </>
                             ) : <span style={{fontSize:9, color:"#2d3748"}}>—</span>}
                           </div>
-                          <input type="number" inputMode="numeric" placeholder={String(ex.reps)} value={s.reps} onChange={e => updateSet(ex.id, i, "reps", e.target.value)} style={{width:"100%", padding:"10px 4px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:10, color:"#f1f5f9", fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
-                          <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e => updateSet(ex.id, i, "weight", e.target.value)} style={{width:"100%", padding:"10px 4px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:10, color:"#f1f5f9", fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
-                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"1.5px solid rgba(255,255,255,0.15)", background:s.done?"linear-gradient(135deg,#4f46e5,#7c3aed)":"rgba(255,255,255,0.04)", color:s.done?"#fff":"#64748b", fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
+                          <input type="number" inputMode="numeric" placeholder={String(ex.reps)} value={s.reps} onChange={e => updateSet(ex.id, i, "reps", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
+                          <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e => updateSet(ex.id, i, "weight", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
+                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"1.5px solid rgba(255,255,255,0.15)", background:s.done?t.accent:"rgba(255,255,255,0.04)", color:s.done?"#fff":t.textMuted, fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                         </div>
                       );
                     })}
@@ -501,13 +616,166 @@ export default function FitStud() {
         </div>
       )}
 
+
+      {/* STATS DASHBOARD */}
+      {view === "dashboard" && (() => {
+        // Build all-time stats from history
+        const historyEntries = Object.entries(history).sort((a,b) => b[0].localeCompare(a[0]));
+        const totalWorkouts = historyEntries.length;
+        
+        // Calculate streak
+        let streak = 0;
+        const today2 = new Date();
+        for (let i = 0; i < 30; i++) {
+          const d = new Date(today2); d.setDate(d.getDate() - i);
+          const dayName = DAYS[d.getDay()];
+          const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0") + "-" + dayName;
+          if (history[key]) streak++;
+          else if (i > 0) break;
+        }
+
+        // Total volume and reps across all history
+        let allTimeVolume = 0, allTimeReps = 0, allTimeSets = 0;
+        historyEntries.forEach(([,rec]) => {
+          rec.exercises?.forEach(ex => {
+            ex.sets?.forEach(s => {
+              if (s.done) {
+                allTimeReps += parseInt(s.reps) || ex.reps || 0;
+                allTimeVolume += (parseInt(s.reps)||ex.reps||0) * (parseFloat(s.weight)||0);
+                allTimeSets++;
+              }
+            });
+          });
+        });
+
+        // PRs per exercise
+        const prs = {};
+        historyEntries.forEach(([,rec]) => {
+          rec.exercises?.forEach(ex => {
+            ex.sets?.forEach(s => {
+              if (s.done && s.weight) {
+                const w = parseFloat(s.weight);
+                if (!prs[ex.name] || w > prs[ex.name]) prs[ex.name] = w;
+              }
+            });
+          });
+        });
+
+        // Last 7 workouts volume
+        const last7 = historyEntries.slice(0, 7).map(([key, rec]) => {
+          let vol = 0;
+          rec.exercises?.forEach(ex => {
+            ex.sets?.forEach(s => {
+              if (s.done) vol += (parseInt(s.reps)||ex.reps||0) * (parseFloat(s.weight)||0);
+            });
+          });
+          const parts = key.split("-");
+          return { label: parts[3] || "?", vol, date: rec.date };
+        }).reverse();
+
+        const maxVol = Math.max(...last7.map(d => d.vol), 1);
+
+        return (
+          <div style={{padding:"16px"}}>
+            {/* Top stats */}
+            <div style={{fontSize:16, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>Your Progress</div>
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:20}}>
+              {[
+                {icon:"🔥", value:streak, label:"Day Streak"},
+                {icon:"💪", value:totalWorkouts, label:"Workouts Done"},
+                {icon:"🏋️", value:allTimeVolume>0?Math.round(allTimeVolume/1000)+"k lbs":"—", label:"Total Volume"},
+                {icon:"🔁", value:allTimeReps||"—", label:"Total Reps"},
+              ].map(s => (
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"14px", display:"flex", alignItems:"center", gap:12}}>
+                  <div style={{fontSize:28}}>{s.icon}</div>
+                  <div>
+                    <div style={{fontSize:22, fontWeight:800, color:"#a5b4fc"}}>{s.value}</div>
+                    <div style={{fontSize:11, color:"#475569", marginTop:2}}>{s.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Volume chart - last 7 workouts */}
+            {last7.length > 0 && last7.some(d => d.vol > 0) && (
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"16px", marginBottom:20}}>
+                <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:16}}>📈 Volume — Last {last7.length} Workouts</div>
+                <div style={{display:"flex", alignItems:"flex-end", gap:6, height:80}}>
+                  {last7.map((d, i) => (
+                    <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4}}>
+                      <div style={{
+                        width:"100%", borderRadius:"4px 4px 0 0",
+                        background: d.vol > 0 ? "linear-gradient(135deg,#4f46e5,#7c3aed)" : "rgba(255,255,255,0.05)",
+                        height: d.vol > 0 ? Math.max(8, (d.vol/maxVol)*72) + "px" : "4px",
+                        transition:"all 0.3s",
+                      }} />
+                      <div style={{fontSize:9, color:"#475569", textTransform:"uppercase"}}>{d.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personal Records */}
+            {Object.keys(prs).length > 0 && (
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"16px", marginBottom:20}}>
+                <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>🏆 Personal Records</div>
+                <div style={{display:"flex", flexDirection:"column", gap:8}}>
+                  {Object.entries(prs).sort((a,b) => b[1]-a[1]).slice(0,10).map(([name, weight]) => (
+                    <div key={name} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"rgba(99,102,241,0.06)", borderRadius:10}}>
+                      <span style={{fontSize:13, color:"#e2e8f0", fontWeight:600}}>{name}</span>
+                      <span style={{fontSize:14, fontWeight:800, color:"#fbbf24"}}>{weight} lbs 🏅</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent workouts */}
+            {historyEntries.length > 0 && (
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"16px", marginBottom:20}}>
+                <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>📅 Recent Workouts</div>
+                {historyEntries.slice(0,5).map(([key, rec]) => {
+                  let vol = 0, reps = 0;
+                  rec.exercises?.forEach(ex => {
+                    ex.sets?.forEach(s => {
+                      if (s.done) { reps += parseInt(s.reps)||ex.reps||0; vol += (parseInt(s.reps)||ex.reps||0)*(parseFloat(s.weight)||0); }
+                    });
+                  });
+                  return (
+                    <div key={key} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                      <div>
+                        <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9"}}>{rec.fullDay}</div>
+                        <div style={{fontSize:11, color:"#475569", marginTop:2}}>{rec.date} · {rec.exercises?.length} exercises</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        {vol > 0 && <div style={{fontSize:12, fontWeight:700, color:"#a5b4fc"}}>{vol.toLocaleString()} lbs</div>}
+                        <div style={{fontSize:11, color:"#475569"}}>{reps} reps</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {historyEntries.length === 0 && (
+              <div style={{textAlign:"center", padding:"40px 20px", color:"#334155", fontSize:13}}>
+                <div style={{fontSize:48, marginBottom:12}}>📊</div>
+                <div style={{color:"#475569", marginBottom:8, fontSize:15, fontWeight:600}}>No data yet</div>
+                <div style={{fontSize:12, color:"#334155", lineHeight:1.6}}>Complete workouts and tap 📊 Stats to start tracking your progress!</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* MONTH VIEW */}
       {view === "month" && (
         <div style={{padding:"16px"}}>
           <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
             <button onClick={() => { if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1); }} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, width:38, height:38, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>‹</button>
             <div style={{textAlign:"center"}}>
-              <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9"}}>{MONTHS[calMonth]}</div>
+              <div style={{fontSize:20, fontWeight:700, color:t.text}}>{MONTHS[calMonth]}</div>
               <div style={{fontSize:13, color:"#475569"}}>{calYear}</div>
             </div>
             <button onClick={() => { if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1); }} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, width:38, height:38, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>›</button>
@@ -594,7 +862,7 @@ export default function FitStud() {
       {/* LIBRARY MODAL */}
       {showLibrary && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowLibrary(false); setLibraryTarget(null);}}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:"#13151f", borderRadius:"24px 24px 0 0", padding:"24px 20px 52px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 52px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             {libraryTarget ? (
               <>
@@ -668,7 +936,7 @@ export default function FitStud() {
       {/* HISTORY MODAL */}
       {showHistory && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowHistory(false); setHistoryDetail(null);}}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:"#13151f", borderRadius:"24px 24px 0 0", padding:"24px 20px 48px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 48px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             {historyDetail ? (
               <>
@@ -717,10 +985,53 @@ export default function FitStud() {
         </div>
       )}
 
+      {/* CONGRATS POPUP */}
+      {showCongrats && (() => {
+        const q = getQuote();
+        return (
+          <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", backdropFilter:"blur(16px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:600, padding:"24px"}}
+            onClick={() => setShowCongrats(false)}>
+            <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:380, background:"linear-gradient(135deg,#13151f,#1e1b4b)", border:"1px solid rgba(99,102,241,0.4)", borderRadius:28, padding:"36px 28px", textAlign:"center", position:"relative", overflow:"hidden"}}>
+              
+              {/* Glow effect */}
+              <div style={{position:"absolute", top:-40, left:"50%", transform:"translateX(-50%)", width:200, height:200, background:"radial-gradient(circle,rgba(99,102,241,0.3) 0%,transparent 70%)", borderRadius:"50%", pointerEvents:"none"}} />
+              
+              {/* Emoji */}
+              <div style={{fontSize:64, marginBottom:16, lineHeight:1}}>{q.emoji}</div>
+              
+              {/* Title */}
+              <div style={{fontSize:26, fontWeight:800, color:"#f8fafc", marginBottom:8, letterSpacing:-0.5}}>
+                Workout Complete!
+              </div>
+              <div style={{fontSize:13, color:"#6366f1", fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:24}}>
+                {FULL_DAYS[DAYS.indexOf(selectedDay)]} · {DAY_FOCUS[selectedDay]}
+              </div>
+
+              {/* Motivational quote */}
+              <div style={{background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.2)", borderRadius:16, padding:"16px 20px", marginBottom:28}}>
+                <div style={{fontSize:15, color:"#e2e8f0", lineHeight:1.6, fontStyle:"italic"}}>
+                  "{q.msg}"
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                <button onClick={() => {setShowCongrats(false); setShowStats(true);}} style={{width:"100%", padding:"14px", background:"linear-gradient(135deg,#4f46e5,#7c3aed)", border:"none", borderRadius:14, color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer"}}>
+                  📊 View My Stats
+                </button>
+                <button onClick={() => setShowCongrats(false)} style={{width:"100%", padding:"14px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, color:"#94a3b8", fontSize:15, fontWeight:600, cursor:"pointer"}}>
+                  💪 Keep Going
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* STATS MODAL */}
       {showStats && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", backdropFilter:"blur(10px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:200}} onClick={() => setShowStats(false)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:"#13151f", borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"85vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"85vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9", marginBottom:4}}>🏆 Workout Complete!</div>
             <div style={{fontSize:13, color:"#64748b", marginBottom:20}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]} · Performance Summary</div>
@@ -756,7 +1067,7 @@ export default function FitStud() {
       {/* ADD EXERCISE MODAL */}
       {showAdd && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:100}} onClick={() => setShowAdd(false)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:"#13151f", borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             <div style={{fontSize:18, fontWeight:700, marginBottom:16, color:"#f1f5f9"}}>Add Exercise · {FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
             <div style={{display:"flex", gap:8, marginBottom:20, background:"rgba(255,255,255,0.04)", borderRadius:12, padding:4}}>
@@ -793,7 +1104,7 @@ export default function FitStud() {
       {/* WEEK PLANNER MODAL */}
       {showPlanner && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", backdropFilter:"blur(10px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:300}} onClick={() => setShowPlanner(false)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:"#13151f", borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"90vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"90vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9", marginBottom:4}}>🗓 Plan Your Week</div>
             <div style={{fontSize:13, color:"#64748b", marginBottom:16}}>Describe your plan and AI schedules everything automatically.</div>
