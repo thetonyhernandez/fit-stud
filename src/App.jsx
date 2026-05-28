@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const FULL_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -73,6 +73,20 @@ const DEFAULT_WORKOUTS = {
   Sat: [], Sun: [],
 };
 
+// localStorage helpers
+const load = (key, fallback) => {
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : fallback;
+  } catch { return fallback; }
+};
+const save = (key, val) => {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+};
+
+// Check if this is first time (no saved workouts)
+const EMPTY_WORKOUTS = {Sun:[], Mon:[], Tue:[], Wed:[], Thu:[], Fri:[], Sat:[]};
+
 let nextId = 200;
 
 export default function FitStud() {
@@ -86,8 +100,8 @@ export default function FitStud() {
   const [calMonth, setCalMonth] = useState(todayMonth);
   const [calYear, setCalYear] = useState(todayYear);
   const [selectedDay, setSelectedDay] = useState(today);
-  const [workouts, setWorkouts] = useState(DEFAULT_WORKOUTS);
-  const [setData, setSetDataState] = useState({});
+  const [workouts, setWorkouts] = useState(() => load("fs_workouts", null));
+  const [setData, setSetDataState] = useState(() => load("fs_setdata", {}));
   const [showAdd, setShowAdd] = useState(false);
   const [addTab, setAddTab] = useState("manual");
   const [newEx, setNewEx] = useState({name:"", sets:"", reps:"", video:""});
@@ -104,14 +118,21 @@ export default function FitStud() {
   const [plannerMode, setPlannerMode] = useState("replace");
   const [editMode, setEditMode] = useState(false);
   const [moveModal, setMoveModal] = useState(null);
-  const [history, setHistory] = useState({});
+  const [history, setHistory] = useState(() => load("fs_history", {}));
   const [showHistory, setShowHistory] = useState(false);
   const [historyDetail, setHistoryDetail] = useState(null);
-  const [library, setLibrary] = useState([]);
+  const [library, setLibrary] = useState(() => load("fs_library", []));
   const [showLibrary, setShowLibrary] = useState(false);
   const [libraryTarget, setLibraryTarget] = useState(null);
+  const [showSetup, setShowSetup] = useState(() => load("fs_workouts", null) === null);
 
-  const exercises = workouts[selectedDay] || [];
+  // Auto-save to localStorage whenever data changes
+  useEffect(() => { if (workouts) save("fs_workouts", workouts); }, [workouts]);
+  useEffect(() => { save("fs_setdata", setData); }, [setData]);
+  useEffect(() => { save("fs_history", history); }, [history]);
+  useEffect(() => { save("fs_library", library); }, [library]);
+
+  const exercises = (workouts || EMPTY_WORKOUTS)[selectedDay] || [];
 
   const getSet = (exId, i) => setData[selectedDay + "-" + exId + "-" + i] || {reps:"", weight:"", done:false};
 
@@ -125,6 +146,7 @@ export default function FitStud() {
   const doneCount = (exId, total) => Array.from({length: total}, (_, i) => getSet(exId, i).done).filter(Boolean).length;
 
   const allDone = exercises.length > 0 && exercises.every(ex => doneCount(ex.id, ex.sets) === ex.sets);
+  const safeWorkouts = workouts || EMPTY_WORKOUTS;
 
   const addExerciseToDay = (day, ex) => setWorkouts(prev => ({...prev, [day]: [...(prev[day]||[]), ex]}));
 
@@ -198,7 +220,7 @@ export default function FitStud() {
   const deleteFromLibrary = (id) => setLibrary(prev => prev.filter(e => e.id !== id));
 
   const dayProgress = (day) => {
-    const exs = workouts[day] || [];
+    const exs = safeWorkouts[day] || [];
     if (!exs.length) return null;
     let done = 0, total = 0;
     exs.forEach(ex => { total += ex.sets; done += doneCount(ex.id, ex.sets); });
@@ -312,6 +334,37 @@ export default function FitStud() {
   const stats = buildStats();
   const inp = {width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.05)", border:"1.5px solid rgba(255,255,255,0.1)", borderRadius:12, color:"#f1f5f9", fontSize:15, outline:"none", boxSizing:"border-box"};
 
+  // First time setup screen
+  if (showSetup) {
+    return (
+      <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
+        <div style={{fontSize:48, marginBottom:16}}>💪</div>
+        <div style={{fontSize:32, fontWeight:800, color:"#f8fafc", letterSpacing:-1, marginBottom:8}}>Fit Stud</div>
+        <div style={{fontSize:15, color:"#64748b", marginBottom:48, lineHeight:1.6}}>Your personal AI-powered workout tracker</div>
+
+        <div style={{width:"100%", maxWidth:360, display:"flex", flexDirection:"column", gap:12}}>
+          <button onClick={() => {
+            setWorkouts(DEFAULT_WORKOUTS);
+            setShowSetup(false);
+          }} style={{padding:"16px", background:"linear-gradient(135deg,#4f46e5,#7c3aed)", border:"none", borderRadius:16, color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer"}}>
+            🏋️ Load Month 1 Program
+          </button>
+
+          <button onClick={() => {
+            setWorkouts(EMPTY_WORKOUTS);
+            setShowSetup(false);
+          }} style={{padding:"16px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:16, color:"#e2e8f0", fontSize:16, fontWeight:600, cursor:"pointer"}}>
+            ✨ Start Fresh — Build My Own
+          </button>
+        </div>
+
+        <div style={{marginTop:32, fontSize:12, color:"#334155", lineHeight:1.8}}>
+          Your data is saved privately on your device.<br/>Nothing is shared with anyone.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#e2e8f0", paddingBottom:80}}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -351,7 +404,7 @@ export default function FitStud() {
                 <button key={day} onClick={() => {setSelectedDay(day); setShowStats(false);}} style={{flex:"0 0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 14px", borderRadius:16, minWidth:48, cursor:"pointer", border:isSel?"1.5px solid #6366f1":"1.5px solid rgba(255,255,255,0.07)", background:isSel?"linear-gradient(135deg,#4f46e5,#7c3aed)":isToday?"rgba(99,102,241,0.1)":"rgba(255,255,255,0.03)"}}>
                   <span style={{fontSize:11, letterSpacing:1, color:isSel?"#c7d2fe":"#64748b", textTransform:"uppercase"}}>{day}</span>
                   <span style={{width:28, height:28, borderRadius:"50%", background:isSel?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:isSel?"#fff":"#94a3b8"}}>
-                    {p ? (p.done===p.total?"✓":String(p.done)) : (workouts[day]?.length ? String(workouts[day].length) : "—")}
+                    {p ? (p.done===p.total?"✓":String(p.done)) : (safeWorkouts[day]?.length ? String(safeWorkouts[day].length) : "—")}
                   </span>
                 </button>
               );
@@ -511,8 +564,8 @@ export default function FitStud() {
             {DAYS.filter(d=>(workouts[d]||[]).length>0).map(day => (
               <div key={day} onClick={() => {setSelectedDay(day); setView("week");}} style={{display:"flex", alignItems:"center", gap:12, padding:"10px 12px", marginBottom:6, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, cursor:"pointer"}}>
                 <div style={{minWidth:40, fontSize:12, fontWeight:700, color:"#6366f1", textTransform:"uppercase"}}>{day}</div>
-                <div style={{flex:1, fontSize:12, color:"#94a3b8"}}>{(workouts[day]||[]).map(e=>e.name).join(", ")}</div>
-                <div style={{fontSize:11, color:"#475569"}}>{(workouts[day]||[]).length} ex</div>
+                <div style={{flex:1, fontSize:12, color:"#94a3b8"}}>{(safeWorkouts[day]||[]).map(e=>e.name).join(", ")}</div>
+                <div style={{fontSize:11, color:"#475569"}}>{(safeWorkouts[day]||[]).length} ex</div>
               </div>
             ))}
           </div>
@@ -555,7 +608,7 @@ export default function FitStud() {
                       <span>{FULL_DAYS[DAYS.indexOf(day)]}</span>
                       <div style={{display:"flex", gap:8, alignItems:"center"}}>
                         {day===today && <span style={{fontSize:10, color:"#6366f1", background:"rgba(99,102,241,0.15)", padding:"2px 6px", borderRadius:6}}>TODAY</span>}
-                        <span style={{fontSize:11, color:"#475569"}}>{(workouts[day]||[]).length} exercises</span>
+                        <span style={{fontSize:11, color:"#475569"}}>{(safeWorkouts[day]||[]).length} exercises</span>
                         <span style={{color:"#475569"}}>›</span>
                       </div>
                     </button>
@@ -603,7 +656,7 @@ export default function FitStud() {
               {DAYS.filter(d => d!==selectedDay).map(day => (
                 <button key={day} onClick={() => moveToDay(moveModal, day)} style={{padding:"12px 16px", background:"rgba(99,102,241,0.07)", border:"1px solid rgba(99,102,241,0.15)", borderRadius:12, color:"#e2e8f0", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", justifyContent:"space-between"}}>
                   <span>{FULL_DAYS[DAYS.indexOf(day)]}</span>
-                  <span style={{fontSize:11, color:"#475569"}}>{(workouts[day]||[]).length} exercises</span>
+                  <span style={{fontSize:11, color:"#475569"}}>{(safeWorkouts[day]||[]).length} exercises</span>
                 </button>
               ))}
             </div>
