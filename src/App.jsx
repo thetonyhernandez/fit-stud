@@ -699,6 +699,39 @@ export default function FitStud() {
               );
             })}
           </div>
+
+          {/* ── DONE WORKOUT BUTTON ── */}
+          {exercises.length > 0 && (
+            <div style={{padding:"20px 16px 8px"}}>
+              {allDone ? (
+                <button
+                  onClick={() => {saveToHistory(); saveToLibrary(); setShowCongrats(true);}}
+                  style={{
+                    width:"100%", padding:"18px",
+                    background:"linear-gradient(135deg,#059669,#10b981)",
+                    border:"none", borderRadius:18,
+                    color:"#fff", fontSize:18, fontWeight:800,
+                    cursor:"pointer",
+                    boxShadow:"0 8px 32px rgba(5,150,105,0.35)",
+                    display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+                  }}
+                >
+                  🏆 Workout Complete! View Stats
+                </button>
+              ) : (
+                <div style={{
+                  width:"100%", padding:"16px",
+                  background:"rgba(255,255,255,0.02)",
+                  border:"1px dashed rgba(255,255,255,0.08)",
+                  borderRadius:18, textAlign:"center",
+                  color:t.textMuted, fontSize:13,
+                }}>
+                  Complete all sets to finish your workout 💪
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       )}
 
