@@ -119,6 +119,8 @@ export default function FitStud() {
   const [plannerPreview, setPlannerPreview] = useState(null);
   const [plannerMode, setPlannerMode] = useState("replace");
   const [editMode, setEditMode] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
   const [history, setHistory] = useState(() => load("fs_history", {}));
   const [showHistory, setShowHistory] = useState(false);
@@ -127,6 +129,9 @@ export default function FitStud() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [libraryTarget, setLibraryTarget] = useState(null);
   const [showSetup, setShowSetup] = useState(() => load("fs_workouts", null) === null);
+  const [setupPrompt, setSetupPrompt] = useState("");
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupError, setSetupError] = useState("");
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => { if (workouts) save("fs_workouts", workouts); }, [workouts]);
@@ -175,6 +180,19 @@ export default function FitStud() {
       [list[idx], list[idx+1]] = [list[idx+1], list[idx]];
       return {...prev, [selectedDay]: list};
     });
+  };
+
+  const handleDragEnd = () => {
+    if (dragIndex !== null && dragOver !== null && dragIndex !== dragOver) {
+      setWorkouts(prev => {
+        const list = [...(prev[selectedDay]||[])];
+        const [moved] = list.splice(dragIndex, 1);
+        list.splice(dragOver, 0, moved);
+        return {...prev, [selectedDay]: list};
+      });
+    }
+    setDragIndex(null);
+    setDragOver(null);
   };
 
   const moveToDay = (ex, targetDay) => {
@@ -450,23 +468,78 @@ export default function FitStud() {
         <div style={{fontSize:32, fontWeight:800, color:"#f8fafc", letterSpacing:-1, marginBottom:8}}>Fit Stud</div>
         <div style={{fontSize:15, color:"#64748b", marginBottom:48, lineHeight:1.6}}>Your personal AI-powered workout tracker</div>
 
-        <div style={{width:"100%", maxWidth:360, display:"flex", flexDirection:"column", gap:12}}>
+        <div style={{width:"100%", maxWidth:380, display:"flex", flexDirection:"column", gap:12}}>
           <button onClick={() => {
             setWorkouts(DEFAULT_WORKOUTS);
             setShowSetup(false);
-          }} style={{padding:"16px", background:"linear-gradient(135deg,#4f46e5,#7c3aed)", border:"none", borderRadius:16, color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer"}}>
+          }} style={{padding:"16px", background:"linear-gradient(135deg,#dc2626,#991b1b)", border:"none", borderRadius:16, color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer"}}>
             🏋️ Load Month 1 Program
           </button>
+
+          {/* AI Plan Builder */}
+          <div style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:16, padding:"16px"}}>
+            <div style={{fontSize:14, fontWeight:700, color:"#f1f5f9", marginBottom:8}}>✨ Build My Plan with AI</div>
+            <div style={{fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.6}}>
+              Describe your goal and AI builds your full month plan instantly.
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:8, marginBottom:12}}>
+              {["I want to gain muscle mass and get bigger", "I want to lose weight and burn fat", "I want to build strength and lift heavy", "I want to improve agility and athleticism", "I want a full body conditioning program"].map((ex, i) => (
+                <button key={i} onClick={() => {
+                  const el = document.getElementById("setup-prompt");
+                  if (el) el.value = ex;
+                  setSetupPrompt(ex);
+                }} style={{textAlign:"left", padding:"8px 12px", background:"rgba(220,38,38,0.08)", border:"1px solid rgba(220,38,38,0.2)", borderRadius:10, color:"#fca5a5", fontSize:12, cursor:"pointer", lineHeight:1.4}}>{ex}</button>
+              ))}
+            </div>
+            <textarea
+              id="setup-prompt"
+              placeholder="Or type your own goal..."
+              value={setupPrompt}
+              onChange={e => setSetupPrompt(e.target.value)}
+              rows={2}
+              style={{width:"100%", padding:"10px 12px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"#f1f5f9", fontSize:14, outline:"none", resize:"none", fontFamily:"inherit", boxSizing:"border-box", marginBottom:10}}
+            />
+            <button
+              onClick={async () => {
+                if (!setupPrompt.trim()) return;
+                setSetupLoading(true);
+                try {
+                  const res = await fetch("https://api.anthropic.com/v1/messages", {
+                    method:"POST", headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({
+                      model:"claude-sonnet-4-20250514", max_tokens:2000,
+                      system:"You are a fitness coach. The user describes their fitness goal. Return ONLY a valid JSON object with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is an array of exercises with: name, sets, reps, video (YouTube ID or empty). Rest days = []. Design a smart weekly program matching their goal. No explanation, no markdown.",
+                      messages:[{role:"user", content:"Create a workout plan for this goal: " + setupPrompt}],
+                    }),
+                  });
+                  const data = await res.json();
+                  const text = data.content?.find(b => b.type === "text")?.text || "";
+                  const parsed = JSON.parse(text.trim());
+                  if (!DAYS.some(d => Array.isArray(parsed[d]))) throw new Error("Invalid");
+                  setWorkouts(parsed);
+                  setShowSetup(false);
+                } catch(e) {
+                  setSetupError("Could not generate plan. Try again.");
+                }
+                setSetupLoading(false);
+              }}
+              disabled={setupLoading || !setupPrompt.trim()}
+              style={{width:"100%", padding:"12px", background:(!setupPrompt.trim()||setupLoading)?"rgba(220,38,38,0.3)":"linear-gradient(135deg,#dc2626,#991b1b)", border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:700, cursor:(!setupPrompt.trim()||setupLoading)?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxSizing:"border-box"}}
+            >
+              {setupLoading ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> Building your plan...</> : "✨ Generate My Plan"}
+            </button>
+            {setupError && <div style={{color:"#f87171", fontSize:12, marginTop:8, textAlign:"center"}}>{setupError}</div>}
+          </div>
 
           <button onClick={() => {
             setWorkouts(EMPTY_WORKOUTS);
             setShowSetup(false);
-          }} style={{padding:"16px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:16, color:"#e2e8f0", fontSize:16, fontWeight:600, cursor:"pointer"}}>
-            ✨ Start Fresh — Build My Own
+          }} style={{padding:"14px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, color:"#64748b", fontSize:14, fontWeight:600, cursor:"pointer"}}>
+            Start Empty — I'll add workouts myself
           </button>
         </div>
 
-        <div style={{marginTop:32, fontSize:12, color:"#334155", lineHeight:1.8}}>
+        <div style={{marginTop:24, fontSize:12, color:"#334155", lineHeight:1.8, textAlign:"center"}}>
           Your data is saved privately on your device.<br/>Nothing is shared with anyone.
         </div>
       </div>
@@ -556,9 +629,22 @@ export default function FitStud() {
                   {/* Edit controls */}
                   {editMode && (
                     <div style={{display:"flex", gap:6, marginBottom:10, alignItems:"center"}}>
-                      <button onClick={() => moveUp(exIdx)} style={{background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, width:32, height:32, color:"#94a3b8", fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>↑</button>
-                      <button onClick={() => moveDown(exIdx)} style={{background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, width:32, height:32, color:"#94a3b8", fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>↓</button>
-                      <button onClick={() => setMoveModal(ex)} style={{background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.25)", borderRadius:8, padding:"4px 10px", color:"#a5b4fc", fontSize:11, fontWeight:600, cursor:"pointer"}}>Move day →</button>
+                      {/* Hamburger drag handle */}
+                      <div
+                        draggable
+                        onDragStart={() => setDragIndex(exIdx)}
+                        onDragOver={e => { e.preventDefault(); setDragOver(exIdx); }}
+                        onDragEnd={handleDragEnd}
+                        style={{
+                          display:"flex", flexDirection:"column", gap:3, padding:"8px 10px",
+                          background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)",
+                          borderRadius:8, cursor:"grab", alignItems:"center", justifyContent:"center",
+                          opacity: dragOver === exIdx ? 0.5 : 1,
+                        }}
+                      >
+                        {[0,1,2].map(i => <div key={i} style={{width:16, height:2, background:"#64748b", borderRadius:1}} />)}
+                      </div>
+                      <button onClick={() => setMoveModal(ex)} style={{background:"rgba(220,38,38,0.1)", border:"1px solid rgba(220,38,38,0.25)", borderRadius:8, padding:"4px 10px", color:"#fca5a5", fontSize:11, fontWeight:600, cursor:"pointer"}}>Move day →</button>
                       <div style={{flex:1}} />
                       <button onClick={() => removeExercise(ex.id)} style={{background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:8, padding:"4px 8px", color:"#f87171", fontSize:11, cursor:"pointer"}}>Remove</button>
                     </div>
