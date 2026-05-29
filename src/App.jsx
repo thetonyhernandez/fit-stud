@@ -469,7 +469,7 @@ export default function FitStud() {
       <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'Poppins',system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
         <div style={{fontSize:48, marginBottom:16}}>💪</div>
         <div style={{fontSize:32, fontWeight:900, color:"#FFFFFF", letterSpacing:4, marginBottom:4, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
-        <div style={{fontSize:11, letterSpacing:4, textTransform:"uppercase", color:"#D4AF37", marginBottom:8, fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>Built for Progress</div>
+        <div style={{fontSize:11, letterSpacing:4, textTransform:"uppercase", color:"#D4AF37", marginBottom:8, fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>FORGE YOUR LEGACY</div>
         <div style={{fontSize:14, color:"#71717a", marginBottom:48, lineHeight:1.6, fontFamily:"'Poppins',sans-serif"}}>The all-in-one workout tracker built for coaches and athletes</div>
 
         <div style={{width:"100%", maxWidth:380, display:"flex", flexDirection:"column", gap:12}}>
@@ -561,9 +561,11 @@ export default function FitStud() {
 
       {/* Header */}
       <div style={{padding:"24px 20px 16px", borderBottom:"1px solid " + t.headerBorder, background:t.header}}>
-        <div style={{fontSize:10, letterSpacing:4, textTransform:"uppercase", color:t.accentText, marginBottom:4, fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>Built for Progress</div>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-          <div style={{fontSize:28, fontWeight:800, letterSpacing:2, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+          <div>
+              <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", lineHeight:1}}>FITSTUD</div>
+              <div style={{fontSize:9, letterSpacing:3, textTransform:"uppercase", color:t.accentText, fontFamily:"'Montserrat',sans-serif", fontWeight:600, lineHeight:1, marginTop:3}}>FORGE YOUR LEGACY</div>
+            </div>
           <div style={{display:"flex", gap:8}}>
             <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚 Library</button>
             <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓 Plan</button>
