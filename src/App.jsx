@@ -110,7 +110,7 @@ export default function FitStud() {
   const [aiError, setAiError] = useState("");
   const [showStats, setShowStats] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
-  const [theme, setTheme] = useState(() => load("fs_theme", "dark"));
+  const [theme, setTheme] = useState(() => load("fs_theme", "gold"));
   const [videoPlayer, setVideoPlayer] = useState(null);
   const [showPlanner, setShowPlanner] = useState(false);
   const [plannerPrompt, setPlannerPrompt] = useState("");
@@ -132,6 +132,7 @@ export default function FitStud() {
   const [setupPrompt, setSetupPrompt] = useState("");
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupError, setSetupError] = useState("");
+  const [workoutFinished, setWorkoutFinished] = useState(false);
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => { if (workouts) save("fs_workouts", workouts); }, [workouts]);
@@ -141,6 +142,8 @@ export default function FitStud() {
   useEffect(() => { save("fs_library", library); }, [library]);
 
   const exercises = (workouts || EMPTY_WORKOUTS)[selectedDay] || [];
+  // Reset finished banner when switching days
+  useEffect(() => { setWorkoutFinished(false); }, [selectedDay]);
 
   const getSet = (exId, i) => setData[selectedDay + "-" + exId + "-" + i] || {reps:"", weight:"", done:false};
 
@@ -281,18 +284,47 @@ export default function FitStud() {
   const getQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
   const THEMES = {
+    gold: {
+      bg: "#0B0B0B",
+      card: "rgba(212,175,55,0.06)",
+      cardBorder: "rgba(212,175,55,0.15)",
+      cardActive: "rgba(212,175,55,0.12)",
+      cardActiveBorder: "rgba(212,175,55,0.5)",
+      accent: "linear-gradient(135deg,#D4AF37,#B8941F)",
+      accentSolid: "#D4AF37",
+      accentLight: "rgba(212,175,55,0.15)",
+      accentBorder: "rgba(212,175,55,0.4)",
+      accentText: "#D4AF37",
+      accentMuted: "rgba(212,175,55,0.1)",
+      text: "#FFFFFF",
+      textSub: "#a1a1aa",
+      textMuted: "#71717a",
+      textDim: "#3f3f46",
+      header: "rgba(0,0,0,0.6)",
+      headerBorder: "rgba(212,175,55,0.15)",
+      input: "rgba(212,175,55,0.06)",
+      inputBorder: "rgba(212,175,55,0.2)",
+      modal: "#111111",
+      dayActive: "linear-gradient(135deg,#D4AF37,#B8941F)",
+      dayActiveBorder: "#D4AF37",
+      dayToday: "rgba(212,175,55,0.12)",
+      handle: "#3f3f46",
+      statBg: "rgba(212,175,55,0.08)",
+      statBorder: "rgba(212,175,55,0.2)",
+      toggleBg: "rgba(255,255,255,0.04)",
+    },
     dark: {
       bg: "linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)",
       card: "rgba(255,255,255,0.03)",
       cardBorder: "rgba(255,255,255,0.07)",
-      cardActive: "rgba(220,38,38,0.08)",
-      cardActiveBorder: "rgba(220,38,38,0.3)",
-      accent: "linear-gradient(135deg,#dc2626,#991b1b)",
-      accentSolid: "#dc2626",
-      accentLight: "rgba(220,38,38,0.15)",
-      accentBorder: "rgba(220,38,38,0.3)",
-      accentText: "#fca5a5",
-      accentMuted: "rgba(220,38,38,0.1)",
+      cardActive: "rgba(229,57,53,0.08)",
+      cardActiveBorder: "rgba(229,57,53,0.3)",
+      accent: "linear-gradient(135deg,#E53935,#b71c1c)",
+      accentSolid: "#E53935",
+      accentLight: "rgba(229,57,53,0.15)",
+      accentBorder: "rgba(229,57,53,0.3)",
+      accentText: "#ef9a9a",
+      accentMuted: "rgba(229,57,53,0.1)",
       text: "#f8fafc",
       textSub: "#94a3b8",
       textMuted: "#475569",
@@ -302,26 +334,26 @@ export default function FitStud() {
       input: "rgba(255,255,255,0.07)",
       inputBorder: "rgba(255,255,255,0.12)",
       modal: "#13151f",
-      dayActive: "linear-gradient(135deg,#dc2626,#991b1b)",
-      dayActiveBorder: "#dc2626",
-      dayToday: "rgba(220,38,38,0.1)",
+      dayActive: "linear-gradient(135deg,#E53935,#b71c1c)",
+      dayActiveBorder: "#E53935",
+      dayToday: "rgba(229,57,53,0.1)",
       handle: "#334155",
-      statBg: "rgba(220,38,38,0.08)",
-      statBorder: "rgba(220,38,38,0.2)",
+      statBg: "rgba(229,57,53,0.08)",
+      statBorder: "rgba(229,57,53,0.2)",
       toggleBg: "rgba(255,255,255,0.04)",
     },
     light: {
       bg: "linear-gradient(135deg,#f8fafc 0%,#f1f5f9 50%,#e2e8f0 100%)",
       card: "rgba(255,255,255,0.9)",
       cardBorder: "rgba(0,0,0,0.08)",
-      cardActive: "rgba(220,38,38,0.06)",
-      cardActiveBorder: "rgba(220,38,38,0.3)",
-      accent: "linear-gradient(135deg,#dc2626,#991b1b)",
-      accentSolid: "#dc2626",
-      accentLight: "rgba(220,38,38,0.1)",
-      accentBorder: "rgba(220,38,38,0.3)",
-      accentText: "#dc2626",
-      accentMuted: "rgba(220,38,38,0.08)",
+      cardActive: "rgba(212,175,55,0.06)",
+      cardActiveBorder: "rgba(212,175,55,0.3)",
+      accent: "linear-gradient(135deg,#D4AF37,#B8941F)",
+      accentSolid: "#D4AF37",
+      accentLight: "rgba(212,175,55,0.1)",
+      accentBorder: "rgba(212,175,55,0.3)",
+      accentText: "#B8941F",
+      accentMuted: "rgba(212,175,55,0.08)",
       text: "#0f172a",
       textSub: "#475569",
       textMuted: "#64748b",
@@ -331,45 +363,16 @@ export default function FitStud() {
       input: "rgba(0,0,0,0.04)",
       inputBorder: "rgba(0,0,0,0.12)",
       modal: "#ffffff",
-      dayActive: "linear-gradient(135deg,#dc2626,#991b1b)",
-      dayActiveBorder: "#dc2626",
-      dayToday: "rgba(220,38,38,0.08)",
+      dayActive: "linear-gradient(135deg,#D4AF37,#B8941F)",
+      dayActiveBorder: "#D4AF37",
+      dayToday: "rgba(212,175,55,0.08)",
       handle: "#cbd5e1",
-      statBg: "rgba(220,38,38,0.06)",
-      statBorder: "rgba(220,38,38,0.2)",
+      statBg: "rgba(212,175,55,0.06)",
+      statBorder: "rgba(212,175,55,0.2)",
       toggleBg: "rgba(0,0,0,0.04)",
     },
-    black: {
-      bg: "#000000",
-      card: "rgba(255,255,255,0.04)",
-      cardBorder: "rgba(255,255,255,0.06)",
-      cardActive: "rgba(220,38,38,0.1)",
-      cardActiveBorder: "rgba(220,38,38,0.4)",
-      accent: "linear-gradient(135deg,#dc2626,#b91c1c)",
-      accentSolid: "#dc2626",
-      accentLight: "rgba(220,38,38,0.15)",
-      accentBorder: "rgba(220,38,38,0.4)",
-      accentText: "#fca5a5",
-      accentMuted: "rgba(220,38,38,0.1)",
-      text: "#ffffff",
-      textSub: "#a1a1aa",
-      textMuted: "#52525b",
-      textDim: "#27272a",
-      header: "rgba(255,255,255,0.02)",
-      headerBorder: "rgba(255,255,255,0.04)",
-      input: "rgba(255,255,255,0.06)",
-      inputBorder: "rgba(255,255,255,0.1)",
-      modal: "#111111",
-      dayActive: "linear-gradient(135deg,#dc2626,#b91c1c)",
-      dayActiveBorder: "#dc2626",
-      dayToday: "rgba(220,38,38,0.12)",
-      handle: "#27272a",
-      statBg: "rgba(220,38,38,0.1)",
-      statBorder: "rgba(220,38,38,0.25)",
-      toggleBg: "rgba(255,255,255,0.04)",
-    },
   };
-  const t = THEMES[theme] || THEMES.dark;
+  const t = THEMES[theme] || THEMES.gold;
 
   const addManual = () => {
     if (!newEx.name || !newEx.sets || !newEx.reps) return;
@@ -463,10 +466,11 @@ export default function FitStud() {
   // First time setup screen
   if (showSetup) {
     return (
-      <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
+      <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'Poppins',system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
         <div style={{fontSize:48, marginBottom:16}}>💪</div>
-        <div style={{fontSize:32, fontWeight:800, color:"#f8fafc", letterSpacing:-1, marginBottom:8}}>Fit Stud</div>
-        <div style={{fontSize:15, color:"#64748b", marginBottom:48, lineHeight:1.6}}>Your personal AI-powered workout tracker</div>
+        <div style={{fontSize:32, fontWeight:900, color:"#FFFFFF", letterSpacing:4, marginBottom:4, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+        <div style={{fontSize:11, letterSpacing:4, textTransform:"uppercase", color:"#D4AF37", marginBottom:8, fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>Built for Progress</div>
+        <div style={{fontSize:14, color:"#71717a", marginBottom:48, lineHeight:1.6, fontFamily:"'Poppins',sans-serif"}}>The all-in-one workout tracker built for coaches and athletes</div>
 
         <div style={{width:"100%", maxWidth:380, display:"flex", flexDirection:"column", gap:12}}>
           <button onClick={() => {
@@ -547,14 +551,19 @@ export default function FitStud() {
   }
 
   return (
-    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"'DM Sans',system-ui,sans-serif", color:t.text, paddingBottom:80}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"'Poppins',system-ui,sans-serif", color:t.text, paddingBottom:80}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap');
+        @keyframes spin{to{transform:rotate(360deg)}} .btn-active{text-shadow:0 1px 4px rgba(0,0,0,0.8);}
+        * { font-family: 'Poppins', system-ui, sans-serif; }
+        h1,h2,h3,.heading { font-family: 'Montserrat', system-ui, sans-serif; }
+      `}</style>
 
       {/* Header */}
       <div style={{padding:"24px 20px 16px", borderBottom:"1px solid " + t.headerBorder, background:t.header}}>
-        <div style={{fontSize:11, letterSpacing:3, textTransform:"uppercase", color:"#64748b", marginBottom:4}}>Your</div>
+        <div style={{fontSize:10, letterSpacing:4, textTransform:"uppercase", color:t.accentText, marginBottom:4, fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>Built for Progress</div>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-          <div style={{fontSize:28, fontWeight:700, letterSpacing:-1, color:t.text}}>Fit Stud</div>
+          <div style={{fontSize:28, fontWeight:800, letterSpacing:2, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
           <div style={{display:"flex", gap:8}}>
             <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚 Library</button>
             <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓 Plan</button>
@@ -563,7 +572,7 @@ export default function FitStud() {
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:8}}>
           <div style={{fontSize:13, color:t.textMuted}}>{FULL_DAYS[now.getDay()]} · {MONTHS[todayMonth]} {todayYear}</div>
           <div style={{display:"flex", gap:6}}>
-            {[["dark","🌙"],["black","⚫"],["light","☀️"]].map(([th, icon]) => (
+            {[["gold","★"],["dark","🌙"],["light","☀️"]].map(([th, icon]) => (
               <button key={th} onClick={() => setTheme(th)} style={{width:28, height:28, borderRadius:"50%", border:theme===th?"2px solid #dc2626":"1px solid rgba(255,255,255,0.15)", background:theme===th?"#dc2626":"rgba(255,255,255,0.05)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{icon}</button>
             ))}
           </div>
@@ -573,7 +582,7 @@ export default function FitStud() {
       {/* View toggle */}
       <div style={{display:"flex", margin:"12px 16px 0", background:t.toggleBg, borderRadius:12, padding:4}}>
         {[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"]].map(([v,label]) => (
-          <button key={v} onClick={() => setView(v)} style={{flex:1, padding:"9px", borderRadius:9, border:"none", cursor:"pointer", background:view===v?t.accent:"transparent", color:view===v?"#fff":t.textMuted, fontSize:12, fontWeight:600}}>
+          <button key={v} onClick={() => setView(v)} style={{flex:1, padding:"9px", borderRadius:9, border:"none", cursor:"pointer", background:view===v?t.accent:"transparent", color:view===v?"#fff":t.textMuted, fontSize:12, fontWeight:700, textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none"}}>
             {label}
           </button>
         ))}
@@ -590,8 +599,8 @@ export default function FitStud() {
               const isToday = day === today;
               return (
                 <button key={day} onClick={() => {setSelectedDay(day); setShowStats(false);}} style={{flex:"0 0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 14px", borderRadius:16, minWidth:48, cursor:"pointer", border:isSel?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, background:isSel?t.accent:isToday?t.dayToday:t.card}}>
-                  <span style={{fontSize:11, letterSpacing:1, color:isSel?"#c7d2fe":"#64748b", textTransform:"uppercase"}}>{day}</span>
-                  <span style={{width:28, height:28, borderRadius:"50%", background:isSel?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:isSel?"#fff":"#94a3b8"}}>
+                  <span style={{fontSize:11, letterSpacing:1, color:isSel?"#ffffff":t.textMuted, textTransform:"uppercase", fontWeight:700, textShadow:isSel?"0 1px 3px rgba(0,0,0,0.9)":"none"}}>{day}</span>
+                  <span style={{width:28, height:28, borderRadius:"50%", background:isSel?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"#ffffff", textShadow:isSel?"0 1px 4px rgba(0,0,0,0.9)":"none"}}>
                     {p ? (p.done===p.total?"✓":String(p.done)) : (safeWorkouts[day]?.length ? String(safeWorkouts[day].length) : "—")}
                   </span>
                 </button>
@@ -602,17 +611,35 @@ export default function FitStud() {
           {/* Day header */}
           <div style={{padding:"0 20px 16px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
             <div>
-              <div style={{fontSize:20, fontWeight:700, color:t.text}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
+              <div style={{fontSize:20, fontWeight:800, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", letterSpacing:1}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
               <div style={{fontSize:15, fontWeight:600, color:t.accentText, marginTop:2}}>{DAY_FOCUS[selectedDay]}</div>
               <div style={{fontSize:12, color:"#475569", marginTop:2}}>{exercises.length} exercise{exercises.length!==1?"s":""}</div>
             </div>
             <div style={{display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end"}}>
-              {allDone && <button onClick={() => {saveToHistory(); saveToLibrary(); setShowCongrats(true);}} style={{background:"linear-gradient(135deg,#059669,#10b981)", border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer"}}>📊 Stats</button>}
+              {allDone && <button onClick={() => {saveToHistory(); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{background:"linear-gradient(135deg,#059669,#10b981)", border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer"}}>📊 Stats</button>}
               <button onClick={() => setShowHistory(true)} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"8px 12px", color:"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>📖</button>
               <button onClick={() => setEditMode(e => !e)} style={{background:editMode?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.05)", border:editMode?"1px solid rgba(251,191,36,0.4)":"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"8px 12px", color:editMode?"#fbbf24":"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>
               <button onClick={() => setShowAdd(true)} style={{background:t.accent, border:"none", borderRadius:12, padding:"8px 14px", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer"}}>+ Add</button>
             </div>
           </div>
+
+          {/* Good job banner */}
+          {workoutFinished && (
+            <div style={{
+              margin:"0 16px 12px",
+              padding:"12px 16px",
+              background:"linear-gradient(135deg,rgba(5,150,105,0.2),rgba(16,185,129,0.15))",
+              border:"1px solid rgba(5,150,105,0.4)",
+              borderRadius:14,
+              display:"flex", alignItems:"center", gap:10,
+            }}>
+              <div style={{width:8, height:8, borderRadius:"50%", background:"#10b981", flexShrink:0}} />
+              <div>
+                <div style={{fontSize:14, fontWeight:700, color:"#34d399"}}>Good job! Workout saved.</div>
+                <div style={{fontSize:12, color:"#059669", marginTop:2}}>You can still edit your sets and weights below.</div>
+              </div>
+            </div>
+          )}
 
           {/* Exercise list */}
           <div style={{padding:"0 16px", display:"flex", flexDirection:"column", gap:14}}>
@@ -979,7 +1006,14 @@ export default function FitStud() {
       {showLibrary && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowLibrary(false); setLibraryTarget(null);}}>
           <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 52px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
-            <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20}}>
+              <div style={{width:36, height:4, background:"#334155", borderRadius:2, flex:1}} />
+              <button onClick={() => {setShowLibrary(false); setLibraryTarget(null);}} style={{
+                background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)",
+                borderRadius:10, width:32, height:32, color:"#94a3b8",
+                fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginLeft:12,
+              }}>✕</button>
+            </div>
             {libraryTarget ? (
               <>
                 <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:16}}>
@@ -1116,11 +1150,11 @@ export default function FitStud() {
               <div style={{fontSize:64, marginBottom:16, lineHeight:1}}>{q.emoji}</div>
               
               {/* Title */}
-              <div style={{fontSize:26, fontWeight:800, color:"#f8fafc", marginBottom:8, letterSpacing:-0.5}}>
+              <div style={{fontSize:26, fontWeight:900, color:"#f8fafc", marginBottom:8, letterSpacing:1, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>
                 Workout Complete!
               </div>
               <div style={{fontSize:13, color:"#6366f1", fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:24}}>
-                {FULL_DAYS[DAYS.indexOf(selectedDay)]} · {DAY_FOCUS[selectedDay]}
+                {FULL_DAYS[DAYS.indexOf(selectedDay)]}
               </div>
 
               {/* Motivational quote */}
@@ -1136,7 +1170,7 @@ export default function FitStud() {
                   📊 View My Stats
                 </button>
                 <button onClick={() => setShowCongrats(false)} style={{width:"100%", padding:"14px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, color:"#94a3b8", fontSize:15, fontWeight:600, cursor:"pointer"}}>
-                  💪 Keep Going
+                  Done
                 </button>
               </div>
             </div>
