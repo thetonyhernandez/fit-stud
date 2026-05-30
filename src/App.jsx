@@ -819,7 +819,7 @@ export default function FitStud() {
                       return (
                         <div key={i} style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, alignItems:"center", background:s.done?t.accentMuted:t.card, border:"1px solid " + (s.done?t.accentSolid:t.cardBorder), borderRadius:12, padding:"8px 6px"}}>
                           <div style={{fontSize:11, fontWeight:700, color:s.done?"#a5b4fc":"#475569", textAlign:"center"}}>S{i+1}</div>
-                          <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"4px 2px", minHeight:40}}>
+                          <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:t.accentMuted, borderRadius:8, padding:"4px 2px", minHeight:40, border:"1px solid " + t.accentBorder}}>
                             {last ? (
                               <>
                                 <span style={{fontSize:11, fontWeight:700, color:"#475569", lineHeight:1.2}}>{last.reps || "—"}</span>
@@ -829,7 +829,7 @@ export default function FitStud() {
                           </div>
                           <input type="number" inputMode="numeric" placeholder={String(ex.reps)} value={s.reps} onChange={e => updateSet(ex.id, i, "reps", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
                           <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e => updateSet(ex.id, i, "weight", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
-                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"1.5px solid " + t.cardBorder, background:s.done?t.accent:"rgba(255,255,255,0.04)", color:s.done?"#fff":t.textMuted, fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
+                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"2px solid rgba(212,175,55,0.5)", background:s.done?t.accent:"rgba(255,255,255,0.04)", color:s.done?"#fff":"rgba(212,175,55,0.7)", fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                         </div>
                       );
                     })}
