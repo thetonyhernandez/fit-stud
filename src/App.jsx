@@ -685,7 +685,7 @@ export default function FitStud() {
           <div style={{fontSize:13, color:t.textMuted}}>{FULL_DAYS[now.getDay()]} · {MONTHS[todayMonth]} {todayYear}</div>
           <div style={{display:"flex", gap:6}}>
             {[["gold","★"],["dark","🌙"],["light","☀️"]].map(([th, icon]) => (
-              <button key={th} onClick={() => setTheme(th)} style={{width:28, height:28, borderRadius:"50%", border:theme===th?"2px solid #dc2626":"1px solid rgba(255,255,255,0.15)", background:theme===th?"#dc2626":"rgba(255,255,255,0.05)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{icon}</button>
+              <button key={th} onClick={() => setTheme(th)} style={{width:28, height:28, borderRadius:"50%", border:theme===th?"2px solid " + t.accentSolid:"1px solid " + t.cardBorder, background:theme===th?"#dc2626":"rgba(255,255,255,0.05)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{icon}</button>
             ))}
           </div>
         </div>
@@ -756,7 +756,7 @@ export default function FitStud() {
           {/* Exercise list */}
           <div style={{padding:"0 16px", display:"flex", flexDirection:"column", gap:14}}>
             {exercises.length === 0 && (
-              <div style={{textAlign:"center", padding:"40px 20px", color:"#334155", fontSize:14, border:"1.5px dashed rgba(255,255,255,0.07)", borderRadius:20}}>
+              <div style={{textAlign:"center", padding:"40px 20px", color:"#334155", fontSize:14, border:"1.5px dashed " + t.cardBorder, borderRadius:20}}>
                 <div style={{fontSize:32, marginBottom:10}}>🏋️</div>Rest day or tap + Add
               </div>
             )}
@@ -796,7 +796,7 @@ export default function FitStud() {
                     </div>
                     <div style={{display:"flex", gap:8, alignItems:"center"}}>
                       {ex.video && <button onClick={() => setVideoPlayer({videoId:ex.video, title:ex.name})} style={{background:t.accentLight, border:"1px solid " + t.accentBorder, borderRadius:8, padding:"4px 8px", color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>▶ Watch</button>}
-                      {!editMode && <button onClick={() => removeExercise(ex.id)} style={{background:"rgba(255,255,255,0.05)", border:"none", borderRadius:8, padding:"4px 8px", color:"#475569", fontSize:13, cursor:"pointer"}}>✕</button>}
+                      {!editMode && <button onClick={() => removeExercise(ex.id)} style={{background:t.card, border:"none", borderRadius:8, padding:"4px 8px", color:t.textMuted, fontSize:13, cursor:"pointer"}}>✕</button>}
                     </div>
                   </div>
                   {/* + / - Set */}
@@ -829,7 +829,7 @@ export default function FitStud() {
                           </div>
                           <input type="number" inputMode="numeric" placeholder={String(ex.reps)} value={s.reps} onChange={e => updateSet(ex.id, i, "reps", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
                           <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e => updateSet(ex.id, i, "weight", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
-                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"2px solid rgba(212,175,55,0.5)", background:s.done?t.accent:"rgba(255,255,255,0.04)", color:s.done?"#fff":"rgba(212,175,55,0.7)", fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
+                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"2px solid rgba(212,175,55,0.5)", background:s.done?t.accent:t.card, color:s.done?"#fff":"rgba(212,175,55,0.7)", fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                         </div>
                       );
                     })}
@@ -941,7 +941,7 @@ export default function FitStud() {
                 {icon:"🏋️", value:allTimeVolume>0?Math.round(allTimeVolume/1000)+"k lbs":"—", label:"Total Volume"},
                 {icon:"🔁", value:allTimeReps||"—", label:"Total Reps"},
               ].map(s => (
-                <div key={s.label} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"14px", display:"flex", alignItems:"center", gap:12}}>
+                <div key={s.label} style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", display:"flex", alignItems:"center", gap:12}}>
                   <div style={{fontSize:28}}>{s.icon}</div>
                   <div>
                     <div style={{fontSize:22, fontWeight:800, color:"#a5b4fc"}}>{s.value}</div>
@@ -953,7 +953,7 @@ export default function FitStud() {
 
             {/* Volume chart - last 7 workouts */}
             {last7.length > 0 && last7.some(d => d.vol > 0) && (
-              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"16px", marginBottom:20}}>
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
                 <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:16}}>📈 Volume — Last {last7.length} Workouts</div>
                 <div style={{display:"flex", alignItems:"flex-end", gap:6, height:80}}>
                   {last7.map((d, i) => (
@@ -973,7 +973,7 @@ export default function FitStud() {
 
             {/* Personal Records */}
             {Object.keys(prs).length > 0 && (
-              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"16px", marginBottom:20}}>
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
                 <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>🏆 Personal Records</div>
                 <div style={{display:"flex", flexDirection:"column", gap:8}}>
                   {Object.entries(prs).sort((a,b) => b[1]-a[1]).slice(0,10).map(([name, weight]) => (
@@ -988,7 +988,7 @@ export default function FitStud() {
 
             {/* Recent workouts */}
             {historyEntries.length > 0 && (
-              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"16px", marginBottom:20}}>
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
                 <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>📅 Recent Workouts</div>
                 {historyEntries.slice(0,5).map(([key, rec]) => {
                   let vol = 0, reps = 0;
@@ -998,7 +998,7 @@ export default function FitStud() {
                     });
                   });
                   return (
-                    <div key={key} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                    <div key={key} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid " + t.cardBorder}}>
                       <div>
                         <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9"}}>{rec.fullDay}</div>
                         <div style={{fontSize:11, color:"#475569", marginTop:2}}>{rec.date} · {rec.exercises?.length} exercises</div>
@@ -1028,12 +1028,12 @@ export default function FitStud() {
       {view === "month" && (
         <div style={{padding:"16px"}}>
           <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-            <button onClick={() => { if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1); }} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, width:38, height:38, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>‹</button>
+            <button onClick={() => { if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1); }} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:38, height:38, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>‹</button>
             <div style={{textAlign:"center"}}>
               <div style={{fontSize:20, fontWeight:700, color:t.text}}>{MONTHS[calMonth]}</div>
               <div style={{fontSize:13, color:"#475569"}}>{calYear}</div>
             </div>
-            <button onClick={() => { if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1); }} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, width:38, height:38, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>›</button>
+            <button onClick={() => { if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1); }} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:38, height:38, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>›</button>
           </div>
           <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:6}}>
             {["S","M","T","W","T","F","S"].map((d,i) => <div key={i} style={{textAlign:"center", fontSize:11, fontWeight:700, color:"#475569", padding:"4px 0"}}>{d}</div>)}
@@ -1066,7 +1066,7 @@ export default function FitStud() {
               </div>
             ))}
           </div>
-          <div style={{marginTop:20, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:"14px 16px"}}>
+          <div style={{marginTop:20, background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px 16px"}}>
             <div style={{fontSize:12, color:"#64748b", letterSpacing:1, textTransform:"uppercase", marginBottom:12}}>{MONTHS[calMonth]} Summary</div>
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
               {[
@@ -1085,7 +1085,7 @@ export default function FitStud() {
           <div style={{marginTop:16}}>
             <div style={{fontSize:12, color:"#64748b", letterSpacing:1, textTransform:"uppercase", marginBottom:10}}>Schedule</div>
             {DAYS.filter(d=>(workouts[d]||[]).length>0).map(day => (
-              <div key={day} onClick={() => {setSelectedDay(day); setView("week");}} style={{display:"flex", alignItems:"center", gap:12, padding:"10px 12px", marginBottom:6, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, cursor:"pointer"}}>
+              <div key={day} onClick={() => {setSelectedDay(day); setView("week");}} style={{display:"flex", alignItems:"center", gap:12, padding:"10px 12px", marginBottom:6, background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, cursor:"pointer"}}>
                 <div style={{minWidth:40, fontSize:12, fontWeight:700, color:"#6366f1", textTransform:"uppercase"}}>{day}</div>
                 <div style={{flex:1, fontSize:12, color:"#94a3b8"}}>{(safeWorkouts[day]||[]).map(e=>e.name).join(", ")}</div>
                 <div style={{fontSize:11, color:"#475569"}}>{(safeWorkouts[day]||[]).length} ex</div>
@@ -1104,9 +1104,9 @@ export default function FitStud() {
                 <div style={{fontSize:11, color:"#6366f1", letterSpacing:2, textTransform:"uppercase", marginBottom:3}}>How-To Guide</div>
                 <div style={{fontSize:17, fontWeight:700, color:"#f1f5f9"}}>{videoPlayer.title}</div>
               </div>
-              <button onClick={() => setVideoPlayer(null)} style={{background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:10, width:36, height:36, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>✕</button>
+              <button onClick={() => setVideoPlayer(null)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:36, height:36, color:"#94a3b8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>✕</button>
             </div>
-            <div style={{position:"relative", width:"100%", paddingBottom:"56.25%", borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.08)", background:"#000"}}>
+            <div style={{position:"relative", width:"100%", paddingBottom:"56.25%", borderRadius:16, overflow:"hidden", border:"1px solid " + t.cardBorder, background:"#000"}}>
               <iframe src={"https://www.youtube.com/embed/" + videoPlayer.videoId + "?autoplay=1&rel=0&modestbranding=1"} title={videoPlayer.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none"}} />
             </div>
             <div style={{marginTop:12, padding:"10px 14px", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.15)", borderRadius:12, fontSize:12, color:"#64748b", textAlign:"center"}}>Watch the tutorial then come back to log your sets 💪</div>
@@ -1117,7 +1117,7 @@ export default function FitStud() {
       {/* LIBRARY MODAL */}
       {showLibrary && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowLibrary(false); setLibraryTarget(null);}}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 52px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 52px", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20}}>
               <div style={{width:36, height:4, background:"#334155", borderRadius:2, flex:1}} />
               <button onClick={() => {setShowLibrary(false); setLibraryTarget(null);}} style={{
@@ -1156,7 +1156,7 @@ export default function FitStud() {
                     <div style={{fontSize:12, color:"#334155", lineHeight:1.6}}>Complete a workout and tap 📊 Stats — it saves automatically.</div>
                   </div>
                 ) : library.map(entry => (
-                  <div key={entry.id} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, padding:"14px", marginBottom:10}}>
+                  <div key={entry.id} style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", marginBottom:10}}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10}}>
                       <div>
                         <div style={{fontSize:14, fontWeight:700, color:"#f1f5f9"}}>{entry.name}</div>
@@ -1179,7 +1179,7 @@ export default function FitStud() {
       {/* MOVE TO DAY MODAL */}
       {moveModal && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", backdropFilter:"blur(10px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:500, padding:20}} onClick={() => setMoveModal(null)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:360, background:"#13151f", borderRadius:20, padding:"24px 20px", border:"1px solid rgba(255,255,255,0.08)"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:360, background:"#13151f", borderRadius:20, padding:"24px 20px", border:"1px solid " + t.cardBorder}}>
             <div style={{fontSize:16, fontWeight:700, color:"#f1f5f9", marginBottom:4}}>Move Exercise</div>
             <div style={{fontSize:13, color:"#64748b", marginBottom:16}}>Move <span style={{color:"#a5b4fc", fontWeight:600}}>{moveModal.name}</span> to:</div>
             <div style={{display:"flex", flexDirection:"column", gap:8}}>
@@ -1190,7 +1190,7 @@ export default function FitStud() {
                 </button>
               ))}
             </div>
-            <button onClick={() => setMoveModal(null)} style={{width:"100%", marginTop:14, padding:"12px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:12, color:"#64748b", fontSize:14, cursor:"pointer"}}>Cancel</button>
+            <button onClick={() => setMoveModal(null)} style={{width:"100%", marginTop:14, padding:"12px", background:"rgba(255,255,255,0.05)", border:"1px solid " + t.cardBorder, borderRadius:12, color:"#64748b", fontSize:14, cursor:"pointer"}}>Cancel</button>
           </div>
         </div>
       )}
@@ -1198,7 +1198,7 @@ export default function FitStud() {
       {/* HISTORY MODAL */}
       {showHistory && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowHistory(false); setHistoryDetail(null);}}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 48px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 48px", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             {historyDetail ? (
               <>
@@ -1210,7 +1210,7 @@ export default function FitStud() {
                   </div>
                 </div>
                 {history[historyDetail].exercises.map((ex, ei) => (
-                  <div key={ei} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"12px 14px", marginBottom:10}}>
+                  <div key={ei} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"12px 14px", marginBottom:10}}>
                     <div style={{fontSize:15, fontWeight:700, color:"#f1f5f9", marginBottom:8}}>{ex.name}</div>
                     {ex.sets.map((s, si) => (
                       <div key={si} style={{display:"flex", gap:12, fontSize:12, color:"#64748b", marginBottom:4}}>
@@ -1232,7 +1232,7 @@ export default function FitStud() {
                     <div style={{fontSize:32, marginBottom:10}}>🗂️</div>No history yet. Complete a workout and tap 📊 Stats!
                   </div>
                 ) : Object.entries(history).sort((a,b) => b[0].localeCompare(a[0])).map(([key, rec]) => (
-                  <button key={key} onClick={() => setHistoryDetail(key)} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"12px 14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", marginBottom:8, textAlign:"left"}}>
+                  <button key={key} onClick={() => setHistoryDetail(key)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"12px 14px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", marginBottom:8, textAlign:"left"}}>
                     <div>
                       <div style={{fontSize:14, fontWeight:700, color:"#f1f5f9"}}>{rec.fullDay}</div>
                       <div style={{fontSize:12, color:"#64748b", marginTop:2}}>{rec.date} · {rec.completedAt}</div>
@@ -1346,7 +1346,7 @@ export default function FitStud() {
       {/* STATS MODAL */}
       {showStats && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", backdropFilter:"blur(10px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:200}} onClick={() => setShowStats(false)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"85vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"85vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9", marginBottom:4}}>🏆 Workout Complete!</div>
             <div style={{fontSize:13, color:"#64748b", marginBottom:20}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]} · Performance Summary</div>
@@ -1365,7 +1365,7 @@ export default function FitStud() {
             </div>
             <div style={{fontSize:12, color:"#64748b", letterSpacing:1, textTransform:"uppercase", marginBottom:10}}>Per Exercise</div>
             {stats.exStats.map((ex, idx) => (
-              <div key={idx} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"12px 14px", marginBottom:10}}>
+              <div key={idx} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"12px 14px", marginBottom:10}}>
                 <div style={{fontSize:15, fontWeight:700, color:"#f1f5f9", marginBottom:8}}>{ex.name}</div>
                 <div style={{display:"flex", gap:16, flexWrap:"wrap"}}>
                   <div><span style={{fontSize:11, color:"#475569"}}>Volume </span><span style={{fontSize:13, fontWeight:600, color:"#a5b4fc"}}>{ex.volume>0?ex.volume.toLocaleString()+" lbs":"—"}</span></div>
@@ -1382,7 +1382,7 @@ export default function FitStud() {
       {/* ADD EXERCISE MODAL */}
       {showAdd && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(8px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:100}} onClick={() => setShowAdd(false)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", border:"1px solid " + t.cardBorder, borderBottom:"none"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             <div style={{fontSize:18, fontWeight:700, marginBottom:16, color:"#f1f5f9"}}>Add Exercise · {FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
             <div style={{display:"flex", gap:8, marginBottom:20, background:"rgba(255,255,255,0.04)", borderRadius:12, padding:4}}>
@@ -1419,7 +1419,7 @@ export default function FitStud() {
       {/* WEEK PLANNER MODAL */}
       {showPlanner && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", backdropFilter:"blur(10px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:300}} onClick={() => setShowPlanner(false)}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid rgba(255,255,255,0.08)", borderBottom:"none", maxHeight:"90vh", overflowY:"auto"}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 44px", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"90vh", overflowY:"auto"}}>
             <div style={{width:36, height:4, background:"#334155", borderRadius:2, margin:"0 auto 20px"}} />
             <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9", marginBottom:4}}>🗓 Plan Your Week</div>
             <div style={{fontSize:13, color:"#64748b", marginBottom:16}}>Describe your plan and AI schedules everything automatically.</div>
@@ -1434,7 +1434,7 @@ export default function FitStud() {
                 {DAYS.map(day => {
                   const exs = plannerPreview[day] || [];
                   return (
-                    <div key={day} style={{display:"flex", gap:10, alignItems:"flex-start", padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                    <div key={day} style={{display:"flex", gap:10, alignItems:"flex-start", padding:"8px 0", borderBottom:"1px solid " + t.cardBorder}}>
                       <div style={{minWidth:36, fontSize:11, fontWeight:700, color:exs.length?"#a5b4fc":"#334155", textTransform:"uppercase", letterSpacing:1, paddingTop:2}}>{day}</div>
                       <div style={{flex:1}}>
                         {exs.length===0 ? <span style={{fontSize:12, color:"#334155"}}>Rest</span> : exs.map((ex,i) => (
