@@ -653,7 +653,7 @@ export default function FitStud() {
   }
 
   return (
-    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"'Poppins',system-ui,sans-serif", color:t.text, paddingBottom:80}}>
+    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"'Poppins',system-ui,sans-serif", color:t.text, paddingBottom:80, border:"none", outline:"none", margin:0, boxSizing:"border-box"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap');
         @keyframes spin{to{transform:rotate(360deg)}} .btn-active{text-shadow:0 1px 4px rgba(0,0,0,0.8);}
