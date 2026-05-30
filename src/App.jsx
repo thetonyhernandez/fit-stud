@@ -1,4 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = "https://txddetoycdwoatruhojs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_T9zfSOIL4-1ROn3csWw1qw_FK-DNbaW";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const FULL_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -132,6 +138,18 @@ export default function FitStud() {
   const [setupPrompt, setSetupPrompt] = useState("");
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupError, setSetupError] = useState("");
+
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState("login"); // "login" | "signup"
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authSubmitting, setAuthSubmitting] = useState("");
+  const [syncStatus, setSyncStatus] = useState("idle"); // "idle" | "saving" | "saved"
   const [workoutFinished, setWorkoutFinished] = useState(false);
 
   // Auto-save to localStorage whenever data changes
@@ -140,6 +158,79 @@ export default function FitStud() {
   useEffect(() => { save("fs_setdata", setData); }, [setData]);
   useEffect(() => { save("fs_history", history); }, [history]);
   useEffect(() => { save("fs_library", library); }, [library]);
+
+  // Auth listener
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+      if (session?.user) loadFromSupabase(session.user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) loadFromSupabase(session.user.id);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadFromSupabase = async (userId) => {
+    try {
+      const [w, s, h, l] = await Promise.all([
+        supabase.from("user_workouts").select("workouts").eq("user_id", userId).single(),
+        supabase.from("user_setdata").select("setdata").eq("user_id", userId).single(),
+        supabase.from("user_history").select("history").eq("user_id", userId).single(),
+        supabase.from("user_library").select("library").eq("user_id", userId).single(),
+      ]);
+      if (w.data?.workouts) { setWorkouts(w.data.workouts); setShowSetup(false); }
+      if (s.data?.setdata) setSetDataState(s.data.setdata);
+      if (h.data?.history) setHistory(h.data.history);
+      if (l.data?.library) setLibrary(l.data.library);
+    } catch(e) { console.log("Load error", e); }
+  };
+
+  const saveToSupabase = useCallback(async (table, field, data) => {
+    if (!user) return;
+    setSyncStatus("saving");
+    try {
+      const existing = await supabase.from(table).select("id").eq("user_id", user.id).single();
+      if (existing.data) {
+        await supabase.from(table).update({ [field]: data, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+      } else {
+        await supabase.from(table).insert({ user_id: user.id, [field]: data });
+      }
+      setSyncStatus("saved");
+      setTimeout(() => setSyncStatus("idle"), 2000);
+    } catch(e) { console.log("Save error", e); setSyncStatus("idle"); }
+  }, [user]);
+
+  // Sync to Supabase when data changes
+  useEffect(() => { if (user && workouts) saveToSupabase("user_workouts", "workouts", workouts); }, [workouts, user]);
+  useEffect(() => { if (user) saveToSupabase("user_setdata", "setdata", setData); }, [setData, user]);
+  useEffect(() => { if (user) saveToSupabase("user_history", "history", history); }, [history, user]);
+  useEffect(() => { if (user) saveToSupabase("user_library", "library", library); }, [library, user]);
+
+  const handleSignUp = async () => {
+    if (!authEmail || !authPassword) return;
+    setAuthSubmitting(true); setAuthError("");
+    const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+    if (error) setAuthError(error.message);
+    else { setShowAuth(false); setAuthEmail(""); setAuthPassword(""); }
+    setAuthSubmitting(false);
+  };
+
+  const handleLogin = async () => {
+    if (!authEmail || !authPassword) return;
+    setAuthSubmitting(true); setAuthError("");
+    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+    if (error) setAuthError(error.message);
+    else { setShowAuth(false); setAuthEmail(""); setAuthPassword(""); }
+    setAuthSubmitting(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   const exercises = (workouts || EMPTY_WORKOUTS)[selectedDay] || [];
   // Reset finished banner when switching days
@@ -464,6 +555,17 @@ export default function FitStud() {
   const inp = {width:"100%", padding:"12px 14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box"};
 
   // First time setup screen
+  if (authLoading) {
+    return (
+      <div style={{minHeight:"100vh", background:"#0B0B0B", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16}}>
+        <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:"#FFFFFF", fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+        <div style={{fontSize:9, letterSpacing:3, color:"#D4AF37", fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>FORGE YOUR LEGACY</div>
+        <div style={{marginTop:16, width:24, height:24, border:"2px solid rgba(212,175,55,0.3)", borderTopColor:"#D4AF37", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
   if (showSetup) {
     return (
       <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'Poppins',system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
@@ -476,13 +578,13 @@ export default function FitStud() {
           <button onClick={() => {
             setWorkouts(DEFAULT_WORKOUTS);
             setShowSetup(false);
-          }} style={{padding:"16px", background:"linear-gradient(135deg,#dc2626,#991b1b)", border:"none", borderRadius:16, color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer"}}>
-            🏋️ Load Month 1 Program
+          }} style={{padding:"16px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:16, color:"#000", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>
+            Load Month 1 Program
           </button>
 
           {/* AI Plan Builder */}
-          <div style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:16, padding:"16px"}}>
-            <div style={{fontSize:14, fontWeight:700, color:"#f1f5f9", marginBottom:8}}>✨ Build My Plan with AI</div>
+          <div style={{background:"rgba(212,175,55,0.05)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:16, padding:"16px"}}>
+            <div style={{fontSize:14, fontWeight:800, color:"#D4AF37", marginBottom:8, fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>Build My Plan with AI</div>
             <div style={{fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.6}}>
               Describe your goal and AI builds your full month plan instantly.
             </div>
@@ -492,7 +594,7 @@ export default function FitStud() {
                   const el = document.getElementById("setup-prompt");
                   if (el) el.value = ex;
                   setSetupPrompt(ex);
-                }} style={{textAlign:"left", padding:"8px 12px", background:"rgba(220,38,38,0.08)", border:"1px solid rgba(220,38,38,0.2)", borderRadius:10, color:"#fca5a5", fontSize:12, cursor:"pointer", lineHeight:1.4}}>{ex}</button>
+                }} style={{textAlign:"left", padding:"10px 14px", background:"rgba(212,175,55,0.06)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:10, color:"#D4AF37", fontSize:13, cursor:"pointer", lineHeight:1.4, fontFamily:"'Poppins',sans-serif"}}>{ex}</button>
               ))}
             </div>
             <textarea
@@ -528,7 +630,7 @@ export default function FitStud() {
                 setSetupLoading(false);
               }}
               disabled={setupLoading || !setupPrompt.trim()}
-              style={{width:"100%", padding:"12px", background:(!setupPrompt.trim()||setupLoading)?"rgba(220,38,38,0.3)":"linear-gradient(135deg,#dc2626,#991b1b)", border:"none", borderRadius:12, color:"#fff", fontSize:15, fontWeight:700, cursor:(!setupPrompt.trim()||setupLoading)?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxSizing:"border-box"}}
+              style={{width:"100%", padding:"12px", background:(!setupPrompt.trim()||setupLoading)?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:(!setupPrompt.trim()||setupLoading)?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxSizing:"border-box", fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}
             >
               {setupLoading ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> Building your plan...</> : "✨ Generate My Plan"}
             </button>
@@ -538,13 +640,13 @@ export default function FitStud() {
           <button onClick={() => {
             setWorkouts(EMPTY_WORKOUTS);
             setShowSetup(false);
-          }} style={{padding:"14px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, color:"#64748b", fontSize:14, fontWeight:600, cursor:"pointer"}}>
-            Start Empty — I'll add workouts myself
+          }} style={{padding:"14px", background:"transparent", border:"1px solid rgba(212,175,55,0.15)", borderRadius:16, color:"#52525b", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Poppins',sans-serif"}}>
+            Start empty — I'll add workouts myself
           </button>
         </div>
 
-        <div style={{marginTop:24, fontSize:12, color:"#334155", lineHeight:1.8, textAlign:"center"}}>
-          Your data is saved privately on your device.<br/>Nothing is shared with anyone.
+        <div style={{marginTop:24, fontSize:11, color:"#3f3f46", lineHeight:1.8, textAlign:"center", fontFamily:"'Poppins',sans-serif"}}>
+          Your data is encrypted and saved securely<br/>Nothing is shared with anyone
         </div>
       </div>
     );
@@ -566,9 +668,17 @@ export default function FitStud() {
               <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", lineHeight:1}}>FITSTUD</div>
               <div style={{fontSize:9, letterSpacing:3, textTransform:"uppercase", color:t.accentText, fontFamily:"'Montserrat',sans-serif", fontWeight:600, lineHeight:1, marginTop:3}}>FORGE YOUR LEGACY</div>
             </div>
-          <div style={{display:"flex", gap:8}}>
-            <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚 Library</button>
-            <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓 Plan</button>
+          <div style={{display:"flex", gap:6, alignItems:"center"}}>
+            {/* Sync indicator */}
+            {syncStatus === "saving" && <div style={{fontSize:10, color:t.textMuted, letterSpacing:1}}>Saving...</div>}
+            {syncStatus === "saved" && <div style={{fontSize:10, color:"#10b981", letterSpacing:1}}>✓ Saved</div>}
+            <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚</button>
+            <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓</button>
+            {user ? (
+              <button onClick={handleLogout} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>👤</button>
+            ) : (
+              <button onClick={() => {setShowAuth(true); setAuthMode("login");}} style={{background:t.accent, border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer"}}>Login</button>
+            )}
           </div>
         </div>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:8}}>
@@ -1133,6 +1243,59 @@ export default function FitStud() {
                 ))}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* AUTH MODAL */}
+      {showAuth && (
+        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", backdropFilter:"blur(16px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:600}} onClick={() => setShowAuth(false)}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"28px 24px 48px", border:"1px solid " + t.cardBorder, borderBottom:"none"}}>
+            <div style={{width:36, height:4, background:t.handle, borderRadius:2, margin:"0 auto 24px"}} />
+
+            {/* Logo */}
+            <div style={{textAlign:"center", marginBottom:24}}>
+              <div style={{fontSize:22, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+              <div style={{fontSize:9, letterSpacing:3, color:t.accentText, fontFamily:"'Montserrat',sans-serif", fontWeight:600, marginTop:3}}>FORGE YOUR LEGACY</div>
+            </div>
+
+            {/* Tab toggle */}
+            <div style={{display:"flex", gap:0, marginBottom:24, background:t.toggleBg, borderRadius:12, padding:4}}>
+              {["login","signup"].map(m => (
+                <button key={m} onClick={() => { setAuthMode(m); setAuthError(""); }} style={{flex:1, padding:"10px", borderRadius:9, border:"none", cursor:"pointer", background:authMode===m?t.accent:"transparent", color:authMode===m?"#fff":t.textMuted, fontSize:14, fontWeight:700, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", letterSpacing:1}}>
+                  {m === "login" ? "Login" : "Sign Up"}
+                </button>
+              ))}
+            </div>
+
+            {/* Form */}
+            <div style={{display:"flex", flexDirection:"column", gap:12}}>
+              <input type="email" placeholder="Email address" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
+                style={{...{width:"100%", padding:"14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"'Poppins',sans-serif"}}} />
+              <input type="password" placeholder="Password" value={authPassword} onChange={e => setAuthPassword(e.target.value)}
+                style={{...{width:"100%", padding:"14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"'Poppins',sans-serif"}}} />
+            </div>
+
+            {authError && <div style={{color:"#f87171", fontSize:12, marginTop:10, textAlign:"center"}}>{authError}</div>}
+
+            <button
+              onClick={authMode === "login" ? handleLogin : handleSignUp}
+              disabled={!!authSubmitting}
+              style={{width:"100%", padding:"16px", marginTop:20, background:authSubmitting?"rgba(212,175,55,0.3)":t.accent, border:"none", borderRadius:14, color:"#fff", fontSize:16, fontWeight:800, cursor:authSubmitting?"not-allowed":"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8}}
+            >
+              {authSubmitting ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> {authMode === "login" ? "Logging in..." : "Creating account..."}</> : authMode === "login" ? "LOGIN" : "CREATE ACCOUNT"}
+            </button>
+
+            <div style={{textAlign:"center", marginTop:16, fontSize:12, color:t.textMuted}}>
+              {authMode === "login" ? "Don't have an account? " : "Already have an account? "}
+              <span onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} style={{color:t.accentText, cursor:"pointer", fontWeight:600}}>
+                {authMode === "login" ? "Sign up free" : "Login"}
+              </span>
+            </div>
+
+            <div style={{textAlign:"center", marginTop:12, fontSize:11, color:t.textDim}}>
+              Your data is encrypted and saved securely in the cloud
+            </div>
           </div>
         </div>
       )}
