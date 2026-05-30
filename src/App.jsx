@@ -792,8 +792,8 @@ export default function FitStud() {
                   {/* Card header */}
                   <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12}}>
                     <div>
-                      <div style={{fontSize:17, fontWeight:700, color:finished?t.accentText:t.text}}>{ex.name}</div>
-                      <div style={{fontSize:12, color:"#64748b", marginTop:3}}>{ex.sets} sets · target {ex.reps} reps · {done}/{ex.sets} done</div>
+                      <div style={{fontSize:17, fontWeight:700, color:finished?t.accentText:(theme==="light"?"#000000":"#FFFFFF")}}>{ex.name}</div>
+                      <div style={{fontSize:12, color:theme==="light"?"#000000":"#ffffff", marginTop:3, textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{ex.sets} sets · target {ex.reps} reps · {done}/{ex.sets} done</div>
                     </div>
                     <div style={{display:"flex", gap:8, alignItems:"center"}}>
                       {ex.video && <button onClick={() => setVideoPlayer({videoId:ex.video, title:ex.name})} style={{background:t.accentLight, border:"1px solid " + t.accentBorder, borderRadius:8, padding:"4px 8px", color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>▶ Watch</button>}
@@ -807,10 +807,10 @@ export default function FitStud() {
                   </div>
                   {/* Column headers */}
                   <div style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, marginBottom:6, padding:"0 2px"}}>
-                    <div /><div style={{fontSize:9, color:"#334155", textTransform:"uppercase", textAlign:"center"}}>Last</div>
-                    <div style={{fontSize:10, color:"#475569", textTransform:"uppercase", letterSpacing:1, textAlign:"center"}}>Reps</div>
-                    <div style={{fontSize:10, color:"#475569", textTransform:"uppercase", letterSpacing:1, textAlign:"center"}}>Weight</div>
-                    <div style={{fontSize:10, color:"#475569", textTransform:"uppercase", letterSpacing:1, textAlign:"center"}}>✓</div>
+                    <div /><div style={{fontSize:9, color:"#ffffff", textTransform:"uppercase", textAlign:"center", letterSpacing:1, textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Last</div>
+                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Reps</div>
+                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Weight</div>
+                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>✓</div>
                   </div>
                   {/* Set rows */}
                   <div style={{display:"flex", flexDirection:"column", gap:8}}>
@@ -819,14 +819,14 @@ export default function FitStud() {
                       const last = getLastRecord(ex.name, i);
                       return (
                         <div key={i} style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, alignItems:"center", background:s.done?t.accentMuted:t.card, border:"1px solid " + (s.done?t.accentSolid:t.cardBorder), borderRadius:12, padding:"8px 6px"}}>
-                          <div style={{fontSize:11, fontWeight:700, color:s.done?"#a5b4fc":"#475569", textAlign:"center"}}>S{i+1}</div>
+                          <div style={{fontSize:11, fontWeight:700, color:s.done?t.accentText:"#ffffff", textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.9)"}}>S{i+1}</div>
                           <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:t.accentMuted, borderRadius:8, padding:"4px 2px", minHeight:40, border:"1px solid " + t.accentBorder}}>
                             {last ? (
                               <>
-                                <span style={{fontSize:11, fontWeight:700, color:"#475569", lineHeight:1.2}}>{last.reps || "—"}</span>
-                                <span style={{fontSize:9, color:"#334155", lineHeight:1.2}}>{last.weight ? last.weight + "lb" : "bw"}</span>
+                                <span style={{fontSize:11, fontWeight:700, color:t.textSub, lineHeight:1.2}}>{last.reps || "—"}</span>
+                                <span style={{fontSize:9, color:t.accentText, lineHeight:1.2}}>{last.weight ? last.weight + "lb" : "bw"}</span>
                               </>
-                            ) : <span style={{fontSize:9, color:"#2d3748"}}>—</span>}
+                            ) : <span style={{fontSize:12, color:t.accentText, fontWeight:700}}>—</span>}
                           </div>
                           <input type="number" inputMode="numeric" placeholder={String(ex.reps)} value={s.reps} onChange={e => updateSet(ex.id, i, "reps", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
                           <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e => updateSet(ex.id, i, "weight", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
@@ -942,7 +942,7 @@ export default function FitStud() {
                 {icon:"🏋️", value:allTimeVolume>0?Math.round(allTimeVolume/1000)+"k lbs":"—", label:"Total Volume"},
                 {icon:"🔁", value:allTimeReps||"—", label:"Total Reps"},
               ].map(s => (
-                <div key={s.label} style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", display:"flex", alignItems:"center", gap:12}}>
+                <div key={s.label} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", display:"flex", alignItems:"center", gap:12}}>
                   <div style={{fontSize:28}}>{s.icon}</div>
                   <div>
                     <div style={{fontSize:22, fontWeight:800, color:"#a5b4fc"}}>{s.value}</div>
@@ -954,7 +954,7 @@ export default function FitStud() {
 
             {/* Volume chart - last 7 workouts */}
             {last7.length > 0 && last7.some(d => d.vol > 0) && (
-              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
+              <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
                 <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:16}}>📈 Volume — Last {last7.length} Workouts</div>
                 <div style={{display:"flex", alignItems:"flex-end", gap:6, height:80}}>
                   {last7.map((d, i) => (
@@ -974,7 +974,7 @@ export default function FitStud() {
 
             {/* Personal Records */}
             {Object.keys(prs).length > 0 && (
-              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
+              <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
                 <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>🏆 Personal Records</div>
                 <div style={{display:"flex", flexDirection:"column", gap:8}}>
                   {Object.entries(prs).sort((a,b) => b[1]-a[1]).slice(0,10).map(([name, weight]) => (
@@ -989,7 +989,7 @@ export default function FitStud() {
 
             {/* Recent workouts */}
             {historyEntries.length > 0 && (
-              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
+              <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:20}}>
                 <div style={{fontSize:13, fontWeight:700, color:"#f1f5f9", marginBottom:12}}>📅 Recent Workouts</div>
                 {historyEntries.slice(0,5).map(([key, rec]) => {
                   let vol = 0, reps = 0;
@@ -1067,7 +1067,7 @@ export default function FitStud() {
               </div>
             ))}
           </div>
-          <div style={{marginTop:20, background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px 16px"}}>
+          <div style={{marginTop:20, background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px 16px"}}>
             <div style={{fontSize:12, color:"#64748b", letterSpacing:1, textTransform:"uppercase", marginBottom:12}}>{MONTHS[calMonth]} Summary</div>
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
               {[
@@ -1157,7 +1157,7 @@ export default function FitStud() {
                     <div style={{fontSize:12, color:"#334155", lineHeight:1.6}}>Complete a workout and tap 📊 Stats — it saves automatically.</div>
                   </div>
                 ) : library.map(entry => (
-                  <div key={entry.id} style={{background:"rgba(255,255,255,0.03)", border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", marginBottom:10}}>
+                  <div key={entry.id} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", marginBottom:10}}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10}}>
                       <div>
                         <div style={{fontSize:14, fontWeight:700, color:"#f1f5f9"}}>{entry.name}</div>
