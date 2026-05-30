@@ -801,8 +801,8 @@ export default function FitStud() {
                   </div>
                   {/* + / - Set */}
                   <div style={{display:"flex", gap:8, marginBottom:10}}>
-                    <button onClick={() => removeSet(ex.id)} style={{flex:1, padding:"9px", background:ex.sets<=1?"rgba(255,255,255,0.02)":"rgba(239,68,68,0.08)", border:ex.sets<=1?"1px solid rgba(255,255,255,0.05)":"1px solid rgba(239,68,68,0.3)", borderRadius:10, color:ex.sets<=1?"#334155":"#f87171", fontSize:14, fontWeight:700, cursor:ex.sets<=1?"not-allowed":"pointer"}}>− Set</button>
-                    <button onClick={() => addSet(ex.id)} style={{flex:1, padding:"9px", background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:10, color:"#a5b4fc", fontSize:14, fontWeight:700, cursor:"pointer"}}>+ Set</button>
+                    <button onClick={() => removeSet(ex.id)} style={{flex:1, padding:"9px", background:ex.sets<=1?"rgba(255,255,255,0.02)":"rgba(239,68,68,0.08)", border:ex.sets<=1?"1px solid " + t.cardBorder:"1px solid " + t.accentBorder, borderRadius:10, color:ex.sets<=1?"#334155":"#f87171", fontSize:14, fontWeight:700, cursor:ex.sets<=1?"not-allowed":"pointer"}}>− Set</button>
+                    <button onClick={() => addSet(ex.id)} style={{flex:1, padding:"9px", background:"rgba(99,102,241,0.1)", border:"1px solid " + t.accentBorder, borderRadius:10, color:t.accentText, fontSize:14, fontWeight:700, cursor:"pointer"}}>+ Set</button>
                   </div>
                   {/* Column headers */}
                   <div style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, marginBottom:6, padding:"0 2px"}}>
@@ -817,7 +817,7 @@ export default function FitStud() {
                       const s = getSet(ex.id, i);
                       const last = getLastRecord(ex.name, i);
                       return (
-                        <div key={i} style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, alignItems:"center", background:s.done?t.accentMuted:t.card, border:s.done?"1px solid " + t.accentSolid:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 6px"}}>
+                        <div key={i} style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, alignItems:"center", background:s.done?t.accentMuted:t.card, border:"1px solid " + (s.done?t.accentSolid:t.cardBorder), borderRadius:12, padding:"8px 6px"}}>
                           <div style={{fontSize:11, fontWeight:700, color:s.done?"#a5b4fc":"#475569", textAlign:"center"}}>S{i+1}</div>
                           <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.03)", borderRadius:8, padding:"4px 2px", minHeight:40}}>
                             {last ? (
@@ -829,7 +829,7 @@ export default function FitStud() {
                           </div>
                           <input type="number" inputMode="numeric" placeholder={String(ex.reps)} value={s.reps} onChange={e => updateSet(ex.id, i, "reps", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
                           <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e => updateSet(ex.id, i, "weight", e.target.value)} style={{width:"100%", padding:"10px 4px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:15, fontWeight:600, outline:"none", textAlign:"center", boxSizing:"border-box"}} />
-                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"1.5px solid rgba(255,255,255,0.15)", background:s.done?t.accent:"rgba(255,255,255,0.04)", color:s.done?"#fff":t.textMuted, fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
+                          <button onClick={() => toggleDone(ex.id, i)} style={{width:40, height:40, borderRadius:10, border:s.done?"none":"1.5px solid " + t.cardBorder, background:s.done?t.accent:"rgba(255,255,255,0.04)", color:s.done?"#fff":t.textMuted, fontSize:18, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                         </div>
                       );
                     })}
@@ -1047,7 +1047,7 @@ export default function FitStud() {
               const p = dayProgress(dayName);
               const isComplete = p && p.done===p.total;
               return (
-                <button key={idx} onClick={() => {setSelectedDay(dayName); setView("week");}} style={{aspectRatio:"1", borderRadius:12, border:isToday?"1.5px solid #6366f1":"1.5px solid rgba(255,255,255,0.06)", background:isToday?"rgba(99,102,241,0.15)":isComplete?"rgba(5,150,105,0.12)":exs.length?"rgba(99,102,241,0.07)":"rgba(255,255,255,0.02)", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2}}>
+                <button key={idx} onClick={() => {setSelectedDay(dayName); setView("week");}} style={{aspectRatio:"1", borderRadius:12, border:isToday?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, background:isToday?"rgba(99,102,241,0.15)":isComplete?"rgba(5,150,105,0.12)":exs.length?"rgba(99,102,241,0.07)":"rgba(255,255,255,0.02)", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2}}>
                   <span style={{fontSize:13, fontWeight:isToday?800:500, color:isToday?"#a5b4fc":isComplete?"#34d399":exs.length?"#e2e8f0":"#475569"}}>{date}</span>
                   {exs.length > 0 && (
                     <div style={{display:"flex", gap:2}}>
