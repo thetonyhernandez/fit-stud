@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
 import { createClient } from "@supabase/supabase-js";
-
 const SUPABASE_URL = "https://txddetoycdwoatruhojs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_T9zfSOIL4-1ROn3csWw1qw_FK-DNbaW";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -93,6 +92,138 @@ const save = (key, val) => {
 // Check if this is first time (no saved workouts)
 const EMPTY_WORKOUTS = {Sun:[], Mon:[], Tue:[], Wed:[], Thu:[], Fri:[], Sat:[]};
 
+
+const EXERCISE_LIBRARY = [
+  { category:"Push", icon:"💪", subs:[
+    { name:"Chest", exercises:[
+      {name:"Flat Bench Press", sets:4, reps:8, video:"rT7DgCr-3pg", desc:"Lower the bar to your chest under control and press upward until your arms are extended."},
+      {name:"Incline Dumbbell Press", sets:4, reps:10, video:"8iPEnn-ltC8", desc:"Press the dumbbells upward from an incline bench and lower slowly to chest level."},
+      {name:"Decline Bench Press", sets:4, reps:10, video:"LfyQTbGjhKo", desc:"Lower the bar to your lower chest and press upward while maintaining control."},
+      {name:"Chest Fly", sets:4, reps:12, video:"eozdVDA78K0", desc:"Bring your arms together in a wide arc and squeeze your chest at the center."},
+      {name:"Cable Fly", sets:4, reps:12, video:"eozdVDA78K0", desc:"Pull the handles together in front of your chest while maintaining a slight bend in your elbows."},
+      {name:"Push-Up", sets:3, reps:15, video:"IODxDxX7oi4", desc:"Keep your body straight and lower your chest to the floor before pressing back up."},
+    ]},
+    { name:"Shoulders", exercises:[
+      {name:"Dumbbell Shoulder Press", sets:4, reps:10, video:"qEwKCR5JCog", desc:"Press the dumbbells overhead and lower them back to shoulder level with control."},
+      {name:"Arnold Press", sets:4, reps:10, video:"6Z15_WdXmVw", desc:"Rotate your palms outward as you press overhead and reverse the movement on the way down."},
+      {name:"Lateral Raises", sets:3, reps:15, video:"3VcKaXpzqRo", desc:"Raise the dumbbells out to your sides until shoulder height and lower slowly."},
+      {name:"Front Raises", sets:3, reps:12, video:"gkbSqBBHqvI", desc:"Lift the weight straight in front of you to shoulder height and lower under control."},
+    ]},
+    { name:"Triceps", exercises:[
+      {name:"Tricep Rope Pushdown", sets:4, reps:12, video:"vB5OHsJ3EME", desc:"Push the rope downward while keeping your elbows tucked close to your sides."},
+      {name:"Overhead Tricep Extension", sets:4, reps:12, video:"_gsUck-7M74", desc:"Lower the weight behind your head and extend your arms upward."},
+      {name:"Dips", sets:3, reps:12, video:"2z8JmcrW-As", desc:"Lower your body by bending your elbows and push yourself back to the starting position."},
+      {name:"Skull Crushers", sets:4, reps:12, video:"d_KZxkY_5cM", desc:"Lower the weight toward your forehead and extend your arms back to the top."},
+    ]},
+  ]},
+  { category:"Pull", icon:"🔙", subs:[
+    { name:"Back", exercises:[
+      {name:"Pull-Ups", sets:4, reps:8, video:"eGo4IYlbE5g", desc:"Pull your chest toward the bar and lower yourself with control."},
+      {name:"Lat Pulldown", sets:4, reps:12, video:"CAwf7n6Luuc", desc:"Pull the bar to your upper chest while driving your elbows down."},
+      {name:"Close-Grip Lat Pulldown", sets:4, reps:12, video:"CAwf7n6Luuc", desc:"Pull the handle toward your upper chest while keeping your elbows close to your body."},
+      {name:"Seated Cable Row", sets:4, reps:12, video:"HJSVR_67OlM", desc:"Pull the handle toward your torso and squeeze your shoulder blades together."},
+      {name:"Barbell Row", sets:4, reps:8, video:"vT2GjY_Umpw", desc:"Pull the bar toward your stomach while keeping your back flat."},
+      {name:"Dumbbell Row", sets:4, reps:10, video:"roCP6wCXPqo", desc:"Pull the dumbbell toward your hip and lower it slowly."},
+      {name:"T-Bar Row", sets:4, reps:10, video:"j3SNFNAvLYE", desc:"Pull the handle toward your chest and squeeze your back at the top."},
+      {name:"Face Pull", sets:4, reps:15, video:"rep-qVOkqgk", desc:"Pull the rope toward your face with elbows high and squeeze your rear delts."},
+      {name:"Rear Delt Fly", sets:4, reps:15, video:"6yMdhi2DVao", desc:"Open your arms outward and squeeze your rear shoulders."},
+      {name:"Pec Deck Rear Delt Fly", sets:4, reps:15, video:"EA7u4Q_8HQ0", desc:"Push the handles outward in a reverse fly motion and squeeze your upper back."},
+    ]},
+    { name:"Biceps", exercises:[
+      {name:"EZ Bar Curl", sets:4, reps:12, video:"kwG2ipFRgfo", desc:"Curl the bar toward your shoulders and lower slowly."},
+      {name:"Barbell Curl", sets:4, reps:12, video:"kwG2ipFRgfo", desc:"Curl the weight without swinging and maintain control throughout."},
+      {name:"Dumbbell Curl", sets:4, reps:12, video:"ykJmrZ5v0Oo", desc:"Curl the dumbbells toward your shoulders while keeping elbows stationary."},
+      {name:"Hammer Curl", sets:4, reps:12, video:"zC3nLlEvin4", desc:"Keep your palms facing inward and curl the weights upward."},
+      {name:"Preacher Curl", sets:3, reps:15, video:"fIWP-FRFNU0", desc:"Curl the weight while resting your arms on the pad and lower slowly."},
+    ]},
+  ]},
+  { category:"Legs", icon:"🦵", subs:[
+    { name:"Quads", exercises:[
+      {name:"Goblet Squat", sets:4, reps:12, video:"MeIiIdhvXT4", desc:"Hold the weight at your chest and squat while keeping your chest up."},
+      {name:"Barbell Squat", sets:4, reps:6, video:"ultWZbUMPL8", desc:"Lower your hips until your thighs are parallel to the floor and stand back up."},
+      {name:"Front Squat", sets:4, reps:8, video:"uYumuL_G_V0", desc:"Keep the bar on the front of your shoulders and squat while staying upright."},
+      {name:"Leg Press", sets:4, reps:12, video:"IZxyjW7MPJQ", desc:"Press the platform away from your body and return under control."},
+      {name:"Leg Extension", sets:4, reps:15, video:"YyvSfVjQeL0", desc:"Extend your legs until straight and squeeze your quads at the top."},
+    ]},
+    { name:"Hamstrings", exercises:[
+      {name:"Deadlift", sets:5, reps:5, video:"XxWcirHIwVo", desc:"Lift the weight by driving through your heels while keeping your back straight."},
+      {name:"Romanian Deadlift", sets:4, reps:10, video:"2SHsk9AzdjA", desc:"Push your hips back and lower the weight until you feel a hamstring stretch."},
+      {name:"Seated Hamstring Curl", sets:4, reps:12, video:"y19_9B0s2uA", desc:"Curl the pad downward using your hamstrings and return slowly."},
+      {name:"Lying Hamstring Curl", sets:4, reps:12, video:"y19_9B0s2uA", desc:"Curl the weight toward your glutes and lower with control."},
+    ]},
+    { name:"Athletic Legs", exercises:[
+      {name:"Walking Lunges", sets:4, reps:20, video:"kRzcRkKy1ns", desc:"Step forward into a lunge and continue alternating legs while walking."},
+      {name:"Bulgarian Split Squat", sets:4, reps:10, video:"2C-uNgKwPLE", desc:"Lower your body using one leg while the rear foot remains elevated."},
+    ]},
+    { name:"Calves", exercises:[
+      {name:"Standing Calf Raise", sets:5, reps:20, video:"gwLzBv9RP30", desc:"Raise your heels high and slowly lower them back down."},
+      {name:"Seated Calf Raise", sets:4, reps:20, video:"gwLzBv9RP30", desc:"Lift your heels upward and pause before lowering slowly."},
+    ]},
+  ]},
+  { category:"Glutes", icon:"🍑", subs:[
+    { name:"Glute Exercises", exercises:[
+      {name:"Hip Thrust", sets:4, reps:12, video:"xDmFkJxPzeM", desc:"Drive your hips upward and squeeze your glutes at the top."},
+      {name:"Glute Bridge", sets:4, reps:15, video:"jQkKeL4Cg8M", desc:"Lift your hips from the floor while squeezing your glutes."},
+      {name:"Cable Kickback", sets:4, reps:15, video:"AU_Kkzca5AI", desc:"Kick your leg backward against resistance while keeping your torso stable."},
+      {name:"Hip Abductor Machine", sets:4, reps:15, video:"G_8LItOiZ0Q", desc:"Push your knees outward and squeeze your glutes."},
+      {name:"Sumo Squat", sets:4, reps:12, video:"aVFHn7B3RXI", desc:"Use a wide stance and squat while keeping your chest up."},
+      {name:"Step-Ups", sets:4, reps:12, video:"dQqApCGd5Ss", desc:"Step onto a platform and drive through your lead leg."},
+      {name:"Single-Leg Romanian Deadlift", sets:4, reps:10, video:"2SHsk9AzdjA", desc:"Hinge at the hips while balancing on one leg and return to standing."},
+    ]},
+  ]},
+  { category:"Core & Abs", icon:"⚡", subs:[
+    { name:"Core", exercises:[
+      {name:"Weighted Crunch", sets:4, reps:20, video:"wkD8rjkodUI", desc:"Hold a weight against your chest and crunch upward."},
+      {name:"Russian Twist", sets:4, reps:20, video:"wkD8rjkodUI", desc:"Rotate side to side while keeping your core tight."},
+      {name:"Cable Crunch", sets:4, reps:15, video:"e4iSCKRHaQk", desc:"Pull the rope downward by contracting your abs."},
+      {name:"Hanging Leg Raise", sets:4, reps:15, video:"hdng3Nm1x_E", desc:"Raise your legs while hanging and lower under control."},
+      {name:"Reverse Crunch", sets:4, reps:20, video:"Xyd_fa5zoEU", desc:"Lift your hips off the floor using your lower abs."},
+      {name:"Plank", sets:3, reps:1, video:"ASdvN_XEl_c", desc:"Hold a straight-body position while bracing your core."},
+      {name:"Side Plank", sets:3, reps:1, video:"_6vjo5omkMQ", desc:"Support your body on one side and maintain a straight line."},
+      {name:"Bicycle Crunch", sets:4, reps:20, video:"1we3bh9uhqY", desc:"Alternate elbow-to-knee movements while keeping tension on the abs."},
+      {name:"Ab Wheel Rollout", sets:4, reps:12, video:"YXubBPBDkSE", desc:"Roll forward while maintaining a tight core and return slowly."},
+      {name:"Cable Woodchopper", sets:4, reps:15, video:"AU-4zSxzi0I", desc:"Rotate your torso while pulling the cable across your body."},
+    ]},
+  ]},
+  { category:"Functional", icon:"🔥", subs:[
+    { name:"Functional Fitness", exercises:[
+      {name:"Sled Push", sets:4, reps:1, video:"-_5VxTpqj7A", desc:"Drive the sled forward using powerful leg drive and full-body tension."},
+      {name:"Sled Pull", sets:4, reps:1, video:"-_5VxTpqj7A", desc:"Pull the sled toward you with a rope while keeping your core tight."},
+      {name:"Farmer Carry", sets:4, reps:1, video:"Fkzk_RqlYig", desc:"Walk with heavy weights in each hand while keeping your core braced."},
+      {name:"Kettlebell Swing", sets:4, reps:20, video:"ZYgRuQoh6Qc", desc:"Hinge at the hips and drive the kettlebell forward with explosive hip extension."},
+      {name:"Battle Ropes", sets:4, reps:1, video:"Y6nFmyQ5SR0", desc:"Alternate waves or slam the ropes while maintaining a strong athletic stance."},
+      {name:"SkiErg", sets:4, reps:1, video:"", desc:"Pull the handles down explosively while engaging your core and arms."},
+      {name:"Box Jump", sets:4, reps:8, video:"52FsXzBKGgE", desc:"Jump onto the box with both feet and land softly before stepping back down."},
+      {name:"Medicine Ball Slams", sets:4, reps:12, video:"KN4LkwSvE_c", desc:"Raise the ball overhead and slam it down with maximum force."},
+    ]},
+    { name:"Conditioning", exercises:[
+      {name:"HIIT Sprints", sets:8, reps:1, video:"", desc:"Sprint at maximum effort for 20-30 seconds followed by equal rest."},
+      {name:"Assault Bike", sets:5, reps:1, video:"", desc:"Pedal and push-pull the handles at high intensity for set intervals."},
+      {name:"Rowing Intervals", sets:5, reps:1, video:"", desc:"Row at maximum effort for timed intervals with brief recovery periods."},
+      {name:"Burpees", sets:4, reps:10, video:"dZgVxmf6jkA", desc:"Drop to the floor, perform a push-up, jump up and repeat continuously."},
+      {name:"Jump Rope", sets:5, reps:1, video:"", desc:"Jump rope continuously keeping a steady rhythm and light on your feet."},
+    ]},
+    { name:"Cardio", exercises:[
+      {name:"Walking", sets:1, reps:1, video:"", desc:"Maintain a brisk walking pace to elevate your heart rate."},
+      {name:"Running", sets:1, reps:1, video:"", desc:"Maintain steady pace focusing on form — arms relaxed, upright posture."},
+      {name:"Stair Climber", sets:1, reps:1, video:"", desc:"Climb at a steady pace while keeping your chest up and core engaged."},
+      {name:"Rowing Machine", sets:1, reps:1, video:"", desc:"Drive with your legs first then pull the handle to your lower chest."},
+      {name:"Cycling", sets:1, reps:1, video:"", desc:"Maintain steady cadence with resistance appropriate to your fitness level."},
+    ]},
+  ]},
+  { category:"Mobility", icon:"🧘", subs:[
+    { name:"Mobility & Recovery", exercises:[
+      {name:"Hip Mobility", sets:2, reps:10, video:"", desc:"Move through full range hip circles and stretches to improve joint mobility."},
+      {name:"Ankle Mobility", sets:2, reps:10, video:"", desc:"Perform ankle circles and calf stretches to improve ankle range of motion."},
+      {name:"Shoulder Mobility", sets:2, reps:10, video:"", desc:"Use arm circles and cross-body stretches to loosen shoulder joints."},
+      {name:"Thoracic Spine Mobility", sets:2, reps:10, video:"", desc:"Use a foam roller or cat-cow movements to improve upper back mobility."},
+      {name:"Full Body Mobility", sets:1, reps:1, video:"", desc:"Flow through a sequence of mobility exercises covering all major joints."},
+      {name:"Foam Rolling", sets:1, reps:1, video:"", desc:"Roll slowly over tight muscle groups pausing on tender spots for 30 seconds."},
+      {name:"Active Recovery", sets:1, reps:1, video:"", desc:"Light movement like walking or swimming to promote blood flow and recovery."},
+    ]},
+  ]},
+];
+
 let nextId = 200;
 
 export default function FitStud() {
@@ -127,6 +258,7 @@ export default function FitStud() {
   const [editMode, setEditMode] = useState(false);
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
   const [history, setHistory] = useState(() => load("fs_history", {}));
   const [showHistory, setShowHistory] = useState(false);
@@ -134,10 +266,18 @@ export default function FitStud() {
   const [library, setLibrary] = useState(() => load("fs_library", []));
   const [showLibrary, setShowLibrary] = useState(false);
   const [libraryTarget, setLibraryTarget] = useState(null);
+  const [libView, setLibView] = useState("categories"); // "categories" | "subcats" | "exercise"
+  const [libCategory, setLibCategory] = useState(null);
+  const [libSubcat, setLibSubcat] = useState(null);
+  const [libExercise, setLibExercise] = useState(null);
   const [showSetup, setShowSetup] = useState(() => load("fs_workouts", null) === null);
   const [setupPrompt, setSetupPrompt] = useState("");
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupError, setSetupError] = useState("");
+  const [setupStep, setSetupStep] = useState("welcome"); // "welcome" | "questionnaire" | "building"
+  const [userProfile, setUserProfile] = useState({
+    goal: "", level: "", days: "", gender: "", age: "", equipment: "", injuries: ""
+  });
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -151,6 +291,8 @@ export default function FitStud() {
   const [authSubmitting, setAuthSubmitting] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle"); // "idle" | "saving" | "saved"
   const [workoutFinished, setWorkoutFinished] = useState(false);
+  const [nutrition, setNutrition] = useState(() => load("fs_nutrition", {}));
+  const [showNutrition, setShowNutrition] = useState(false);
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => { if (workouts) save("fs_workouts", workouts); }, [workouts]);
@@ -158,6 +300,7 @@ export default function FitStud() {
   useEffect(() => { save("fs_setdata", setData); }, [setData]);
   useEffect(() => { save("fs_history", history); }, [history]);
   useEffect(() => { save("fs_library", library); }, [library]);
+  useEffect(() => { save("fs_nutrition", nutrition); }, [nutrition]);
 
   // Auth listener
   useEffect(() => {
@@ -528,6 +671,24 @@ export default function FitStud() {
     setPlannerPreview(null); setPlannerPrompt(""); setShowPlanner(false);
   };
 
+  // Detect if exercise is time-based vs weight-based
+  const getTodayKey = () => {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  };
+
+  const getTodayNutrition = () => nutrition[getTodayKey()] || {calories:0, protein:0, carbs:0, fat:0, water:0, steps:0};
+
+  const updateNutrition = (field, val) => {
+    const key = getTodayKey();
+    setNutrition(prev => ({...prev, [key]: {...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}), [field]: parseFloat(val)||0}}));
+  };
+
+  const isTimeBased = (name) => {
+    const timeKeywords = ["sled","ski","row machine","battle rope","farmer carry","farmer carries","cardio","run","sprint","plank","hold","carry","carries","skierg","bike","rower","jump rope","box jump","burpee","mountain climber","bear crawl"];
+    return timeKeywords.some(k => name.toLowerCase().includes(k));
+  };
+
   const getLastRecord = (exName, setIndex) => {
     const keys = Object.keys(history).sort((a,b) => b.localeCompare(a));
     for (const key of keys) {
@@ -582,60 +743,103 @@ export default function FitStud() {
             Load Month 1 Program
           </button>
 
-          {/* AI Plan Builder */}
-          <div style={{background:"rgba(212,175,55,0.05)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:16, padding:"16px"}}>
-            <div style={{fontSize:14, fontWeight:800, color:"#D4AF37", marginBottom:8, fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>Build My Plan with AI</div>
-            <div style={{fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.6}}>
-              Describe your goal and AI builds your full month plan instantly.
-            </div>
-            <div style={{display:"flex", flexDirection:"column", gap:8, marginBottom:12}}>
-              {["I want to gain muscle mass and get bigger", "I want to lose weight and burn fat", "I want to build strength and lift heavy", "I want to improve agility and athleticism", "I want a full body conditioning program"].map((ex, i) => (
-                <button key={i} onClick={() => {
-                  const el = document.getElementById("setup-prompt");
-                  if (el) el.value = ex;
-                  setSetupPrompt(ex);
-                }} style={{textAlign:"left", padding:"10px 14px", background:"rgba(212,175,55,0.06)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:10, color:"#D4AF37", fontSize:13, cursor:"pointer", lineHeight:1.4, fontFamily:"'Poppins',sans-serif"}}>{ex}</button>
-              ))}
-            </div>
-            <textarea
-              id="setup-prompt"
-              placeholder="Or type your own goal..."
-              value={setupPrompt}
-              onChange={e => setSetupPrompt(e.target.value)}
-              rows={2}
-              style={{width:"100%", padding:"10px 12px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, color:"#f1f5f9", fontSize:14, outline:"none", resize:"none", fontFamily:"inherit", boxSizing:"border-box", marginBottom:10}}
-            />
-            <button
-              onClick={async () => {
-                if (!setupPrompt.trim()) return;
-                setSetupLoading(true);
-                try {
-                  const res = await fetch("https://api.anthropic.com/v1/messages", {
-                    method:"POST", headers:{"Content-Type":"application/json"},
-                    body: JSON.stringify({
-                      model:"claude-sonnet-4-20250514", max_tokens:2000,
-                      system:"You are a fitness coach. The user describes their fitness goal. Return ONLY a valid JSON object with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is an array of exercises with: name, sets, reps, video (YouTube ID or empty). Rest days = []. Design a smart weekly program matching their goal. No explanation, no markdown.",
-                      messages:[{role:"user", content:"Create a workout plan for this goal: " + setupPrompt}],
-                    }),
-                  });
-                  const data = await res.json();
-                  const text = data.content?.find(b => b.type === "text")?.text || "";
-                  const parsed = JSON.parse(text.trim());
-                  if (!DAYS.some(d => Array.isArray(parsed[d]))) throw new Error("Invalid");
-                  setWorkouts(parsed);
-                  setShowSetup(false);
-                } catch(e) {
-                  setSetupError("Could not generate plan. Try again.");
-                }
-                setSetupLoading(false);
-              }}
-              disabled={setupLoading || !setupPrompt.trim()}
-              style={{width:"100%", padding:"12px", background:(!setupPrompt.trim()||setupLoading)?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:(!setupPrompt.trim()||setupLoading)?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxSizing:"border-box", fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}
-            >
-              {setupLoading ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> Building your plan...</> : "✨ Generate My Plan"}
+          {/* AI Plan Builder - Questionnaire */}
+          {setupStep === "welcome" && (
+            <button onClick={() => setSetupStep("questionnaire")} style={{width:"100%", padding:"16px", background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.3)", borderRadius:16, color:"#D4AF37", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>
+              ✨ Build My Custom Plan with AI
             </button>
-            {setupError && <div style={{color:"#f87171", fontSize:12, marginTop:8, textAlign:"center"}}>{setupError}</div>}
-          </div>
+          )}
+
+          {setupStep === "questionnaire" && (
+            <div style={{background:"rgba(212,175,55,0.05)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:16, padding:"16px", width:"100%"}}>
+              <div style={{fontSize:13, fontWeight:800, color:"#D4AF37", marginBottom:16, fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>Tell us about yourself</div>
+
+              {/* Goal */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Your Goal</div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:6}}>
+                  {["Gain Muscle","Lose Weight","Build Strength","Improve Agility","Full Body Conditioning","Athletic Performance"].map(g => (
+                    <button key={g} onClick={() => setUserProfile(p => ({...p, goal:g}))} style={{padding:"8px", background:userProfile.goal===g?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.goal===g?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.goal===g?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'Poppins',sans-serif"}}>{g}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Level */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Fitness Level</div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
+                  {["Beginner","Intermediate","Advanced"].map(l => (
+                    <button key={l} onClick={() => setUserProfile(p => ({...p, level:l}))} style={{padding:"8px", background:userProfile.level===l?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.level===l?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.level===l?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer"}}>{l}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Days */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Days per Week</div>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:6}}>
+                  {["2","3","4","5","6"].map(d => (
+                    <button key={d} onClick={() => setUserProfile(p => ({...p, days:d}))} style={{padding:"8px", background:userProfile.days===d?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.days===d?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.days===d?"#000":"#D4AF37", fontSize:13, fontWeight:700, cursor:"pointer"}}>{d}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Equipment */}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Equipment</div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
+                  {["Full Gym","Home Gym","No Equipment"].map(e => (
+                    <button key={e} onClick={() => setUserProfile(p => ({...p, equipment:e}))} style={{padding:"8px", background:userProfile.equipment===e?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.equipment===e?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.equipment===e?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer"}}>{e}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Injuries optional */}
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Any injuries? (optional)</div>
+                <input type="text" placeholder="e.g. bad knees, lower back pain..." value={userProfile.injuries} onChange={e => setUserProfile(p => ({...p, injuries:e.target.value}))}
+                  style={{width:"100%", padding:"10px 12px", background:"rgba(212,175,55,0.06)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:10, color:"#fff", fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"'Poppins',sans-serif"}} />
+              </div>
+
+              {setupError && <div style={{color:"#f87171", fontSize:12, marginBottom:10, textAlign:"center"}}>{setupError}</div>}
+
+              <button
+                onClick={async () => {
+                  if (!userProfile.goal || !userProfile.level || !userProfile.days || !userProfile.equipment) {
+                    setSetupError("Please select your goal, level, days and equipment.");
+                    return;
+                  }
+                  setSetupLoading(true); setSetupError("");
+                  try {
+                    const prompt = "Create a " + userProfile.days + "-day per week workout program for someone who wants to " + userProfile.goal + ". Fitness level: " + userProfile.level + ". Equipment: " + userProfile.equipment + (userProfile.injuries ? ". Injuries/limitations: " + userProfile.injuries : "") + ". Make it challenging but appropriate for their level.";
+                    const res = await fetch("https://api.anthropic.com/v1/messages", {
+                      method:"POST", headers:{"Content-Type":"application/json"},
+                      body: JSON.stringify({
+                        model:"claude-sonnet-4-20250514", max_tokens:2000,
+                        system:"You are an expert personal trainer. Based on the user profile, create a personalized weekly workout program. Return ONLY a valid JSON object with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is an array of exercises: name (string), sets (number), reps (number), video (YouTube video ID or empty string). Rest days = empty array []. No explanation, no markdown, no extra text. Just the JSON.",
+                        messages:[{role:"user", content: prompt}],
+                      }),
+                    });
+                    const data = await res.json();
+                    const raw = data.content?.find(b => b.type === "text")?.text || "";
+                    const cleaned = raw.replace(/```json|```/g, "").trim();
+                    const parsed = JSON.parse(cleaned);
+                    if (!DAYS.some(d => Array.isArray(parsed[d]))) throw new Error("Invalid response");
+                    setWorkouts(parsed);
+                    setShowSetup(false);
+                  } catch(e) {
+                    setSetupError("Could not generate plan. Please try again.");
+                  }
+                  setSetupLoading(false);
+                }}
+                disabled={setupLoading}
+                style={{width:"100%", padding:"14px", background:setupLoading?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:setupLoading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}
+              >
+                {setupLoading ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(0,0,0,0.3)", borderTopColor:"#000", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> Building your plan...</> : "BUILD MY PROGRAM →"}
+              </button>
+              <button onClick={() => {setSetupStep("welcome"); setSetupError("");}} style={{width:"100%", marginTop:8, padding:"10px", background:"transparent", border:"none", color:"#52525b", fontSize:12, cursor:"pointer"}}>← Back</button>
+            </div>
+          )}
 
           <button onClick={() => {
             setWorkouts(EMPTY_WORKOUTS);
@@ -663,7 +867,7 @@ export default function FitStud() {
       `}</style>
 
       {/* Header */}
-      <div style={{padding:"24px 20px 16px", borderBottom:"1px solid " + t.headerBorder, background:t.header}}>
+      <div style={{padding:"24px 20px 16px", borderBottom:"1px solid " + t.headerBorder, background:t.header, margin:0}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
           <div>
               <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", lineHeight:1}}>FITSTUD</div>
@@ -694,7 +898,7 @@ export default function FitStud() {
 
       {/* View toggle */}
       <div style={{display:"flex", margin:"12px 16px 0", background:t.toggleBg, borderRadius:12, padding:4}}>
-        {[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"]].map(([v,label]) => (
+        {[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]].map(([v,label]) => (
           <button key={v} onClick={() => setView(v)} style={{flex:1, padding:"9px", borderRadius:9, border:"none", cursor:"pointer", background:view===v?t.accent:"transparent", color:view===v?"#fff":t.textMuted, fontSize:12, fontWeight:700, textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none"}}>
             {label}
           </button>
@@ -730,8 +934,8 @@ export default function FitStud() {
             </div>
             <div style={{display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end"}}>
               {allDone && <button onClick={() => {saveToHistory(); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{background:"linear-gradient(135deg,#059669,#10b981)", border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer"}}>📊 Stats</button>}
-              <button onClick={() => setShowHistory(true)} style={{background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"8px 12px", color:"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>📖</button>
-              <button onClick={() => setEditMode(e => !e)} style={{background:editMode?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.05)", border:editMode?"1px solid rgba(251,191,36,0.4)":"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"8px 12px", color:editMode?"#fbbf24":"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>
+              <button onClick={() => setShowHistory(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 12px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📖</button>
+              <button onClick={() => setEditMode(e => !e)} style={{background:editMode?t.accentLight:t.card, border:"1px solid " + (editMode?t.accentBorder:t.cardBorder), borderRadius:12, padding:"8px 12px", color:editMode?"#fbbf24":"#94a3b8", fontSize:12, fontWeight:600, cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>
               <button onClick={() => setShowAdd(true)} style={{background:t.accent, border:"none", borderRadius:12, padding:"8px 14px", color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer"}}>+ Add</button>
             </div>
           </div>
@@ -741,15 +945,15 @@ export default function FitStud() {
             <div style={{
               margin:"0 16px 12px",
               padding:"12px 16px",
-              background:"linear-gradient(135deg,rgba(5,150,105,0.2),rgba(16,185,129,0.15))",
-              border:"1px solid rgba(5,150,105,0.4)",
+              background:"linear-gradient(135deg,rgba(212,175,55,0.12),rgba(184,148,31,0.08))",
+              border:"1px solid rgba(212,175,55,0.3)",
               borderRadius:14,
               display:"flex", alignItems:"center", gap:10,
             }}>
               <div style={{width:8, height:8, borderRadius:"50%", background:"#10b981", flexShrink:0}} />
               <div>
-                <div style={{fontSize:14, fontWeight:700, color:"#34d399"}}>Good job! Workout saved.</div>
-                <div style={{fontSize:12, color:"#059669", marginTop:2}}>You can still edit your sets and weights below.</div>
+                <div style={{fontSize:14, fontWeight:800, color:"#D4AF37", fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>WORKOUT SAVED</div>
+                <div style={{fontSize:12, color:"rgba(212,175,55,0.7)", marginTop:2}}>Great work! Your progress has been recorded.</div>
               </div>
             </div>
           )}
@@ -765,28 +969,41 @@ export default function FitStud() {
               const done = doneCount(ex.id, ex.sets);
               const finished = done === ex.sets;
               return (
-                <div key={ex.id} style={{background:finished?t.cardActive:t.card, border:finished?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, borderRadius:20, padding:"16px"}}>
+                <div key={ex.id}
+                  onTouchStart={editMode ? (e) => { setDragIndex(exIdx); setTouchStartY(e.touches[0].clientY); } : undefined}
+                  onTouchMove={editMode ? (e) => {
+                    if (dragIndex === null) return;
+                    const y = e.touches[0].clientY;
+                    const cards = document.querySelectorAll("[data-excard]");
+                    cards.forEach((card, ci) => {
+                      const rect = card.getBoundingClientRect();
+                      if (y >= rect.top && y <= rect.bottom) setDragOver(ci);
+                    });
+                  } : undefined}
+                  onTouchEnd={editMode ? handleDragEnd : undefined}
+                  data-excard
+                  style={{background:finished?t.cardActive:t.card, border:"1px solid " + (finished?t.accentSolid:t.cardBorder), outline:"none", borderRadius:20, padding:"16px", opacity:editMode && dragOver === exIdx ? 0.6 : 1, transition:"opacity 0.15s"}}>
                   {/* Edit controls */}
                   {editMode && (
                     <div style={{display:"flex", gap:6, marginBottom:10, alignItems:"center"}}>
-                      {/* Hamburger drag handle */}
+                      {/* Hamburger drag handle - works on mobile touch */}
                       <div
                         draggable
                         onDragStart={() => setDragIndex(exIdx)}
                         onDragOver={e => { e.preventDefault(); setDragOver(exIdx); }}
                         onDragEnd={handleDragEnd}
                         style={{
-                          display:"flex", flexDirection:"column", gap:3, padding:"8px 10px",
-                          background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)",
+                          display:"flex", flexDirection:"column", gap:4, padding:"10px 12px",
+                          background:t.accentMuted, border:"1px solid " + t.accentBorder,
                           borderRadius:8, cursor:"grab", alignItems:"center", justifyContent:"center",
-                          opacity: dragOver === exIdx ? 0.5 : 1,
+                          opacity: dragOver === exIdx ? 0.5 : 1, touchAction:"none",
                         }}
                       >
-                        {[0,1,2].map(i => <div key={i} style={{width:16, height:2, background:"#64748b", borderRadius:1}} />)}
+                        {[0,1,2].map(i => <div key={i} style={{width:18, height:2, background:t.accentText, borderRadius:1}} />)}
                       </div>
-                      <button onClick={() => setMoveModal(ex)} style={{background:"rgba(220,38,38,0.1)", border:"1px solid rgba(220,38,38,0.25)", borderRadius:8, padding:"4px 10px", color:"#fca5a5", fontSize:11, fontWeight:600, cursor:"pointer"}}>Move day →</button>
+                      <button onClick={() => setMoveModal(ex)} style={{background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:8, padding:"6px 12px", color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>Move day →</button>
                       <div style={{flex:1}} />
-                      <button onClick={() => removeExercise(ex.id)} style={{background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:8, padding:"4px 8px", color:"#f87171", fontSize:11, cursor:"pointer"}}>Remove</button>
+                      <button onClick={() => removeExercise(ex.id)} style={{background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:8, padding:"6px 10px", color:"#f87171", fontSize:12, cursor:"pointer", fontWeight:600}}>Remove</button>
                     </div>
                   )}
                   {/* Card header */}
@@ -806,12 +1023,14 @@ export default function FitStud() {
                     <button onClick={() => addSet(ex.id)} style={{flex:1, padding:"9px", background:"rgba(99,102,241,0.1)", border:"1px solid " + t.accentBorder, borderRadius:10, color:t.accentText, fontSize:14, fontWeight:700, cursor:"pointer"}}>+ Set</button>
                   </div>
                   {/* Column headers */}
+                  {(() => { const timeBased = isTimeBased(ex.name); return (
                   <div style={{display:"grid", gridTemplateColumns:"32px 52px 1fr 1fr 44px", gap:6, marginBottom:6, padding:"0 2px"}}>
                     <div /><div style={{fontSize:9, color:"#ffffff", textTransform:"uppercase", textAlign:"center", letterSpacing:1, textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Last</div>
-                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Reps</div>
-                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Weight</div>
+                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>{timeBased ? "Rounds" : "Reps"}</div>
+                    <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>{timeBased ? "Time (s)" : "Weight"}</div>
                     <div style={{fontSize:10, color:"#ffffff", textTransform:"uppercase", letterSpacing:1, textAlign:"center", textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>✓</div>
                   </div>
+                  ); })()}
                   {/* Set rows */}
                   <div style={{display:"flex", flexDirection:"column", gap:8}}>
                     {Array.from({length: ex.sets}, (_, i) => {
@@ -847,19 +1066,16 @@ export default function FitStud() {
                 onClick={() => {saveToHistory(); saveToLibrary(); setShowCongrats(true);}}
                 style={{
                   width:"100%", padding:"18px",
-                  background: allDone
-                    ? "linear-gradient(135deg,#059669,#10b981)"
-                    : "linear-gradient(135deg,#dc2626,#991b1b)",
-                  border:"none", borderRadius:18,
-                  color:"#fff", fontSize:18, fontWeight:800,
+                  background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",
+                  border:"none", borderRadius:14,
+                  color:"#000", fontSize:14, fontWeight:800,
                   cursor:"pointer",
-                  boxShadow: allDone
-                    ? "0 8px 32px rgba(5,150,105,0.35)"
-                    : "0 8px 32px rgba(220,38,38,0.3)",
+                  boxShadow:"0 4px 20px rgba(212,175,55,0.4), inset 0 1px 0 rgba(255,255,255,0.3)",
+                  letterSpacing:1, fontFamily:"'Montserrat',sans-serif",
                   display:"flex", alignItems:"center", justifyContent:"center", gap:10,
                 }}
               >
-                {allDone ? "🏆 Workout Complete! View Stats" : "✅ Done for Today — Save & Finish"}
+                {allDone ? "SAVE & FINISH" : "SAVE & FINISH"}
               </button>
               {!allDone && (
                 <div style={{textAlign:"center", fontSize:11, color:t.textMuted, marginTop:8}}>
@@ -872,6 +1088,100 @@ export default function FitStud() {
         </div>
       )}
 
+
+
+      {/* NUTRITION TRACKING */}
+      {view === "nutrition" && (() => {
+        const today = getTodayNutrition();
+        const last7 = Array.from({length:7}, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - (6-i));
+          const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+          const day = DAYS[d.getDay()];
+          return {key, day, ...(nutrition[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0})};
+        });
+        const goals = {calories:2000, protein:150, carbs:200, fat:65, water:8, steps:10000};
+
+        return (
+          <div style={{padding:"16px"}}>
+            <div style={{fontSize:16, fontWeight:800, color:t.text, marginBottom:4, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>NUTRITION TRACKER</div>
+            <div style={{fontSize:12, color:t.textMuted, marginBottom:16}}>{FULL_DAYS[new Date().getDay()]} · {MONTHS[new Date().getMonth()]} {new Date().getDate()}</div>
+
+            {/* Today's macros input */}
+            <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:16}}>
+              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"'Montserrat',sans-serif"}}>Today's Intake</div>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                {[
+                  {key:"calories", label:"Calories", unit:"kcal", goal:goals.calories, color:"#F5D070"},
+                  {key:"protein", label:"Protein", unit:"g", goal:goals.protein, color:"#ef4444"},
+                  {key:"carbs", label:"Carbs", unit:"g", goal:goals.carbs, color:"#f97316"},
+                  {key:"fat", label:"Fat", unit:"g", goal:goals.fat, color:"#a78bfa"},
+                  {key:"water", label:"Water", unit:"glasses", goal:goals.water, color:"#38bdf8"},
+                  {key:"steps", label:"Steps", unit:"steps", goal:goals.steps, color:"#34d399"},
+                ].map(item => {
+                  const val = today[item.key] || 0;
+                  const pct = Math.min(100, Math.round((val/item.goal)*100));
+                  return (
+                    <div key={item.key} style={{background:t.toggleBg, borderRadius:12, padding:"12px"}}>
+                      <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+                        <span style={{fontSize:11, color:t.textSub, fontWeight:600}}>{item.label}</span>
+                        <span style={{fontSize:10, color:t.textMuted}}>{pct}%</span>
+                      </div>
+                      <input
+                        type="number" inputMode="decimal"
+                        placeholder="0"
+                        value={today[item.key] || ""}
+                        onChange={e => updateNutrition(item.key, e.target.value)}
+                        style={{width:"100%", padding:"8px", background:"rgba(255,255,255,0.05)", border:"1px solid " + t.cardBorder, borderRadius:8, color:t.text, fontSize:16, fontWeight:700, outline:"none", textAlign:"center", boxSizing:"border-box", marginBottom:6}}
+                      />
+                      <div style={{fontSize:9, color:t.textMuted, textAlign:"center"}}>{item.unit} · goal: {item.goal}</div>
+                      {/* Progress bar */}
+                      <div style={{height:4, background:t.cardBorder, borderRadius:2, marginTop:6}}>
+                        <div style={{height:4, width:pct+"%", background:item.color, borderRadius:2, transition:"width 0.3s"}} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Weekly summary */}
+            <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:16}}>
+              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"'Montserrat',sans-serif"}}>Weekly Overview</div>
+              <div style={{display:"flex", alignItems:"flex-end", gap:6, height:80, marginBottom:8}}>
+                {last7.map((d, i) => {
+                  const pct = Math.min(100, Math.round(((d.calories||0)/goals.calories)*100));
+                  const isToday = i === 6;
+                  return (
+                    <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4}}>
+                      <div style={{width:"100%", borderRadius:"4px 4px 0 0", background:isToday?"linear-gradient(135deg,#D4AF37,#B8941F)":d.calories>0?"rgba(212,175,55,0.3)":"rgba(255,255,255,0.05)", height:Math.max(4,(pct/100)*72)+"px", transition:"all 0.3s"}} />
+                      <div style={{fontSize:9, color:isToday?t.accentText:t.textMuted, textTransform:"uppercase", fontWeight:isToday?700:400}}>{d.day}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{fontSize:11, color:t.textMuted, textAlign:"center"}}>Calorie intake — last 7 days</div>
+            </div>
+
+            {/* 7-day averages */}
+            <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px"}}>
+              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"'Montserrat',sans-serif"}}>7-Day Averages</div>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
+                {[
+                  {label:"Avg Calories", value:Math.round(last7.reduce((a,d)=>a+(d.calories||0),0)/7), unit:"kcal", color:"#F5D070"},
+                  {label:"Avg Protein", value:Math.round(last7.reduce((a,d)=>a+(d.protein||0),0)/7), unit:"g", color:"#ef4444"},
+                  {label:"Avg Steps", value:Math.round(last7.reduce((a,d)=>a+(d.steps||0),0)/7).toLocaleString(), unit:"steps", color:"#34d399"},
+                ].map(s => (
+                  <div key={s.label} style={{textAlign:"center", padding:"10px 6px", background:t.toggleBg, borderRadius:12}}>
+                    <div style={{fontSize:18, fontWeight:800, color:s.color}}>{s.value}</div>
+                    <div style={{fontSize:9, color:t.textMuted, marginTop:2}}>{s.unit}</div>
+                    <div style={{fontSize:9, color:t.textMuted}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* STATS DASHBOARD */}
       {view === "dashboard" && (() => {
@@ -1115,67 +1425,107 @@ export default function FitStud() {
         </div>
       )}
 
-      {/* LIBRARY MODAL */}
+      {/* EXERCISE LIBRARY MODAL */}
       {showLibrary && (
-        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowLibrary(false); setLibraryTarget(null);}}>
-          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", padding:"24px 20px 52px", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"88vh", overflowY:"auto"}}>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20}}>
-              <div style={{width:36, height:4, background:"#334155", borderRadius:2, flex:1}} />
-              <button onClick={() => {setShowLibrary(false); setLibraryTarget(null);}} style={{
-                background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)",
-                borderRadius:10, width:32, height:32, color:"#94a3b8",
-                fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginLeft:12,
-              }}>✕</button>
-            </div>
-            {libraryTarget ? (
-              <>
-                <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:16}}>
-                  <button onClick={() => setLibraryTarget(null)} style={{background:"rgba(255,255,255,0.06)", border:"none", borderRadius:8, padding:"6px 10px", color:"#94a3b8", fontSize:13, cursor:"pointer"}}>← Back</button>
-                  <div style={{fontSize:16, fontWeight:700, color:"#f1f5f9"}}>Load onto which day?</div>
+        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", backdropFilter:"blur(12px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:500}} onClick={() => {setShowLibrary(false); setLibView("categories"); setLibCategory(null); setLibExercise(null);}}>
+          <div onClick={e => e.stopPropagation()} style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"90vh", display:"flex", flexDirection:"column"}}>
+            {/* Header */}
+            <div style={{padding:"16px 20px 12px", borderBottom:"1px solid " + t.cardBorder, display:"flex", alignItems:"center", gap:12, flexShrink:0}}>
+              {libView !== "categories" && (
+                <button onClick={() => { if(libView==="exercise"){setLibView("subcats");setLibExercise(null);} else if(libView==="subcats"){setLibView("categories");setLibCategory(null);} }} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>←</button>
+              )}
+              <div style={{flex:1}}>
+                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>
+                  {libView==="categories" ? "EXERCISE LIBRARY" : libView==="subcats" ? libCategory?.category.toUpperCase() : libExercise?.name.toUpperCase()}
                 </div>
-                <div style={{display:"flex", flexDirection:"column", gap:8}}>
-                  {DAYS.map(day => (
-                    <button key={day} onClick={() => loadFromLibrary(libraryTarget, day)} style={{padding:"13px 16px", background:day===today?"rgba(99,102,241,0.1)":"rgba(255,255,255,0.03)", border:day===today?"1px solid rgba(99,102,241,0.3)":"1px solid rgba(255,255,255,0.07)", borderRadius:14, color:"#e2e8f0", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                      <span>{FULL_DAYS[DAYS.indexOf(day)]}</span>
-                      <div style={{display:"flex", gap:8, alignItems:"center"}}>
-                        {day===today && <span style={{fontSize:10, color:"#6366f1", background:"rgba(99,102,241,0.15)", padding:"2px 6px", borderRadius:6}}>TODAY</span>}
-                        <span style={{fontSize:11, color:"#475569"}}>{(safeWorkouts[day]||[]).length} exercises</span>
-                        <span style={{color:"#475569"}}>›</span>
+                {libView==="categories" && <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>Browse and add to your workout</div>}
+              </div>
+              <button onClick={() => {setShowLibrary(false); setLibView("categories"); setLibCategory(null); setLibExercise(null);}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>✕</button>
+            </div>
+            {/* Body */}
+            <div style={{overflowY:"auto", flex:1, padding:"12px 16px 40px"}}>
+              {/* CATEGORIES */}
+              {libView==="categories" && (
+                <div style={{display:"flex", flexDirection:"column", gap:10, marginTop:4}}>
+                  {EXERCISE_LIBRARY.map(cat => (
+                    <button key={cat.category} onClick={() => {setLibCategory(cat); setLibView("subcats");}} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px", background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, cursor:"pointer", width:"100%", textAlign:"left"}}>
+                      <div style={{display:"flex", alignItems:"center", gap:14}}>
+                        <div style={{width:44, height:44, borderRadius:12, background:t.accentMuted, border:"1px solid " + t.accentBorder, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22}}>{cat.icon}</div>
+                        <div>
+                          <div style={{fontSize:15, fontWeight:700, color:t.text, fontFamily:"'Montserrat',sans-serif"}}>{cat.category}</div>
+                          <div style={{fontSize:12, color:t.textMuted, marginTop:2}}>{cat.subs.reduce((a,s)=>a+s.exercises.length,0)} exercises · {cat.subs.length} muscle groups</div>
+                        </div>
                       </div>
+                      <div style={{fontSize:18, color:t.accentText}}>›</div>
                     </button>
                   ))}
                 </div>
-              </>
-            ) : (
-              <>
-                <div style={{fontSize:20, fontWeight:700, color:"#f1f5f9", marginBottom:4}}>📚 Workout Library</div>
-                <div style={{fontSize:13, color:"#64748b", marginBottom:20}}>Saved workouts you can reload onto any day</div>
-                {library.length === 0 ? (
-                  <div style={{textAlign:"center", padding:"40px 20px", color:"#334155", fontSize:13}}>
-                    <div style={{fontSize:36, marginBottom:12}}>📚</div>
-                    <div style={{color:"#475569", marginBottom:8}}>Library is empty</div>
-                    <div style={{fontSize:12, color:"#334155", lineHeight:1.6}}>Complete a workout and tap 📊 Stats — it saves automatically.</div>
-                  </div>
-                ) : library.map(entry => (
-                  <div key={entry.id} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"14px", marginBottom:10}}>
-                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10}}>
-                      <div>
-                        <div style={{fontSize:14, fontWeight:700, color:"#f1f5f9"}}>{entry.name}</div>
-                        <div style={{fontSize:11, color:"#475569", marginTop:2}}>{entry.exercises.length} exercises · {entry.date}</div>
+              )}
+              {/* SUBCATEGORIES */}
+              {libView==="subcats" && libCategory && (
+                <div style={{display:"flex", flexDirection:"column", gap:8, marginTop:4}}>
+                  {libCategory.subs.map(sub => (
+                    <div key={sub.name} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, overflow:"hidden"}}>
+                      <div style={{padding:"10px 14px", borderBottom:"1px solid " + t.cardBorder}}>
+                        <div style={{fontSize:11, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif"}}>{sub.name}</div>
                       </div>
-                      <button onClick={() => deleteFromLibrary(entry.id)} style={{background:"none", border:"none", color:"#334155", fontSize:16, cursor:"pointer"}}>✕</button>
+                      {sub.exercises.map((ex, i) => (
+                        <button key={ex.name} onClick={() => {setLibExercise(ex); setLibView("exercise");}} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", background:"transparent", border:"none", borderBottom:i<sub.exercises.length-1?"1px solid " + t.cardBorder:"none", cursor:"pointer", width:"100%", textAlign:"left"}}>
+                          <div>
+                            <div style={{fontSize:14, color:t.text, fontWeight:500}}>{ex.name}</div>
+                            <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>{ex.sets} sets × {ex.reps} reps</div>
+                          </div>
+                          <div style={{display:"flex", alignItems:"center", gap:8}}>
+                            {ex.video && <div style={{width:28, height:28, borderRadius:8, background:"rgba(239,68,68,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:"#f87171"}}>▶</div>}
+                            <div style={{fontSize:16, color:t.accentText}}>›</div>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                    <div style={{display:"flex", flexWrap:"wrap", gap:6, marginBottom:12}}>
-                      {entry.exercises.map((ex,i) => <span key={i} style={{background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.15)", borderRadius:8, padding:"3px 8px", fontSize:11, color:"#a5b4fc"}}>{ex.name} {ex.sets}×{ex.reps}</span>)}
+                  ))}
+                </div>
+              )}
+              {/* EXERCISE DETAIL */}
+              {libView==="exercise" && libExercise && (
+                <div style={{marginTop:4}}>
+                  {libExercise.video ? (
+                    <div style={{position:"relative", width:"100%", paddingBottom:"56.25%", borderRadius:16, overflow:"hidden", background:"#000", marginBottom:16}}>
+                      <iframe src={"https://www.youtube.com/embed/" + libExercise.video + "?rel=0&modestbranding=1"} title={libExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none"}} />
                     </div>
-                    <button onClick={() => setLibraryTarget(entry)} style={{width:"100%", padding:"10px", background:"linear-gradient(135deg,#4f46e5,#7c3aed)", border:"none", borderRadius:10, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer"}}>Load onto a day →</button>
+                  ) : (
+                    <div style={{width:"100%", height:120, borderRadius:16, background:t.card, border:"1px solid " + t.cardBorder, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16, flexDirection:"column", gap:6}}>
+                      <div style={{fontSize:28}}>🎬</div>
+                      <div style={{fontSize:12, color:t.textMuted}}>Video coming soon</div>
+                    </div>
+                  )}
+                  <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:14}}>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:8, fontWeight:700}}>How to perform</div>
+                    <div style={{fontSize:14, color:t.text, lineHeight:1.7}}>{libExercise.desc}</div>
                   </div>
-                ))}
-              </>
-            )}
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16}}>
+                    {[{label:"Default Sets", val:libExercise.sets},{label:"Default Reps", val:libExercise.reps}].map(s => (
+                      <div key={s.label} style={{background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:12, padding:"12px", textAlign:"center"}}>
+                        <div style={{fontSize:24, fontWeight:800, color:t.accentText}}>{s.val}</div>
+                        <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontSize:11, color:t.textMuted, letterSpacing:1, textTransform:"uppercase", marginBottom:10, fontFamily:"'Montserrat',sans-serif", fontWeight:700}}>Add to day</div>
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
+                    {DAYS.map(day => (
+                      <button key={day} onClick={() => { addExerciseToDay(day, {id:nextId++, name:libExercise.name, sets:libExercise.sets, reps:libExercise.reps, video:libExercise.video||""}); setShowLibrary(false); setLibView("categories"); setSelectedDay(day); setView("week"); }} style={{padding:"10px", background:day===selectedDay?t.accent:t.card, border:"1px solid " + (day===selectedDay?t.accentSolid:t.cardBorder), borderRadius:10, color:day===selectedDay?"#000":t.text, fontSize:13, fontWeight:day===selectedDay?700:500, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                        <span>{FULL_DAYS[DAYS.indexOf(day)].slice(0,3)}</span>
+                        {day===selectedDay && <span style={{fontSize:10, fontWeight:700}}>NOW</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
 
       {/* MOVE TO DAY MODAL */}
       {moveModal && (
