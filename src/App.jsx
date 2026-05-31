@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://txddetoycdwoatruhojs.supabase.co";
@@ -27,9 +27,9 @@ const DEFAULT_WORKOUTS = {
     {id:9, name:"Weighted Russian Twists", sets:4, reps:20, video:"wkD8rjkodUI"},
   ],
   Tue: [
-    {id:10, name:"Flat Bench Press", sets:5, reps:6, video:"rT7DgCr-3pg"},
+    {id:10, name:"Flat Bench Press", sets:5, reps:6, video:"dblHPPUfRtE"},
     {id:11, name:"Incline Dumbbell Press", sets:4, reps:10, video:"8iPEnn-ltC8"},
-    {id:12, name:"Chest Fly / Cable Fly", sets:4, reps:12, video:"eozdVDA78K0"},
+    {id:12, name:"Chest Fly / Cable Fly", sets:4, reps:12, video:"Iwe6AmxVf7o"},
     {id:13, name:"Push-Ups", sets:3, reps:15, video:"IODxDxX7oi4"},
     {id:14, name:"Tricep Rope Pushdowns", sets:4, reps:12, video:"vB5OHsJ3EME"},
     {id:15, name:"Overhead Tricep Extensions", sets:4, reps:12, video:"_gsUck-7M74"},
@@ -96,17 +96,17 @@ const EMPTY_WORKOUTS = {Sun:[], Mon:[], Tue:[], Wed:[], Thu:[], Fri:[], Sat:[]};
 const EXERCISE_LIBRARY = [
   { category:"Push", icon:"💪", subs:[
     { name:"Chest", exercises:[
-      {name:"Flat Bench Press", sets:4, reps:8, video:"rT7DgCr-3pg", desc:"Lower the bar to your chest under control and press upward until your arms are extended."},
+      {name:"Flat Bench Press", sets:4, reps:8, video:"dblHPPUfRtE", desc:"Lower the bar to your chest under control and press upward until your arms are extended."},
       {name:"Incline Dumbbell Press", sets:4, reps:10, video:"8iPEnn-ltC8", desc:"Press the dumbbells upward from an incline bench and lower slowly to chest level."},
       {name:"Decline Bench Press", sets:4, reps:10, video:"LfyQTbGjhKo", desc:"Lower the bar to your lower chest and press upward while maintaining control."},
-      {name:"Chest Fly", sets:4, reps:12, video:"eozdVDA78K0", desc:"Bring your arms together in a wide arc and squeeze your chest at the center."},
-      {name:"Cable Fly", sets:4, reps:12, video:"eozdVDA78K0", desc:"Pull the handles together in front of your chest while maintaining a slight bend in your elbows."},
+      {name:"Chest Fly", sets:4, reps:12, video:"Iwe6AmxVf7o", desc:"Bring your arms together in a wide arc and squeeze your chest at the center."},
+      {name:"Cable Fly", sets:4, reps:12, video:"Iwe6AmxVf7o", desc:"Pull the handles together in front of your chest while maintaining a slight bend in your elbows."},
       {name:"Push-Up", sets:3, reps:15, video:"IODxDxX7oi4", desc:"Keep your body straight and lower your chest to the floor before pressing back up."},
     ]},
     { name:"Shoulders", exercises:[
       {name:"Dumbbell Shoulder Press", sets:4, reps:10, video:"qEwKCR5JCog", desc:"Press the dumbbells overhead and lower them back to shoulder level with control."},
       {name:"Arnold Press", sets:4, reps:10, video:"6Z15_WdXmVw", desc:"Rotate your palms outward as you press overhead and reverse the movement on the way down."},
-      {name:"Lateral Raises", sets:3, reps:15, video:"3VcKaXpzqRo", desc:"Raise the dumbbells out to your sides until shoulder height and lower slowly."},
+      {name:"Lateral Raises", sets:3, reps:15, video:"ygWMEFQNJxM", desc:"Raise the dumbbells out to your sides until shoulder height and lower slowly."},
       {name:"Front Raises", sets:3, reps:12, video:"gkbSqBBHqvI", desc:"Lift the weight straight in front of you to shoulder height and lower under control."},
     ]},
     { name:"Triceps", exercises:[
@@ -164,7 +164,7 @@ const EXERCISE_LIBRARY = [
     { name:"Glute Exercises", exercises:[
       {name:"Hip Thrust", sets:4, reps:12, video:"xDmFkJxPzeM", desc:"Drive your hips upward and squeeze your glutes at the top."},
       {name:"Glute Bridge", sets:4, reps:15, video:"jQkKeL4Cg8M", desc:"Lift your hips from the floor while squeezing your glutes."},
-      {name:"Cable Kickback", sets:4, reps:15, video:"AU_Kkzca5AI", desc:"Kick your leg backward against resistance while keeping your torso stable."},
+      {name:"Cable Kickback", sets:4, reps:15, video:"jFENS0YA0Bc", desc:"Kick your leg backward against resistance while keeping your torso stable."},
       {name:"Hip Abductor Machine", sets:4, reps:15, video:"G_8LItOiZ0Q", desc:"Push your knees outward and squeeze your glutes."},
       {name:"Sumo Squat", sets:4, reps:12, video:"aVFHn7B3RXI", desc:"Use a wide stance and squat while keeping your chest up."},
       {name:"Step-Ups", sets:4, reps:12, video:"dQqApCGd5Ss", desc:"Step onto a platform and drive through your lead leg."},
@@ -187,8 +187,8 @@ const EXERCISE_LIBRARY = [
   ]},
   { category:"Functional", icon:"🔥", subs:[
     { name:"Functional Fitness", exercises:[
-      {name:"Sled Push", sets:4, reps:1, video:"-_5VxTpqj7A", desc:"Drive the sled forward using powerful leg drive and full-body tension."},
-      {name:"Sled Pull", sets:4, reps:1, video:"-_5VxTpqj7A", desc:"Pull the sled toward you with a rope while keeping your core tight."},
+      {name:"Sled Push", sets:4, reps:1, video:"SItS3bwnSmI", desc:"Drive the sled forward using powerful leg drive and full-body tension."},
+      {name:"Sled Pull", sets:4, reps:1, video:"SItS3bwnSmI", desc:"Pull the sled toward you with a rope while keeping your core tight."},
       {name:"Farmer Carry", sets:4, reps:1, video:"Fkzk_RqlYig", desc:"Walk with heavy weights in each hand while keeping your core braced."},
       {name:"Kettlebell Swing", sets:4, reps:20, video:"ZYgRuQoh6Qc", desc:"Hinge at the hips and drive the kettlebell forward with explosive hip extension."},
       {name:"Battle Ropes", sets:4, reps:1, video:"Y6nFmyQ5SR0", desc:"Alternate waves or slam the ropes while maintaining a strong athletic stance."},
@@ -259,6 +259,7 @@ export default function FitStud() {
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const [touchStartY, setTouchStartY] = useState(null);
+  const dragIndexRef = useRef(null);
   const [moveModal, setMoveModal] = useState(null);
   const [history, setHistory] = useState(() => load("fs_history", {}));
   const [showHistory, setShowHistory] = useState(false);
@@ -293,6 +294,17 @@ export default function FitStud() {
   const [workoutFinished, setWorkoutFinished] = useState(false);
   const [nutrition, setNutrition] = useState(() => load("fs_nutrition", {}));
   const [showNutrition, setShowNutrition] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileTab, setProfileTab] = useState("info"); // "info" | "progress" | "gallery" | "settings"
+  const [profileData, setProfileData] = useState(() => load("fs_profile", {name:"", age:"", weight:"", height:"", goal:"", language:"English"}));
+  const [avatarUrl, setAvatarUrl] = useState(() => load("fs_avatar", null));
+  const [progressPhotos, setProgressPhotos] = useState(() => load("fs_progress_photos", {}));
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [messages, setMessages] = useState(() => load("fs_messages", [
+    {id:1, from:"coach", text:"Welcome to FitStud! I'm here to help you reach your goals. Feel free to message me anytime 💪", time:"Today"},
+  ]));
+  const [newMessage, setNewMessage] = useState("");
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => { if (workouts) save("fs_workouts", workouts); }, [workouts]);
@@ -301,6 +313,10 @@ export default function FitStud() {
   useEffect(() => { save("fs_history", history); }, [history]);
   useEffect(() => { save("fs_library", library); }, [library]);
   useEffect(() => { save("fs_nutrition", nutrition); }, [nutrition]);
+  useEffect(() => { save("fs_profile", profileData); }, [profileData]);
+  useEffect(() => { save("fs_avatar", avatarUrl); }, [avatarUrl]);
+  useEffect(() => { save("fs_progress_photos", progressPhotos); }, [progressPhotos]);
+  useEffect(() => { save("fs_messages", messages); }, [messages]);
 
   // Auth listener
   useEffect(() => {
@@ -351,6 +367,45 @@ export default function FitStud() {
   useEffect(() => { if (user) saveToSupabase("user_setdata", "setdata", setData); }, [setData, user]);
   useEffect(() => { if (user) saveToSupabase("user_history", "history", history); }, [history, user]);
   useEffect(() => { if (user) saveToSupabase("user_library", "library", library); }, [library, user]);
+
+  const uploadAvatar = async (file) => {
+    if (!user || !file) return;
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = user.id + "/avatar." + ext;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (!error) {
+        const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+        setAvatarUrl(data.publicUrl + "?t=" + Date.now());
+      }
+    } catch(e) { console.log("Avatar upload error", e); }
+    setUploadingAvatar(false);
+  };
+
+  const uploadProgressPhoto = async (file, monthKey) => {
+    if (!user || !file) return;
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = user.id + "/" + monthKey + "_" + Date.now() + "." + ext;
+      const { error } = await supabase.storage.from("progress-photos").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("progress-photos").getPublicUrl(path);
+        setProgressPhotos(prev => ({
+          ...prev,
+          [monthKey]: [...(prev[monthKey]||[]), data.publicUrl]
+        }));
+      }
+    } catch(e) { console.log("Photo upload error", e); }
+    setUploadingPhoto(false);
+  };
+
+  const getProgressPct = () => {
+    const totalWorkouts = Object.keys(history).length;
+    const target = 20;
+    return Math.min(100, Math.round((totalWorkouts / target) * 100));
+  };
 
   const handleSignUp = async () => {
     if (!authEmail || !authPassword) return;
@@ -420,16 +475,20 @@ export default function FitStud() {
   };
 
   const handleDragEnd = () => {
-    if (dragIndex !== null && dragOver !== null && dragIndex !== dragOver) {
-      setWorkouts(prev => {
-        const list = [...(prev[selectedDay]||[])];
-        const [moved] = list.splice(dragIndex, 1);
-        list.splice(dragOver, 0, moved);
-        return {...prev, [selectedDay]: list};
-      });
-    }
+    const di = dragIndexRef.current;
+    setDragOver(prev => {
+      if (di !== null && prev !== null && di !== prev) {
+        setWorkouts(w => {
+          const list = [...(w[selectedDay]||[])];
+          const [moved] = list.splice(di, 1);
+          list.splice(prev, 0, moved);
+          return {...w, [selectedDay]: list};
+        });
+      }
+      return null;
+    });
     setDragIndex(null);
-    setDragOver(null);
+    dragIndexRef.current = null;
   };
 
   const moveToDay = (ex, targetDay) => {
@@ -845,7 +904,7 @@ export default function FitStud() {
             setWorkouts(EMPTY_WORKOUTS);
             setShowSetup(false);
           }} style={{padding:"14px", background:"transparent", border:"1px solid rgba(212,175,55,0.15)", borderRadius:16, color:"#52525b", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Poppins',sans-serif"}}>
-            Start empty — I'll add workouts myself
+            Start empty — I will add workouts myself
           </button>
         </div>
 
@@ -880,7 +939,9 @@ export default function FitStud() {
             <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚</button>
             <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓</button>
             {user ? (
-              <button onClick={handleLogout} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>👤</button>
+              <button onClick={() => setShowProfile(true)} style={{width:34, height:34, background:avatarUrl?"transparent":t.card, border:"1px solid " + t.cardBorder, borderRadius:"50%", overflow:"hidden", cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center"}}>
+                {avatarUrl ? <img src={avatarUrl} style={{width:"100%", height:"100%", objectFit:"cover"}} alt="avatar" /> : <span style={{fontSize:16}}>👤</span>}
+              </button>
             ) : (
               <button onClick={() => {setShowAuth(true); setAuthMode("login");}} style={{background:t.accent, border:"none", borderRadius:12, padding:"8px 12px", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer"}}>Login</button>
             )}
@@ -970,17 +1031,6 @@ export default function FitStud() {
               const finished = done === ex.sets;
               return (
                 <div key={ex.id}
-                  onTouchStart={editMode ? (e) => { setDragIndex(exIdx); setTouchStartY(e.touches[0].clientY); } : undefined}
-                  onTouchMove={editMode ? (e) => {
-                    if (dragIndex === null) return;
-                    const y = e.touches[0].clientY;
-                    const cards = document.querySelectorAll("[data-excard]");
-                    cards.forEach((card, ci) => {
-                      const rect = card.getBoundingClientRect();
-                      if (y >= rect.top && y <= rect.bottom) setDragOver(ci);
-                    });
-                  } : undefined}
-                  onTouchEnd={editMode ? handleDragEnd : undefined}
                   data-excard
                   style={{background:finished?t.cardActive:t.card, border:"1px solid " + (finished?t.accentSolid:t.cardBorder), outline:"none", borderRadius:20, padding:"16px", opacity:editMode && dragOver === exIdx ? 0.6 : 1, transition:"opacity 0.15s"}}>
                   {/* Edit controls */}
@@ -989,17 +1039,42 @@ export default function FitStud() {
                       {/* Hamburger drag handle - works on mobile touch */}
                       <div
                         draggable
-                        onDragStart={() => setDragIndex(exIdx)}
+                        onDragStart={() => { setDragIndex(exIdx); dragIndexRef.current = exIdx; }}
                         onDragOver={e => { e.preventDefault(); setDragOver(exIdx); }}
                         onDragEnd={handleDragEnd}
+                        onTouchStart={e => {
+                          e.stopPropagation();
+                          setDragIndex(exIdx);
+                          dragIndexRef.current = exIdx;
+                          setTouchStartY(e.touches[0].clientY);
+                        }}
+                        onTouchMove={e => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const y = e.touches[0].clientY;
+                          const cards = document.querySelectorAll("[data-excard]");
+                          let found = false;
+                          cards.forEach((card, ci) => {
+                            const rect = card.getBoundingClientRect();
+                            if (y >= rect.top && y <= rect.bottom && !found) {
+                              found = true;
+                              setDragOver(ci);
+                            }
+                          });
+                        }}
+                        onTouchEnd={e => {
+                          e.stopPropagation();
+                          handleDragEnd();
+                        }}
                         style={{
-                          display:"flex", flexDirection:"column", gap:4, padding:"10px 12px",
+                          display:"flex", flexDirection:"column", gap:4, padding:"12px 14px",
                           background:t.accentMuted, border:"1px solid " + t.accentBorder,
                           borderRadius:8, cursor:"grab", alignItems:"center", justifyContent:"center",
                           opacity: dragOver === exIdx ? 0.5 : 1, touchAction:"none",
+                          userSelect:"none", WebkitUserSelect:"none",
                         }}
                       >
-                        {[0,1,2].map(i => <div key={i} style={{width:18, height:2, background:t.accentText, borderRadius:1}} />)}
+                        {[0,1,2].map(i => <div key={i} style={{width:20, height:2.5, background:t.accentText, borderRadius:1}} />)}
                       </div>
                       <button onClick={() => setMoveModal(ex)} style={{background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:8, padding:"6px 12px", color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>Move day →</button>
                       <div style={{flex:1}} />
@@ -1594,6 +1669,193 @@ export default function FitStud() {
                 ))}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* PROFILE MODAL */}
+      {showProfile && (
+        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.95)", backdropFilter:"blur(16px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:600}}>
+          <div style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"92vh", display:"flex", flexDirection:"column"}}>
+
+            {/* Header */}
+            <div style={{padding:"16px 20px 0", flexShrink:0}}>
+              <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>MY PROFILE</div>
+                <button onClick={() => setShowProfile(false)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>✕</button>
+              </div>
+
+              {/* Avatar + name */}
+              <div style={{display:"flex", alignItems:"center", gap:16, marginBottom:16}}>
+                <div style={{position:"relative"}}>
+                  <div style={{width:72, height:72, borderRadius:"50%", background:t.accentMuted, border:"2px solid " + t.accentSolid, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center"}}>
+                    {avatarUrl ? <img src={avatarUrl} style={{width:"100%", height:"100%", objectFit:"cover"}} alt="avatar" /> : <span style={{fontSize:32}}>👤</span>}
+                  </div>
+                  <label style={{position:"absolute", bottom:0, right:0, width:24, height:24, borderRadius:"50%", background:t.accent, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:12}}>
+                    {uploadingAvatar ? "⌛" : "📷"}
+                    <input type="file" accept="image/*" style={{display:"none"}} onChange={e => { if(e.target.files[0]) uploadAvatar(e.target.files[0]); }} />
+                  </label>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:17, fontWeight:700, color:t.text}}>{profileData.name || (user?.email?.split("@")[0]) || "Athlete"}</div>
+                  <div style={{fontSize:12, color:t.textMuted, marginTop:2}}>{user?.email || "Not logged in"}</div>
+                  {/* Progress bar */}
+                  <div style={{marginTop:8}}>
+                    <div style={{display:"flex", justifyContent:"space-between", marginBottom:4}}>
+                      <span style={{fontSize:10, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif"}}>Monthly Progress</span>
+                      <span style={{fontSize:10, color:t.accentText, fontWeight:700}}>{getProgressPct()}%</span>
+                    </div>
+                    <div style={{height:6, background:t.cardBorder, borderRadius:3}}>
+                      <div style={{height:6, width:getProgressPct()+"%", background:"linear-gradient(135deg,#D4AF37,#B8941F)", borderRadius:3, transition:"width 0.5s", boxShadow:"0 0 8px rgba(212,175,55,0.5)"}} />
+                    </div>
+                    <div style={{fontSize:10, color:t.textMuted, marginTop:3}}>{Object.keys(history).length} workouts completed · goal: 20/month</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tab bar */}
+              <div style={{display:"flex", gap:4, background:t.toggleBg, borderRadius:12, padding:4, marginBottom:0}}>
+                {[["info","Info"],["gallery","Gallery"],["settings","Settings"]].map(([tab, label]) => (
+                  <button key={tab} onClick={() => setProfileTab(tab)} style={{flex:1, padding:"8px 4px", borderRadius:9, border:"none", background:profileTab===tab?t.accent:"transparent", color:profileTab===tab?"#000":t.textMuted, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Montserrat',sans-serif"}}>{label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{overflowY:"auto", flex:1, padding:"16px 20px 40px"}}>
+
+              {/* MESSAGES at top always */}
+              <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, marginBottom:16, overflow:"hidden"}}>
+                <div style={{padding:"10px 14px", borderBottom:"1px solid " + t.cardBorder, display:"flex", alignItems:"center", gap:8}}>
+                  <div style={{width:8, height:8, borderRadius:"50%", background:"#22c55e"}} />
+                  <span style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif"}}>Coach Messages</span>
+                </div>
+                <div style={{maxHeight:160, overflowY:"auto", padding:"8px 14px"}}>
+                  {messages.map(msg => (
+                    <div key={msg.id} style={{display:"flex", gap:8, marginBottom:10, justifyContent:msg.from==="coach"?"flex-start":"flex-end"}}>
+                      {msg.from==="coach" && <div style={{width:28, height:28, borderRadius:"50%", background:t.accentMuted, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0}}>🏋️</div>}
+                      <div style={{maxWidth:"80%", padding:"8px 12px", borderRadius:msg.from==="coach"?"4px 14px 14px 14px":"14px 4px 14px 14px", background:msg.from==="coach"?t.card:t.accentMuted, border:"1px solid " + t.cardBorder}}>
+                        <div style={{fontSize:13, color:t.text, lineHeight:1.5}}>{msg.text}</div>
+                        <div style={{fontSize:10, color:t.textMuted, marginTop:4}}>{msg.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{padding:"8px 14px", borderTop:"1px solid " + t.cardBorder, display:"flex", gap:8}}>
+                  <input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Message your coach..." onKeyDown={e => { if(e.key==="Enter" && newMessage.trim()) { setMessages(prev => [...prev, {id:Date.now(), from:"user", text:newMessage.trim(), time:"Just now"}]); setNewMessage(""); }}}
+                    style={{flex:1, padding:"8px 12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:13, outline:"none"}} />
+                  <button onClick={() => { if(newMessage.trim()) { setMessages(prev => [...prev, {id:Date.now(), from:"user", text:newMessage.trim(), time:"Just now"}]); setNewMessage(""); }}} style={{padding:"8px 14px", background:t.accent, border:"none", borderRadius:10, color:"#000", fontSize:13, fontWeight:700, cursor:"pointer"}}>Send</button>
+                </div>
+              </div>
+
+              {/* INFO TAB */}
+              {profileTab==="info" && (
+                <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                  {[
+                    {key:"name", label:"Full Name", placeholder:"Your name", type:"text"},
+                    {key:"age", label:"Age", placeholder:"Your age", type:"number"},
+                    {key:"weight", label:"Weight (lbs)", placeholder:"Current weight", type:"number"},
+                    {key:"height", label:"Height (ft/in)", placeholder:'e.g. 5'11"', type:"text"},
+                  ].map(field => (
+                    <div key={field.key}>
+                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:6, fontWeight:600}}>{field.label}</div>
+                      <input type={field.type} placeholder={field.placeholder} value={profileData[field.key]||""} onChange={e => setProfileData(p => ({...p, [field.key]:e.target.value}))}
+                        style={{width:"100%", padding:"12px 14px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box"}} />
+                    </div>
+                  ))}
+                  <div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:6, fontWeight:600}}>Fitness Goal</div>
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
+                      {["Gain Muscle","Lose Weight","Build Strength","Improve Agility","Full Body","Athletic Performance"].map(g => (
+                        <button key={g} onClick={() => setProfileData(p => ({...p, goal:g}))} style={{padding:"10px", background:profileData.goal===g?t.accent:t.card, border:"1px solid " + (profileData.goal===g?t.accentSolid:t.cardBorder), borderRadius:10, color:profileData.goal===g?"#000":t.text, fontSize:12, fontWeight:profileData.goal===g?700:400, cursor:"pointer"}}>{g}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={() => setShowProfile(false)} style={{width:"100%", padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, marginTop:8}}>SAVE PROFILE</button>
+                </div>
+              )}
+
+              {/* GALLERY TAB */}
+              {profileTab==="gallery" && (
+                <div>
+                  <div style={{fontSize:12, color:t.textMuted, marginBottom:16, lineHeight:1.6}}>Track your transformation month by month. Add before & after photos to see your progress over time.</div>
+                  {["Month 1","Month 2","Month 3","Month 4","Month 5","Month 6"].map(month => {
+                    const key = month.replace(" ","_").toLowerCase();
+                    const photos = progressPhotos[key] || [];
+                    return (
+                      <div key={month} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px", marginBottom:10}}>
+                        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                          <div style={{fontSize:13, fontWeight:700, color:t.accentText, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>{month.toUpperCase()}</div>
+                          <label style={{padding:"6px 12px", background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:8, color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>
+                            {uploadingPhoto ? "Uploading..." : "+ Add Photo"}
+                            <input type="file" accept="image/*" style={{display:"none"}} onChange={e => { if(e.target.files[0]) uploadProgressPhoto(e.target.files[0], key); }} />
+                          </label>
+                        </div>
+                        {photos.length > 0 ? (
+                          <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6}}>
+                            {photos.map((url, i) => (
+                              <div key={i} style={{aspectRatio:"1", borderRadius:8, overflow:"hidden", background:t.toggleBg}}>
+                                <img src={url} style={{width:"100%", height:"100%", objectFit:"cover"}} alt={"progress " + i} />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{textAlign:"center", padding:"20px", color:t.textMuted, fontSize:12}}>No photos yet — add your first photo!</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* SETTINGS TAB */}
+              {profileTab==="settings" && (
+                <div style={{display:"flex", flexDirection:"column", gap:10}}>
+                  {/* Change password */}
+                  <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px"}}>
+                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:12}}>Change Password</div>
+                    <input type="password" placeholder="New password" id="newpw"
+                      style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:8}} />
+                    <button onClick={async () => {
+                      const pw = document.getElementById("newpw").value;
+                      if (!pw || pw.length < 6) return;
+                      const { error } = await supabase.auth.updateUser({ password: pw });
+                      if (!error) { alert("Password updated!"); document.getElementById("newpw").value = ""; }
+                      else alert("Error: " + error.message);
+                    }} style={{width:"100%", padding:"11px", background:t.accent, border:"none", borderRadius:10, color:"#000", fontSize:13, fontWeight:700, cursor:"pointer"}}>Update Password</button>
+                  </div>
+
+                  {/* Language */}
+                  <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px"}}>
+                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:12}}>Language</div>
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
+                      {["English","Español","Français","Português"].map(lang => (
+                        <button key={lang} onClick={() => setProfileData(p => ({...p, language:lang}))} style={{padding:"10px", background:profileData.language===lang?t.accent:t.card, border:"1px solid " + (profileData.language===lang?t.accentSolid:t.cardBorder), borderRadius:10, color:profileData.language===lang?"#000":t.text, fontSize:13, fontWeight:profileData.language===lang?700:400, cursor:"pointer"}}>{lang}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Notifications placeholder */}
+                  <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px"}}>
+                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:12}}>Notifications</div>
+                    {[["Daily workout reminder","Remind me to train every day"],["Missed day alert","Alert me when I skip a day"],["Weekly summary","Get weekly progress summary"]].map(([label, desc]) => (
+                      <div key={label} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid " + t.cardBorder}}>
+                        <div>
+                          <div style={{fontSize:13, color:t.text, fontWeight:500}}>{label}</div>
+                          <div style={{fontSize:11, color:t.textMuted}}>{desc}</div>
+                        </div>
+                        <div style={{width:44, height:24, borderRadius:12, background:t.accentMuted, border:"1px solid " + t.accentBorder, position:"relative", cursor:"pointer"}}>
+                          <div style={{position:"absolute", right:2, top:2, width:20, height:20, borderRadius:"50%", background:t.accentText}} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Logout */}
+                  <button onClick={() => { handleLogout(); setShowProfile(false); }} style={{width:"100%", padding:"14px", background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", borderRadius:14, color:"#f87171", fontSize:14, fontWeight:700, cursor:"pointer", marginTop:8}}>Sign Out</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
