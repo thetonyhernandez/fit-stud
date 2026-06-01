@@ -988,14 +988,10 @@ export default function FitStud() {
             }}
             style={{display:"flex", gap:8, padding:"16px 12px 8px", overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch"}}>
             {Array.from({length:7}, (_, i) => {
-              // Build a 7-day window starting from Monday of current week + offset
+              // Rolling 7-day window starting from today + offset days
               const base = new Date();
-              const currentDow = base.getDay(); // 0=Sun
-              // Start from Sunday of current week
-              const startOfWeek = new Date(base);
-              startOfWeek.setDate(base.getDate() - currentDow + (weekOffset * 7));
-              const slotDate = new Date(startOfWeek);
-              slotDate.setDate(startOfWeek.getDate() + i);
+              const slotDate = new Date(base);
+              slotDate.setDate(base.getDate() + (weekOffset * 7) + i);
 
               const dateNum = slotDate.getDate();
               const dateMonth = slotDate.getMonth();
