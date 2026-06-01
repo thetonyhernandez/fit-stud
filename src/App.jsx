@@ -292,6 +292,10 @@ export default function FitStud() {
   const [authSubmitting, setAuthSubmitting] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle"); // "idle" | "saving" | "saved"
   const [workoutFinished, setWorkoutFinished] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [statsPeriod, setStatsPeriod] = useState("weekly");
+  const [nutritionPeriod, setNutritionPeriod] = useState("daily");
+  const [touchSwipeStart, setTouchSwipeStart] = useState(null);
   const [nutrition, setNutrition] = useState(() => load("fs_nutrition", {}));
   const [showNutrition, setShowNutrition] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -302,7 +306,7 @@ export default function FitStud() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [messages, setMessages] = useState(() => load("fs_messages", [
-    {id:1, from:"coach", text:"Welcome to FitStud! I'm here to help you reach your goals. Feel free to message me anytime 💪", time:"Today"},
+    {id:1, from:"coach", text:"Welcome to FitStud! I am here to help you reach your goals. Feel free to message me anytime 💪", time:"Today"},
   ]));
   const [newMessage, setNewMessage] = useState("");
 
@@ -563,15 +567,15 @@ export default function FitStud() {
   };
 
   const QUOTES = [
-    { msg: "You showed up. That's already more than most people did today.", emoji: "🔥" },
-    { msg: "Every rep, every set — you're building a version of yourself that won't quit.", emoji: "💪" },
-    { msg: "The pain you feel today is the strength you'll feel tomorrow.", emoji: "⚡" },
-    { msg: "You didn't come this far to only come this far. Keep going.", emoji: "🚀" },
-    { msg: "Champions aren't born. They're built — exactly like you're doing right now.", emoji: "🏆" },
-    { msg: "One workout closer to the body and life you're working for.", emoji: "🎯" },
+    { msg: "You showed up. That is already more than most people did today.", emoji: "🔥" },
+    { msg: "Every rep, every set — you are building a version of yourself that will not quit.", emoji: "💪" },
+    { msg: "The pain you feel today is the strength you will feel tomorrow.", emoji: "⚡" },
+    { msg: "You did not come this far to only come this far. Keep going.", emoji: "🚀" },
+    { msg: "Champions are not born. They are built — exactly like you are doing right now.", emoji: "🏆" },
+    { msg: "One workout closer to the body and life you are working for.", emoji: "🎯" },
     { msg: "Discipline is choosing what you want most over what you want now. You chose right.", emoji: "👑" },
     { msg: "Your future self is thanking you right now.", emoji: "✨" },
-    { msg: "Greatness isn't given. It's earned. Today you earned it.", emoji: "💎" },
+    { msg: "Greatness is not given. It is earned. Today you earned it.", emoji: "💎" },
     { msg: "The hardest part was starting. You did that. The rest is just details.", emoji: "🦁" },
   ];
   const getQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
@@ -778,8 +782,8 @@ export default function FitStud() {
   if (authLoading) {
     return (
       <div style={{minHeight:"100vh", background:"#0B0B0B", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16}}>
-        <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:"#FFFFFF", fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
-        <div style={{fontSize:9, letterSpacing:3, color:"#D4AF37", fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>FORGE YOUR LEGACY</div>
+        <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:"#FFFFFF", fontFamily:"Montserrat,sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+        <div style={{fontSize:9, letterSpacing:3, color:"#D4AF37", fontFamily:"Montserrat,sans-serif", fontWeight:600}}>FORGE YOUR LEGACY</div>
         <div style={{marginTop:16, width:24, height:24, border:"2px solid rgba(212,175,55,0.3)", borderTopColor:"#D4AF37", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} />
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
@@ -788,44 +792,44 @@ export default function FitStud() {
 
   if (showSetup) {
     return (
-      <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"'Poppins',system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
+      <div style={{minHeight:"100vh", background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)", fontFamily:"Poppins,system-ui,sans-serif", color:"#e2e8f0", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center"}}>
         <div style={{fontSize:48, marginBottom:16}}>💪</div>
-        <div style={{fontSize:32, fontWeight:900, color:"#FFFFFF", letterSpacing:4, marginBottom:4, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
-        <div style={{fontSize:11, letterSpacing:4, textTransform:"uppercase", color:"#D4AF37", marginBottom:8, fontFamily:"'Montserrat',sans-serif", fontWeight:600}}>FORGE YOUR LEGACY</div>
-        <div style={{fontSize:14, color:"#71717a", marginBottom:48, lineHeight:1.6, fontFamily:"'Poppins',sans-serif"}}>The all-in-one workout tracker built for coaches and athletes</div>
+        <div style={{fontSize:32, fontWeight:900, color:"#FFFFFF", letterSpacing:4, marginBottom:4, fontFamily:"Montserrat,sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+        <div style={{fontSize:11, letterSpacing:4, textTransform:"uppercase", color:"#D4AF37", marginBottom:8, fontFamily:"Montserrat,sans-serif", fontWeight:600}}>FORGE YOUR LEGACY</div>
+        <div style={{fontSize:14, color:"#71717a", marginBottom:48, lineHeight:1.6, fontFamily:"Poppins,sans-serif"}}>The all-in-one workout tracker built for coaches and athletes</div>
 
         <div style={{width:"100%", maxWidth:380, display:"flex", flexDirection:"column", gap:12}}>
           <button onClick={() => {
             setWorkouts(DEFAULT_WORKOUTS);
             setShowSetup(false);
-          }} style={{padding:"16px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:16, color:"#000", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>
+          }} style={{padding:"16px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:16, color:"#000", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, textTransform:"uppercase"}}>
             Load Month 1 Program
           </button>
 
           {/* AI Plan Builder - Questionnaire */}
           {setupStep === "welcome" && (
-            <button onClick={() => setSetupStep("questionnaire")} style={{width:"100%", padding:"16px", background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.3)", borderRadius:16, color:"#D4AF37", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>
+            <button onClick={() => setSetupStep("questionnaire")} style={{width:"100%", padding:"16px", background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.3)", borderRadius:16, color:"#D4AF37", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, textTransform:"uppercase"}}>
               ✨ Build My Custom Plan with AI
             </button>
           )}
 
           {setupStep === "questionnaire" && (
             <div style={{background:"rgba(212,175,55,0.05)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:16, padding:"16px", width:"100%"}}>
-              <div style={{fontSize:13, fontWeight:800, color:"#D4AF37", marginBottom:16, fontFamily:"'Montserrat',sans-serif", letterSpacing:1, textTransform:"uppercase"}}>Tell us about yourself</div>
+              <div style={{fontSize:13, fontWeight:800, color:"#D4AF37", marginBottom:16, fontFamily:"Montserrat,sans-serif", letterSpacing:1, textTransform:"uppercase"}}>Tell us about yourself</div>
 
               {/* Goal */}
               <div style={{marginBottom:12}}>
-                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Your Goal</div>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"Montserrat,sans-serif"}}>Your Goal</div>
                 <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:6}}>
                   {["Gain Muscle","Lose Weight","Build Strength","Improve Agility","Full Body Conditioning","Athletic Performance"].map(g => (
-                    <button key={g} onClick={() => setUserProfile(p => ({...p, goal:g}))} style={{padding:"8px", background:userProfile.goal===g?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.goal===g?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.goal===g?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'Poppins',sans-serif"}}>{g}</button>
+                    <button key={g} onClick={() => setUserProfile(p => ({...p, goal:g}))} style={{padding:"8px", background:userProfile.goal===g?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.goal===g?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.goal===g?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"Poppins,sans-serif"}}>{g}</button>
                   ))}
                 </div>
               </div>
 
               {/* Level */}
               <div style={{marginBottom:12}}>
-                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Fitness Level</div>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"Montserrat,sans-serif"}}>Fitness Level</div>
                 <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
                   {["Beginner","Intermediate","Advanced"].map(l => (
                     <button key={l} onClick={() => setUserProfile(p => ({...p, level:l}))} style={{padding:"8px", background:userProfile.level===l?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.level===l?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.level===l?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer"}}>{l}</button>
@@ -835,7 +839,7 @@ export default function FitStud() {
 
               {/* Days */}
               <div style={{marginBottom:12}}>
-                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Days per Week</div>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"Montserrat,sans-serif"}}>Days per Week</div>
                 <div style={{display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:6}}>
                   {["2","3","4","5","6"].map(d => (
                     <button key={d} onClick={() => setUserProfile(p => ({...p, days:d}))} style={{padding:"8px", background:userProfile.days===d?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.days===d?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.days===d?"#000":"#D4AF37", fontSize:13, fontWeight:700, cursor:"pointer"}}>{d}</button>
@@ -845,7 +849,7 @@ export default function FitStud() {
 
               {/* Equipment */}
               <div style={{marginBottom:12}}>
-                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Equipment</div>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"Montserrat,sans-serif"}}>Equipment</div>
                 <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6}}>
                   {["Full Gym","Home Gym","No Equipment"].map(e => (
                     <button key={e} onClick={() => setUserProfile(p => ({...p, equipment:e}))} style={{padding:"8px", background:userProfile.equipment===e?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)", border:"1px solid " + (userProfile.equipment===e?"#D4AF37":"rgba(212,175,55,0.2)"), borderRadius:8, color:userProfile.equipment===e?"#000":"#D4AF37", fontSize:11, fontWeight:700, cursor:"pointer"}}>{e}</button>
@@ -855,9 +859,9 @@ export default function FitStud() {
 
               {/* Injuries optional */}
               <div style={{marginBottom:16}}>
-                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"'Montserrat',sans-serif"}}>Any injuries? (optional)</div>
+                <div style={{fontSize:11, color:"#D4AF37", letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontFamily:"Montserrat,sans-serif"}}>Any injuries? (optional)</div>
                 <input type="text" placeholder="e.g. bad knees, lower back pain..." value={userProfile.injuries} onChange={e => setUserProfile(p => ({...p, injuries:e.target.value}))}
-                  style={{width:"100%", padding:"10px 12px", background:"rgba(212,175,55,0.06)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:10, color:"#fff", fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"'Poppins',sans-serif"}} />
+                  style={{width:"100%", padding:"10px 12px", background:"rgba(212,175,55,0.06)", border:"1px solid rgba(212,175,55,0.2)", borderRadius:10, color:"#fff", fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"Poppins,sans-serif"}} />
               </div>
 
               {setupError && <div style={{color:"#f87171", fontSize:12, marginBottom:10, textAlign:"center"}}>{setupError}</div>}
@@ -892,7 +896,7 @@ export default function FitStud() {
                   setSetupLoading(false);
                 }}
                 disabled={setupLoading}
-                style={{width:"100%", padding:"14px", background:setupLoading?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:setupLoading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}
+                style={{width:"100%", padding:"14px", background:setupLoading?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:setupLoading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}
               >
                 {setupLoading ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(0,0,0,0.3)", borderTopColor:"#000", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> Building your plan...</> : "BUILD MY PROGRAM →"}
               </button>
@@ -903,12 +907,12 @@ export default function FitStud() {
           <button onClick={() => {
             setWorkouts(EMPTY_WORKOUTS);
             setShowSetup(false);
-          }} style={{padding:"14px", background:"transparent", border:"1px solid rgba(212,175,55,0.15)", borderRadius:16, color:"#52525b", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Poppins',sans-serif"}}>
+          }} style={{padding:"14px", background:"transparent", border:"1px solid rgba(212,175,55,0.15)", borderRadius:16, color:"#52525b", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"Poppins,sans-serif"}}>
             Start empty — I will add workouts myself
           </button>
         </div>
 
-        <div style={{marginTop:24, fontSize:11, color:"#3f3f46", lineHeight:1.8, textAlign:"center", fontFamily:"'Poppins',sans-serif"}}>
+        <div style={{marginTop:24, fontSize:11, color:"#3f3f46", lineHeight:1.8, textAlign:"center", fontFamily:"Poppins,sans-serif"}}>
           Your data is encrypted and saved securely<br/>Nothing is shared with anyone
         </div>
       </div>
@@ -916,9 +920,8 @@ export default function FitStud() {
   }
 
   return (
-    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"'Poppins',system-ui,sans-serif", color:t.text, paddingBottom:80, border:"none", outline:"none", margin:0, boxSizing:"border-box"}}>
+    <div style={{minHeight:"100vh", background:t.bg, fontFamily:"Poppins,system-ui,sans-serif", color:t.text, paddingBottom:80, border:"none", outline:"none", margin:0, boxSizing:"border-box"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap');
         @keyframes spin{to{transform:rotate(360deg)}}
         * { font-family: 'Poppins', system-ui, sans-serif; margin:0; padding:0; box-sizing:border-box; }
         html, body, #root { background: #0B0B0B; min-height: 100vh; min-height: -webkit-fill-available; }
@@ -929,8 +932,8 @@ export default function FitStud() {
       <div style={{padding:"24px 20px 16px", borderBottom:"1px solid " + t.headerBorder, background:t.header, margin:0}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
           <div>
-              <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", lineHeight:1}}>FITSTUD</div>
-              <div style={{fontSize:9, letterSpacing:3, textTransform:"uppercase", color:t.accentText, fontFamily:"'Montserrat',sans-serif", fontWeight:600, lineHeight:1, marginTop:3}}>FORGE YOUR LEGACY</div>
+              <div style={{fontSize:24, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"Montserrat,sans-serif", textTransform:"uppercase", lineHeight:1}}>FITSTUD</div>
+              <div style={{fontSize:9, letterSpacing:3, textTransform:"uppercase", color:t.accentText, fontFamily:"Montserrat,sans-serif", fontWeight:600, lineHeight:1, marginTop:3}}>FORGE YOUR LEGACY</div>
             </div>
           <div style={{display:"flex", gap:6, alignItems:"center"}}>
             {/* Sync indicator */}
@@ -939,7 +942,7 @@ export default function FitStud() {
             <button onClick={() => setShowLibrary(true)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>📚</button>
             <button onClick={() => {setShowPlanner(true); setPlannerPreview(null); setPlannerError("");}} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"8px 10px", color:t.textSub, fontSize:12, fontWeight:600, cursor:"pointer"}}>🗓</button>
             {user ? (
-              <button onClick={() => setShowProfile(true)} style={{width:34, height:34, background:avatarUrl?"transparent":t.card, border:"1px solid " + t.cardBorder, borderRadius:"50%", overflow:"hidden", cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center"}}>
+              <button onClick={(e) => { e.stopPropagation(); setShowProfile(true); }} style={{width:34, height:34, background:avatarUrl?"transparent":t.card, border:"1px solid " + t.cardBorder, borderRadius:"50%", overflow:"hidden", cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center"}}>
                 {avatarUrl ? <img src={avatarUrl} style={{width:"100%", height:"100%", objectFit:"cover"}} alt="avatar" /> : <span style={{fontSize:16}}>👤</span>}
               </button>
             ) : (
@@ -969,27 +972,83 @@ export default function FitStud() {
       {/* WEEK VIEW */}
       {view === "week" && (
         <div>
-          {/* Day strip */}
-          <div style={{display:"flex", gap:8, padding:"16px 12px", overflowX:"auto"}}>
-            {DAYS.map(day => {
-              const p = dayProgress(day);
-              const isSel = day === selectedDay;
-              const isToday = day === today;
+          {/* Day strip - sliding 7-day window */}
+          <div
+            onTouchStart={e => setTouchSwipeStart(e.touches[0].clientX)}
+            onTouchEnd={e => {
+              if (touchSwipeStart === null) return;
+              const diff = touchSwipeStart - e.changedTouches[0].clientX;
+              if (Math.abs(diff) > 40) {
+                const newOffset = weekOffset + (diff > 0 ? 1 : -1);
+                setWeekOffset(newOffset);
+                // Update selected day to same weekday in new week
+                setSelectedDay(selectedDay);
+              }
+              setTouchSwipeStart(null);
+            }}
+            style={{display:"flex", gap:8, padding:"16px 12px 8px", overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch"}}>
+            {Array.from({length:7}, (_, i) => {
+              // Build a 7-day window starting from Monday of current week + offset
+              const base = new Date();
+              const currentDow = base.getDay(); // 0=Sun
+              // Start from Sunday of current week
+              const startOfWeek = new Date(base);
+              startOfWeek.setDate(base.getDate() - currentDow + (weekOffset * 7));
+              const slotDate = new Date(startOfWeek);
+              slotDate.setDate(startOfWeek.getDate() + i);
+
+              const dateNum = slotDate.getDate();
+              const dateMonth = slotDate.getMonth();
+              const dateYear = slotDate.getFullYear();
+              const dayName = DAYS[slotDate.getDay()];
+              const dayLabel = DAYS[slotDate.getDay()];
+
+              // Is this today?
+              const realToday = new Date();
+              const isToday = dateNum === realToday.getDate() && dateMonth === realToday.getMonth() && dateYear === realToday.getFullYear();
+
+              // Check history for completed workout on this exact date
+              const histKey = dateYear + "-" + String(dateMonth+1).padStart(2,"0") + "-" + String(dateNum).padStart(2,"0") + "-" + dayName;
+              const isCompleted = !!history[histKey];
+
+              const isSel = dayName === selectedDay && weekOffset === 0 ? isToday || weekOffset === 0 : false;
+              const isSelDay = dayName === selectedDay;
+              const hasWorkout = (safeWorkouts[dayName]||[]).length > 0;
+
               return (
-                <button key={day} onClick={() => {setSelectedDay(day); setShowStats(false);}} style={{flex:"0 0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"10px 14px", borderRadius:16, minWidth:48, cursor:"pointer", border:isSel?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, background:isSel?t.accent:isToday?t.dayToday:t.card}}>
-                  <span style={{fontSize:11, letterSpacing:1, color:isSel?"#ffffff":t.textMuted, textTransform:"uppercase", fontWeight:700, textShadow:isSel?"0 1px 3px rgba(0,0,0,0.9)":"none"}}>{day}</span>
-                  <span style={{width:28, height:28, borderRadius:"50%", background:isSel?"rgba(0,0,0,0.25)":"rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"#ffffff", textShadow:isSel?"0 1px 4px rgba(0,0,0,0.9)":"none"}}>
-                    {p ? (p.done===p.total?"✓":String(p.done)) : (safeWorkouts[day]?.length ? String(safeWorkouts[day].length) : "—")}
-                  </span>
+                <button key={i} onClick={() => { setSelectedDay(dayName); setShowStats(false); }} style={{
+                  flex:"0 0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+                  padding:"10px 8px", borderRadius:16, minWidth:56, cursor:"pointer",
+                  border: isToday ? "1.5px solid " + t.accentSolid : isCompleted ? "1.5px solid #22c55e" : isSelDay ? "1.5px solid " + t.accentBorder : "1.5px solid " + t.cardBorder,
+                  background: isToday ? t.accentMuted : isCompleted ? "rgba(34,197,94,0.12)" : isSelDay ? t.card : t.card,
+                  boxShadow: isSelDay ? "0 0 0 2px " + t.accentSolid : "none",
+                }}>
+                  <span style={{fontSize:10, letterSpacing:1, textTransform:"uppercase", fontWeight:700,
+                    color: isToday ? t.accentText : isCompleted ? "#22c55e" : isSelDay ? t.accentText : t.textMuted
+                  }}>{dayLabel}</span>
+                  <span style={{fontSize:18, fontWeight:800, lineHeight:1,
+                    color: isToday ? t.accentText : isCompleted ? "#22c55e" : isSelDay ? t.text : t.text
+                  }}>{dateNum}</span>
+                  <span style={{width:6, height:6, borderRadius:"50%",
+                    background: isCompleted ? "#22c55e" : isToday ? t.accentSolid : hasWorkout ? t.accentBorder : "transparent"
+                  }} />
                 </button>
               );
             })}
+          </div>
+          {/* Week nav arrows + label */}
+          <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:16, padding:"2px 16px 8px"}}>
+            <button onClick={() => setWeekOffset(p => p-1)} style={{background:"none", border:"none", color:t.textMuted, fontSize:22, cursor:"pointer", padding:"4px 10px"}}>‹</button>
+            <span style={{fontSize:11, color:t.textMuted, letterSpacing:1}}>
+              {weekOffset === 0 ? "THIS WEEK" : weekOffset > 0 ? "+" + weekOffset + " WEEK" + (Math.abs(weekOffset)>1?"S":"") : Math.abs(weekOffset) + " WEEK" + (Math.abs(weekOffset)>1?"S":"") + " AGO"}
+            </span>
+            <button onClick={() => setWeekOffset(p => p+1)} style={{background:"none", border:"none", color:t.textMuted, fontSize:22, cursor:"pointer", padding:"4px 10px"}}>›</button>
           </div>
 
           {/* Day header */}
           <div style={{padding:"0 20px 16px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
             <div>
-              <div style={{fontSize:20, fontWeight:800, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", letterSpacing:1}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
+              <div style={{fontSize:20, fontWeight:800, color:t.text, fontFamily:"Montserrat,sans-serif", textTransform:"uppercase", letterSpacing:1}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
               <div style={{fontSize:15, fontWeight:600, color:t.accentText, marginTop:2}}>{DAY_FOCUS[selectedDay]}</div>
               <div style={{fontSize:12, color:"#475569", marginTop:2}}>{exercises.length} exercise{exercises.length!==1?"s":""}</div>
             </div>
@@ -1013,7 +1072,7 @@ export default function FitStud() {
             }}>
               <div style={{width:8, height:8, borderRadius:"50%", background:"#10b981", flexShrink:0}} />
               <div>
-                <div style={{fontSize:14, fontWeight:800, color:"#D4AF37", fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>WORKOUT SAVED</div>
+                <div style={{fontSize:14, fontWeight:800, color:"#D4AF37", fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>WORKOUT SAVED</div>
                 <div style={{fontSize:12, color:"rgba(212,175,55,0.7)", marginTop:2}}>Great work! Your progress has been recorded.</div>
               </div>
             </div>
@@ -1032,7 +1091,7 @@ export default function FitStud() {
               return (
                 <div key={ex.id}
                   data-excard
-                  style={{background:finished?t.cardActive:t.card, border:"1px solid " + (finished?t.accentSolid:t.cardBorder), outline:"none", borderRadius:20, padding:"16px", opacity:editMode && dragOver === exIdx ? 0.6 : 1, transition:"opacity 0.15s"}}>
+                  style={{background:finished?t.cardActive:t.card, border:"1px solid " + (finished?t.accentSolid:t.cardBorder), outline:"none", borderRadius:20, padding:"16px", opacity:dragIndex === exIdx ? 0.4 : 1, transform:dragIndex === exIdx ? "scale(0.97)" : "scale(1)", transition:"all 0.15s", boxShadow:dragIndex === exIdx ? "0 8px 32px rgba(212,175,55,0.4)" : "none"}}>
                   {/* Edit controls */}
                   {editMode && (
                     <div style={{display:"flex", gap:6, marginBottom:10, alignItems:"center"}}>
@@ -1146,7 +1205,7 @@ export default function FitStud() {
                   color:"#000", fontSize:14, fontWeight:800,
                   cursor:"pointer",
                   boxShadow:"0 4px 20px rgba(212,175,55,0.4), inset 0 1px 0 rgba(255,255,255,0.3)",
-                  letterSpacing:1, fontFamily:"'Montserrat',sans-serif",
+                  letterSpacing:1, fontFamily:"Montserrat,sans-serif",
                   display:"flex", alignItems:"center", justifyContent:"center", gap:10,
                 }}
               >
@@ -1178,12 +1237,46 @@ export default function FitStud() {
 
         return (
           <div style={{padding:"16px"}}>
-            <div style={{fontSize:16, fontWeight:800, color:t.text, marginBottom:4, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>NUTRITION TRACKER</div>
+            <div style={{fontSize:16, fontWeight:800, color:t.text, marginBottom:12, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>NUTRITION</div>
+            <div style={{display:"flex", gap:4, background:t.toggleBg, borderRadius:12, padding:4, marginBottom:16}}>
+              {[["daily","Day"],["weekly","Week"],["monthly","Month"],["yearly","Year"]].map(([p,label]) => (
+                <button key={p} onClick={() => setNutritionPeriod(p)} style={{flex:1, padding:"8px 4px", borderRadius:9, border:"none", background:nutritionPeriod===p?t.accent:"transparent", color:nutritionPeriod===p?"#000":t.textMuted, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>{label}</button>
+              ))}
+            </div>
+            {nutritionPeriod !== "daily" && (
+              <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:16}}>
+                <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:12, fontWeight:700}}>
+                  {nutritionPeriod === "weekly" ? "This Week" : nutritionPeriod === "monthly" ? "This Month" : "This Year"} Averages
+                </div>
+                {(() => {
+                  const now3 = new Date();
+                  const keys = Object.keys(nutrition).filter(k => {
+                    const d = new Date(k);
+                    if (nutritionPeriod === "weekly") return (now3-d)/(1000*60*60*24) <= 7;
+                    if (nutritionPeriod === "monthly") return d.getMonth()===now3.getMonth() && d.getFullYear()===now3.getFullYear();
+                    if (nutritionPeriod === "yearly") return d.getFullYear()===now3.getFullYear();
+                    return false;
+                  });
+                  const avg = (field) => keys.length ? Math.round(keys.reduce((a,k) => a+(nutrition[k]?.[field]||0), 0)/keys.length) : 0;
+                  return (
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
+                      {[{label:"Avg Cal",val:avg("calories"),unit:"kcal",color:"#F5D070"},{label:"Avg Protein",val:avg("protein"),unit:"g",color:"#ef4444"},{label:"Avg Steps",val:avg("steps").toLocaleString(),unit:"steps",color:"#34d399"}].map(s => (
+                        <div key={s.label} style={{textAlign:"center", padding:"10px 6px", background:t.toggleBg, borderRadius:12}}>
+                          <div style={{fontSize:18, fontWeight:800, color:s.color}}>{s.val}</div>
+                          <div style={{fontSize:9, color:t.textMuted, marginTop:2}}>{s.unit}</div>
+                          <div style={{fontSize:9, color:t.textMuted}}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
             <div style={{fontSize:12, color:t.textMuted, marginBottom:16}}>{FULL_DAYS[new Date().getDay()]} · {MONTHS[new Date().getMonth()]} {new Date().getDate()}</div>
 
             {/* Today's macros input */}
             <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:16}}>
-              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"'Montserrat',sans-serif"}}>Today's Intake</div>
+              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"Montserrat,sans-serif"}}>Today's Intake</div>
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
                 {[
                   {key:"calories", label:"Calories", unit:"kcal", goal:goals.calories, color:"#F5D070"},
@@ -1221,7 +1314,7 @@ export default function FitStud() {
 
             {/* Weekly summary */}
             <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px", marginBottom:16}}>
-              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"'Montserrat',sans-serif"}}>Weekly Overview</div>
+              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"Montserrat,sans-serif"}}>Weekly Overview</div>
               <div style={{display:"flex", alignItems:"flex-end", gap:6, height:80, marginBottom:8}}>
                 {last7.map((d, i) => {
                   const pct = Math.min(100, Math.round(((d.calories||0)/goals.calories)*100));
@@ -1239,7 +1332,7 @@ export default function FitStud() {
 
             {/* 7-day averages */}
             <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, padding:"16px"}}>
-              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"'Montserrat',sans-serif"}}>7-Day Averages</div>
+              <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:14, fontFamily:"Montserrat,sans-serif"}}>7-Day Averages</div>
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10}}>
                 {[
                   {label:"Avg Calories", value:Math.round(last7.reduce((a,d)=>a+(d.calories||0),0)/7), unit:"kcal", color:"#F5D070"},
@@ -1260,8 +1353,20 @@ export default function FitStud() {
 
       {/* STATS DASHBOARD */}
       {view === "dashboard" && (() => {
-        // Build all-time stats from history
-        const historyEntries = Object.entries(history).sort((a,b) => b[0].localeCompare(a[0]));
+        // Filter by period
+        const now2 = new Date();
+        const allEntries = Object.entries(history).sort((a,b) => b[0].localeCompare(a[0]));
+        const filterByPeriod = (entries, period) => {
+          return entries.filter(([key]) => {
+            const d = new Date(key);
+            if (period === "daily") { return d.toDateString() === now2.toDateString(); }
+            if (period === "weekly") { const diff = (now2 - d) / (1000*60*60*24); return diff <= 7; }
+            if (period === "monthly") { return d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear(); }
+            if (period === "yearly") { return d.getFullYear() === now2.getFullYear(); }
+            return true;
+          });
+        };
+        const historyEntries = filterByPeriod(allEntries, statsPeriod);
         const totalWorkouts = historyEntries.length;
         
         // Calculate streak
@@ -1427,25 +1532,34 @@ export default function FitStud() {
           <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4}}>
             {calCells.map((date, idx) => {
               if (!date) return <div key={idx} />;
-              const dayName = DAYS[new Date(calYear, calMonth, date).getDay()];
-              const exs = workouts[dayName] || [];
+              const dow = new Date(calYear, calMonth, date).getDay();
+              const dayName = DAYS[dow];
               const isToday = date===todayDate && calMonth===todayMonth && calYear===todayYear;
-              const p = dayProgress(dayName);
-              const isComplete = p && p.done===p.total;
+
+              // Check history for actual completed workout on this specific date
+              const histKey = calYear + "-" + String(calMonth+1).padStart(2,"0") + "-" + String(date).padStart(2,"0") + "-" + dayName;
+              const wasCompleted = !!history[histKey];
+
+              // Check if this is today and workout is in progress
+              const p = isToday ? dayProgress(dayName) : null;
+              const inProgress = p && p.done > 0 && p.done < p.total;
+
               return (
-                <button key={idx} onClick={() => {setSelectedDay(dayName); setView("week");}} style={{aspectRatio:"1", borderRadius:12, border:isToday?"1.5px solid " + t.accentSolid:"1.5px solid " + t.cardBorder, background:isToday?"rgba(99,102,241,0.15)":isComplete?"rgba(5,150,105,0.12)":exs.length?"rgba(99,102,241,0.07)":"rgba(255,255,255,0.02)", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2}}>
-                  <span style={{fontSize:13, fontWeight:isToday?800:500, color:isToday?"#a5b4fc":isComplete?"#34d399":exs.length?"#e2e8f0":"#475569"}}>{date}</span>
-                  {exs.length > 0 && (
-                    <div style={{display:"flex", gap:2}}>
-                      {exs.slice(0,3).map((_,i) => <div key={i} style={{width:4, height:4, borderRadius:"50%", background:isComplete?"#34d399":"#6366f1"}} />)}
-                    </div>
-                  )}
+                <button key={idx} onClick={() => {setSelectedDay(dayName); setView("week");}} style={{
+                  aspectRatio:"1", borderRadius:12, cursor:"pointer",
+                  display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2,
+                  border: isToday ? "1.5px solid " + t.accentSolid : wasCompleted ? "1.5px solid #22c55e" : "1px solid " + t.cardBorder,
+                  background: wasCompleted ? "rgba(34,197,94,0.12)" : isToday ? t.accentMuted : t.card,
+                }}>
+                  <span style={{fontSize:14, fontWeight:isToday||wasCompleted?700:400, color:wasCompleted?"#22c55e":isToday?t.accentText:t.text, lineHeight:1}}>{date}</span>
+                  {wasCompleted && <div style={{width:5, height:5, borderRadius:"50%", background:"#22c55e"}} />}
+                  {isToday && !wasCompleted && <div style={{width:5, height:5, borderRadius:"50%", background:t.accentSolid}} />}
                 </button>
               );
             })}
           </div>
           <div style={{display:"flex", gap:16, marginTop:16, justifyContent:"center"}}>
-            {[{color:"#6366f1",label:"Has workout"},{color:"#34d399",label:"Completed"},{color:"rgba(99,102,241,0.4)",label:"Today",border:"1.5px solid #6366f1"}].map(item => (
+            {[{color:"#22c55e",label:"Completed"},{color:"rgba(212,175,55,0.8)",label:"Today"}].map(item => (
               <div key={item.label} style={{display:"flex", alignItems:"center", gap:6}}>
                 <div style={{width:10, height:10, borderRadius:"50%", background:item.color, border:item.border}} />
                 <span style={{fontSize:11, color:"#475569"}}>{item.label}</span>
@@ -1510,7 +1624,7 @@ export default function FitStud() {
                 <button onClick={() => { if(libView==="exercise"){setLibView("subcats");setLibExercise(null);} else if(libView==="subcats"){setLibView("categories");setLibCategory(null);} }} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>←</button>
               )}
               <div style={{flex:1}}>
-                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>
+                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>
                   {libView==="categories" ? "EXERCISE LIBRARY" : libView==="subcats" ? libCategory?.category.toUpperCase() : libExercise?.name.toUpperCase()}
                 </div>
                 {libView==="categories" && <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>Browse and add to your workout</div>}
@@ -1527,7 +1641,7 @@ export default function FitStud() {
                       <div style={{display:"flex", alignItems:"center", gap:14}}>
                         <div style={{width:44, height:44, borderRadius:12, background:t.accentMuted, border:"1px solid " + t.accentBorder, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22}}>{cat.icon}</div>
                         <div>
-                          <div style={{fontSize:15, fontWeight:700, color:t.text, fontFamily:"'Montserrat',sans-serif"}}>{cat.category}</div>
+                          <div style={{fontSize:15, fontWeight:700, color:t.text, fontFamily:"Montserrat,sans-serif"}}>{cat.category}</div>
                           <div style={{fontSize:12, color:t.textMuted, marginTop:2}}>{cat.subs.reduce((a,s)=>a+s.exercises.length,0)} exercises · {cat.subs.length} muscle groups</div>
                         </div>
                       </div>
@@ -1542,7 +1656,7 @@ export default function FitStud() {
                   {libCategory.subs.map(sub => (
                     <div key={sub.name} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, overflow:"hidden"}}>
                       <div style={{padding:"10px 14px", borderBottom:"1px solid " + t.cardBorder}}>
-                        <div style={{fontSize:11, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif"}}>{sub.name}</div>
+                        <div style={{fontSize:11, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif"}}>{sub.name}</div>
                       </div>
                       {sub.exercises.map((ex, i) => (
                         <button key={ex.name} onClick={() => {setLibExercise(ex); setLibView("exercise");}} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", background:"transparent", border:"none", borderBottom:i<sub.exercises.length-1?"1px solid " + t.cardBorder:"none", cursor:"pointer", width:"100%", textAlign:"left"}}>
@@ -1574,7 +1688,7 @@ export default function FitStud() {
                     </div>
                   )}
                   <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:14}}>
-                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:8, fontWeight:700}}>How to perform</div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>How to perform</div>
                     <div style={{fontSize:14, color:t.text, lineHeight:1.7}}>{libExercise.desc}</div>
                   </div>
                   <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16}}>
@@ -1585,7 +1699,7 @@ export default function FitStud() {
                       </div>
                     ))}
                   </div>
-                  <div style={{fontSize:11, color:t.textMuted, letterSpacing:1, textTransform:"uppercase", marginBottom:10, fontFamily:"'Montserrat',sans-serif", fontWeight:700}}>Add to day</div>
+                  <div style={{fontSize:11, color:t.textMuted, letterSpacing:1, textTransform:"uppercase", marginBottom:10, fontFamily:"Montserrat,sans-serif", fontWeight:700}}>Add to day</div>
                   <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
                     {DAYS.map(day => (
                       <button key={day} onClick={() => { addExerciseToDay(day, {id:nextId++, name:libExercise.name, sets:libExercise.sets, reps:libExercise.reps, video:libExercise.video||""}); setShowLibrary(false); setLibView("categories"); setSelectedDay(day); setView("week"); }} style={{padding:"10px", background:day===selectedDay?t.accent:t.card, border:"1px solid " + (day===selectedDay?t.accentSolid:t.cardBorder), borderRadius:10, color:day===selectedDay?"#000":t.text, fontSize:13, fontWeight:day===selectedDay?700:500, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
@@ -1681,7 +1795,7 @@ export default function FitStud() {
             {/* Header */}
             <div style={{padding:"16px 20px 0", flexShrink:0}}>
               <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>MY PROFILE</div>
+                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>MY PROFILE</div>
                 <button onClick={() => setShowProfile(false)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>✕</button>
               </div>
 
@@ -1702,7 +1816,7 @@ export default function FitStud() {
                   {/* Progress bar */}
                   <div style={{marginTop:8}}>
                     <div style={{display:"flex", justifyContent:"space-between", marginBottom:4}}>
-                      <span style={{fontSize:10, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif"}}>Monthly Progress</span>
+                      <span style={{fontSize:10, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif"}}>Monthly Progress</span>
                       <span style={{fontSize:10, color:t.accentText, fontWeight:700}}>{getProgressPct()}%</span>
                     </div>
                     <div style={{height:6, background:t.cardBorder, borderRadius:3}}>
@@ -1716,7 +1830,7 @@ export default function FitStud() {
               {/* Tab bar */}
               <div style={{display:"flex", gap:4, background:t.toggleBg, borderRadius:12, padding:4, marginBottom:0}}>
                 {[["info","Info"],["gallery","Gallery"],["settings","Settings"]].map(([tab, label]) => (
-                  <button key={tab} onClick={() => setProfileTab(tab)} style={{flex:1, padding:"8px 4px", borderRadius:9, border:"none", background:profileTab===tab?t.accent:"transparent", color:profileTab===tab?"#000":t.textMuted, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Montserrat',sans-serif"}}>{label}</button>
+                  <button key={tab} onClick={() => setProfileTab(tab)} style={{flex:1, padding:"8px 4px", borderRadius:9, border:"none", background:profileTab===tab?t.accent:"transparent", color:profileTab===tab?"#000":t.textMuted, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>{label}</button>
                 ))}
               </div>
             </div>
@@ -1728,7 +1842,7 @@ export default function FitStud() {
               <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:16, marginBottom:16, overflow:"hidden"}}>
                 <div style={{padding:"10px 14px", borderBottom:"1px solid " + t.cardBorder, display:"flex", alignItems:"center", gap:8}}>
                   <div style={{width:8, height:8, borderRadius:"50%", background:"#22c55e"}} />
-                  <span style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif"}}>Coach Messages</span>
+                  <span style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif"}}>Coach Messages</span>
                 </div>
                 <div style={{maxHeight:160, overflowY:"auto", padding:"8px 14px"}}>
                   {messages.map(msg => (
@@ -1755,23 +1869,23 @@ export default function FitStud() {
                     {key:"name", label:"Full Name", placeholder:"Your name", type:"text"},
                     {key:"age", label:"Age", placeholder:"Your age", type:"number"},
                     {key:"weight", label:"Weight (lbs)", placeholder:"Current weight", type:"number"},
-                    {key:"height", label:"Height (ft/in)", placeholder:'e.g. 5'11"', type:"text"},
+                    {key:"height", label:"Height (ft/in)", placeholder:"e.g. 5ft 11in", type:"text"},
                   ].map(field => (
                     <div key={field.key}>
-                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:6, fontWeight:600}}>{field.label}</div>
+                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:600}}>{field.label}</div>
                       <input type={field.type} placeholder={field.placeholder} value={profileData[field.key]||""} onChange={e => setProfileData(p => ({...p, [field.key]:e.target.value}))}
                         style={{width:"100%", padding:"12px 14px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box"}} />
                     </div>
                   ))}
                   <div>
-                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:6, fontWeight:600}}>Fitness Goal</div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:600}}>Fitness Goal</div>
                     <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
                       {["Gain Muscle","Lose Weight","Build Strength","Improve Agility","Full Body","Athletic Performance"].map(g => (
                         <button key={g} onClick={() => setProfileData(p => ({...p, goal:g}))} style={{padding:"10px", background:profileData.goal===g?t.accent:t.card, border:"1px solid " + (profileData.goal===g?t.accentSolid:t.cardBorder), borderRadius:10, color:profileData.goal===g?"#000":t.text, fontSize:12, fontWeight:profileData.goal===g?700:400, cursor:"pointer"}}>{g}</button>
                       ))}
                     </div>
                   </div>
-                  <button onClick={() => setShowProfile(false)} style={{width:"100%", padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, marginTop:8}}>SAVE PROFILE</button>
+                  <button onClick={() => setShowProfile(false)} style={{width:"100%", padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, marginTop:8}}>SAVE PROFILE</button>
                 </div>
               )}
 
@@ -1785,7 +1899,7 @@ export default function FitStud() {
                     return (
                       <div key={month} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px", marginBottom:10}}>
                         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
-                          <div style={{fontSize:13, fontWeight:700, color:t.accentText, fontFamily:"'Montserrat',sans-serif", letterSpacing:1}}>{month.toUpperCase()}</div>
+                          <div style={{fontSize:13, fontWeight:700, color:t.accentText, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>{month.toUpperCase()}</div>
                           <label style={{padding:"6px 12px", background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:8, color:t.accentText, fontSize:11, fontWeight:600, cursor:"pointer"}}>
                             {uploadingPhoto ? "Uploading..." : "+ Add Photo"}
                             <input type="file" accept="image/*" style={{display:"none"}} onChange={e => { if(e.target.files[0]) uploadProgressPhoto(e.target.files[0], key); }} />
@@ -1813,7 +1927,7 @@ export default function FitStud() {
                 <div style={{display:"flex", flexDirection:"column", gap:10}}>
                   {/* Change password */}
                   <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px"}}>
-                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:12}}>Change Password</div>
+                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:12}}>Change Password</div>
                     <input type="password" placeholder="New password" id="newpw"
                       style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:8}} />
                     <button onClick={async () => {
@@ -1827,7 +1941,7 @@ export default function FitStud() {
 
                   {/* Language */}
                   <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px"}}>
-                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:12}}>Language</div>
+                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:12}}>Language</div>
                     <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
                       {["English","Español","Français","Português"].map(lang => (
                         <button key={lang} onClick={() => setProfileData(p => ({...p, language:lang}))} style={{padding:"10px", background:profileData.language===lang?t.accent:t.card, border:"1px solid " + (profileData.language===lang?t.accentSolid:t.cardBorder), borderRadius:10, color:profileData.language===lang?"#000":t.text, fontSize:13, fontWeight:profileData.language===lang?700:400, cursor:"pointer"}}>{lang}</button>
@@ -1837,7 +1951,7 @@ export default function FitStud() {
 
                   {/* Notifications placeholder */}
                   <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px"}}>
-                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"'Montserrat',sans-serif", marginBottom:12}}>Notifications</div>
+                    <div style={{fontSize:12, fontWeight:700, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:12}}>Notifications</div>
                     {[["Daily workout reminder","Remind me to train every day"],["Missed day alert","Alert me when I skip a day"],["Weekly summary","Get weekly progress summary"]].map(([label, desc]) => (
                       <div key={label} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid " + t.cardBorder}}>
                         <div>
@@ -1868,14 +1982,14 @@ export default function FitStud() {
 
             {/* Logo */}
             <div style={{textAlign:"center", marginBottom:24}}>
-              <div style={{fontSize:22, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
-              <div style={{fontSize:9, letterSpacing:3, color:t.accentText, fontFamily:"'Montserrat',sans-serif", fontWeight:600, marginTop:3}}>FORGE YOUR LEGACY</div>
+              <div style={{fontSize:22, fontWeight:900, letterSpacing:3, color:t.text, fontFamily:"Montserrat,sans-serif", textTransform:"uppercase"}}>FITSTUD</div>
+              <div style={{fontSize:9, letterSpacing:3, color:t.accentText, fontFamily:"Montserrat,sans-serif", fontWeight:600, marginTop:3}}>FORGE YOUR LEGACY</div>
             </div>
 
             {/* Tab toggle */}
             <div style={{display:"flex", gap:0, marginBottom:24, background:t.toggleBg, borderRadius:12, padding:4}}>
               {["login","signup"].map(m => (
-                <button key={m} onClick={() => { setAuthMode(m); setAuthError(""); }} style={{flex:1, padding:"10px", borderRadius:9, border:"none", cursor:"pointer", background:authMode===m?t.accent:"transparent", color:authMode===m?"#fff":t.textMuted, fontSize:14, fontWeight:700, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase", letterSpacing:1}}>
+                <button key={m} onClick={() => { setAuthMode(m); setAuthError(""); }} style={{flex:1, padding:"10px", borderRadius:9, border:"none", cursor:"pointer", background:authMode===m?t.accent:"transparent", color:authMode===m?"#fff":t.textMuted, fontSize:14, fontWeight:700, fontFamily:"Montserrat,sans-serif", textTransform:"uppercase", letterSpacing:1}}>
                   {m === "login" ? "Login" : "Sign Up"}
                 </button>
               ))}
@@ -1884,9 +1998,9 @@ export default function FitStud() {
             {/* Form */}
             <div style={{display:"flex", flexDirection:"column", gap:12}}>
               <input type="email" placeholder="Email address" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
-                style={{...{width:"100%", padding:"14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"'Poppins',sans-serif"}}} />
+                style={{...{width:"100%", padding:"14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"Poppins,sans-serif"}}} />
               <input type="password" placeholder="Password" value={authPassword} onChange={e => setAuthPassword(e.target.value)}
-                style={{...{width:"100%", padding:"14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"'Poppins',sans-serif"}}} />
+                style={{...{width:"100%", padding:"14px", background:t.input, border:"1.5px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:15, outline:"none", boxSizing:"border-box", fontFamily:"Poppins,sans-serif"}}} />
             </div>
 
             {authError && <div style={{color:"#f87171", fontSize:12, marginTop:10, textAlign:"center"}}>{authError}</div>}
@@ -1894,13 +2008,13 @@ export default function FitStud() {
             <button
               onClick={authMode === "login" ? handleLogin : handleSignUp}
               disabled={!!authSubmitting}
-              style={{width:"100%", padding:"16px", marginTop:20, background:authSubmitting?"rgba(212,175,55,0.3)":t.accent, border:"none", borderRadius:14, color:"#fff", fontSize:16, fontWeight:800, cursor:authSubmitting?"not-allowed":"pointer", fontFamily:"'Montserrat',sans-serif", letterSpacing:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8}}
+              style={{width:"100%", padding:"16px", marginTop:20, background:authSubmitting?"rgba(212,175,55,0.3)":t.accent, border:"none", borderRadius:14, color:"#fff", fontSize:16, fontWeight:800, cursor:authSubmitting?"not-allowed":"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8}}
             >
               {authSubmitting ? <><span style={{display:"inline-block", width:16, height:16, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} /> {authMode === "login" ? "Logging in..." : "Creating account..."}</> : authMode === "login" ? "LOGIN" : "CREATE ACCOUNT"}
             </button>
 
             <div style={{textAlign:"center", marginTop:16, fontSize:12, color:t.textMuted}}>
-              {authMode === "login" ? "Don't have an account? " : "Already have an account? "}
+              {authMode === "login" ? "Do not have an account? " : "Already have an account? "}
               <span onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} style={{color:t.accentText, cursor:"pointer", fontWeight:600}}>
                 {authMode === "login" ? "Sign up free" : "Login"}
               </span>
@@ -1928,7 +2042,7 @@ export default function FitStud() {
               <div style={{fontSize:64, marginBottom:16, lineHeight:1}}>{q.emoji}</div>
               
               {/* Title */}
-              <div style={{fontSize:26, fontWeight:900, color:"#f8fafc", marginBottom:8, letterSpacing:1, fontFamily:"'Montserrat',sans-serif", textTransform:"uppercase"}}>
+              <div style={{fontSize:26, fontWeight:900, color:"#f8fafc", marginBottom:8, letterSpacing:1, fontFamily:"Montserrat,sans-serif", textTransform:"uppercase"}}>
                 Workout Complete!
               </div>
               <div style={{fontSize:13, color:"#6366f1", fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:24}}>
