@@ -1240,11 +1240,18 @@ export default function FitStud() {
         return (
           <div style={{padding:"16px"}}>
             <div style={{fontSize:16, fontWeight:800, color:t.text, marginBottom:12, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>NUTRITION</div>
-            <div style={{display:"flex", gap:4, background:t.toggleBg, borderRadius:12, padding:4, marginBottom:16}}>
+            <div style={{display:"flex", gap:4, background:t.toggleBg, borderRadius:12, padding:4, marginBottom:12}}>
               {[["daily","Day"],["weekly","Week"],["monthly","Month"],["yearly","Year"]].map(([p,label]) => (
                 <button key={p} onClick={() => setNutritionPeriod(p)} style={{flex:1, padding:"8px 4px", borderRadius:9, border:"none", background:nutritionPeriod===p?t.accent:"transparent", color:nutritionPeriod===p?"#000":t.textMuted, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>{label}</button>
               ))}
             </div>
+
+            {/* AI Meal Plan Button */}
+            <button onClick={() => { setShowMealPlanner(true); setMealPlanStep("questions"); setMealPlanError(""); }}
+              style={{width:"100%", padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, marginBottom:16, display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxSizing:"border-box"}}>
+              ✨ Generate My Meal Plan with AI
+            </button>
+
             {nutritionPeriod !== "daily" && (
               <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:16}}>
                 <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:12, fontWeight:700}}>
