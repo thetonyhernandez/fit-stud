@@ -297,7 +297,17 @@ export default function FitStud() {
   const [nutritionPeriod, setNutritionPeriod] = useState("daily");
   const [showMealPlanner, setShowMealPlanner] = useState(false);
   const [mealPlanStep, setMealPlanStep] = useState("questions");
-  const [mealProfile, setMealProfile] = useState({dietType:"", goal:"", allergies:"", mealsPerDay:"3"});
+  const [mealProfile, setMealProfile] = useState({
+    height:"", weight:"", goalWeight:"", goal:"",
+    breakfastTime:"7:00 AM", lastMealTime:"7:00 PM",
+    dietType:"", allergies:"", mealsPerDay:"3", activityLevel:""
+  });
+  const [mealPlanWeek, setMealPlanWeek] = useState(0); // 0-3 for 4 weeks
+  const [checkedMeals, setCheckedMeals] = useState(() => JSON.parse(localStorage.getItem("fs_checked_meals")||"{}"));
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState("");
   const [mealPlan, setMealPlan] = useState(() => load("fs_mealplan", null));
   const [mealPlanError, setMealPlanError] = useState("");
   const [touchSwipeStart, setTouchSwipeStart] = useState(null);
@@ -324,6 +334,7 @@ export default function FitStud() {
   useEffect(() => { save("fs_nutrition", nutrition); }, [nutrition]);
   useEffect(() => { save("fs_profile", profileData); }, [profileData]);
   useEffect(() => { if(mealPlan) save("fs_mealplan", mealPlan); }, [mealPlan]);
+  useEffect(() => { localStorage.setItem("fs_checked_meals", JSON.stringify(checkedMeals)); }, [checkedMeals]);
   useEffect(() => { save("fs_avatar", avatarUrl); }, [avatarUrl]);
   useEffect(() => { save("fs_progress_photos", progressPhotos); }, [progressPhotos]);
   useEffect(() => { save("fs_messages", messages); }, [messages]);
@@ -1246,11 +1257,17 @@ export default function FitStud() {
               ))}
             </div>
 
-            {/* AI Meal Plan Button */}
-            <button onClick={() => { setShowMealPlanner(true); setMealPlanStep("questions"); setMealPlanError(""); }}
-              style={{width:"100%", padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, marginBottom:16, display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxSizing:"border-box"}}>
-              ✨ Generate My Meal Plan with AI
-            </button>
+            {/* Nutrition action buttons */}
+            <div style={{display:"flex", gap:10, marginBottom:16}}>
+              <button onClick={() => { setShowMealPlanner(true); setMealPlanStep("questions"); setMealPlanError(""); }}
+                style={{flex:1, padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:0.5}}>
+                Generate My Meal Plan
+              </button>
+              <button onClick={() => { setShowScanner(true); setScanResult(null); setScanError(""); }}
+                style={{padding:"14px 16px", background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, color:t.text, fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap"}}>
+                📷 Scan Meal
+              </button>
+            </div>
 
             {nutritionPeriod !== "daily" && (
               <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:16}}>
@@ -1796,51 +1813,240 @@ export default function FitStud() {
         </div>
       )}
 
+      {/* PHOTO MEAL SCANNER */}
+      {showScanner && (
+        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", backdropFilter:"blur(16px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:600}}>
+          <div style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"88vh", display:"flex", flexDirection:"column"}}>
+            <div style={{padding:"16px 20px 12px", borderBottom:"1px solid " + t.cardBorder, display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0}}>
+              <div>
+                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>SCAN YOUR MEAL</div>
+                <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>Take a photo to estimate calories and macros</div>
+              </div>
+              <button onClick={() => setShowScanner(false)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>✕</button>
+            </div>
+            <div style={{overflowY:"auto", flex:1, padding:"20px"}}>
+              {!scanResult && !scanLoading && (
+                <div style={{display:"flex", flexDirection:"column", gap:12}}>
+                  <div style={{textAlign:"center", padding:"32px 20px", background:t.card, border:"2px dashed " + t.accentBorder, borderRadius:16}}>
+                    <div style={{fontSize:48, marginBottom:12}}>📷</div>
+                    <div style={{fontSize:14, color:t.text, fontWeight:600, marginBottom:8}}>Take or upload a photo of your meal</div>
+                    <div style={{fontSize:12, color:t.textMuted, marginBottom:20}}>AI will estimate calories, protein, carbs and fat</div>
+                    <label style={{display:"inline-block", padding:"12px 24px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>
+                      Choose Photo
+                      <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={async e => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        setScanLoading(true); setScanError("");
+                        try {
+                          const reader = new FileReader();
+                          reader.onload = async (ev) => {
+                            const base64 = ev.target.result.split(",")[1];
+                            const mediaType = file.type;
+                            const res = await fetch("https://api.anthropic.com/v1/messages", {
+                              method:"POST", headers:{"Content-Type":"application/json"},
+                              body: JSON.stringify({
+                                model:"claude-sonnet-4-20250514", max_tokens:1000,
+                                system:"You are a nutrition expert. Analyze food images and provide accurate nutritional estimates. Return ONLY valid JSON, no markdown.",
+                                messages:[{role:"user", content:[
+                                  {type:"image", source:{type:"base64", media_type:mediaType, data:base64}},
+                                  {type:"text", text:"Analyze this meal photo. Identify all foods and estimate portions. Return JSON: {meal_name, description, foods:[{name, amount, calories, protein, carbs, fat}], totals:{calories, protein, carbs, fat}, confidence_note}"}
+                                ]}]
+                              })
+                            });
+                            const data = await res.json();
+                            const raw = data.content?.find(b => b.type==="text")?.text || "";
+                            const cleaned = raw.replace(/```json|```/g,"").trim();
+                            const parsed = JSON.parse(cleaned);
+                            setScanResult({...parsed, imageUrl: ev.target.result});
+                            setScanLoading(false);
+                          };
+                          reader.readAsDataURL(file);
+                        } catch(e) {
+                          setScanError("Could not analyze photo. Please try again.");
+                          setScanLoading(false);
+                        }
+                      }} />
+                    </label>
+                  </div>
+                  {scanError && <div style={{color:"#f87171", fontSize:12, textAlign:"center"}}>{scanError}</div>}
+                  <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"12px 14px"}}>
+                    <div style={{fontSize:11, color:t.accentText, fontWeight:700, marginBottom:6}}>HOW IT WORKS</div>
+                    <div style={{fontSize:12, color:t.textMuted, lineHeight:1.7}}>
+                      1. Take a clear photo of your meal{"
+"}
+                      2. AI identifies all food items{"
+"}
+                      3. Estimates portions and macros{"
+"}
+                      4. Add to your daily nutrition log
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {scanLoading && (
+                <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 20px", gap:20}}>
+                  <div style={{width:48, height:48, border:"3px solid rgba(212,175,55,0.3)", borderTopColor:"#D4AF37", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} />
+                  <div style={{fontSize:15, fontWeight:700, color:t.text}}>Analyzing your meal...</div>
+                  <div style={{fontSize:12, color:t.textMuted}}>Identifying foods and calculating macros</div>
+                </div>
+              )}
+
+              {scanResult && !scanLoading && (
+                <div>
+                  {scanResult.imageUrl && (
+                    <div style={{width:"100%", borderRadius:16, overflow:"hidden", marginBottom:16, maxHeight:200}}>
+                      <img src={scanResult.imageUrl} style={{width:"100%", height:"100%", objectFit:"cover"}} alt="meal" />
+                    </div>
+                  )}
+                  <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:12}}>
+                    <div style={{fontSize:15, fontWeight:700, color:t.text, marginBottom:4}}>{scanResult.meal_name}</div>
+                    <div style={{fontSize:12, color:t.textMuted, marginBottom:12, lineHeight:1.5}}>{scanResult.description}</div>
+                    {scanResult.foods && scanResult.foods.map((food, i) => (
+                      <div key={i} style={{fontSize:12, color:t.textMuted, marginBottom:4, paddingLeft:8}}>
+                        • {food.amount} {food.name} — {food.calories} cal, {food.protein}g protein
+                      </div>
+                    ))}
+                  </div>
+
+                  {scanResult.totals && (
+                    <div style={{background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:14, padding:"14px 16px", marginBottom:16}}>
+                      <div style={{fontSize:11, fontWeight:700, color:t.accentText, letterSpacing:2, textTransform:"uppercase", marginBottom:10, fontFamily:"Montserrat,sans-serif"}}>Estimated Totals</div>
+                      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
+                        {[{l:"Calories",v:scanResult.totals.calories,u:"kcal",c:"#F5D070"},{l:"Protein",v:scanResult.totals.protein,u:"g",c:"#ef4444"},{l:"Carbs",v:scanResult.totals.carbs,u:"g",c:"#f97316"},{l:"Fat",v:scanResult.totals.fat,u:"g",c:"#a78bfa"}].map(m => (
+                          <div key={m.l} style={{textAlign:"center", padding:"10px", background:t.card, borderRadius:10}}>
+                            <div style={{fontSize:20, fontWeight:800, color:m.c}}>{m.v}</div>
+                            <div style={{fontSize:10, color:t.textMuted}}>{m.u}</div>
+                            <div style={{fontSize:10, color:t.textMuted}}>{m.l}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {scanResult.confidence_note && <div style={{fontSize:11, color:t.textMuted, marginTop:10, fontStyle:"italic"}}>{scanResult.confidence_note}</div>}
+                    </div>
+                  )}
+
+                  <div style={{display:"flex", gap:10}}>
+                    <button onClick={() => {
+                      if (scanResult.totals) {
+                        const todayKey = getTodayKey();
+                        setNutrition(n => ({...n, [todayKey]: {
+                          calories: (n[todayKey]?.calories||0) + (scanResult.totals.calories||0),
+                          protein: (n[todayKey]?.protein||0) + (scanResult.totals.protein||0),
+                          carbs: (n[todayKey]?.carbs||0) + (scanResult.totals.carbs||0),
+                          fat: (n[todayKey]?.fat||0) + (scanResult.totals.fat||0),
+                          water: n[todayKey]?.water||0,
+                          steps: n[todayKey]?.steps||0,
+                        }}));
+                      }
+                      setShowScanner(false);
+                      setView("nutrition");
+                    }} style={{flex:1, padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>
+                      Add to Today
+                    </button>
+                    <button onClick={() => setScanResult(null)} style={{padding:"14px 16px", background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, color:t.textSub, fontSize:13, cursor:"pointer"}}>
+                      Retake
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MEAL PLANNER MODAL */}
       {showMealPlanner && (
         <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", backdropFilter:"blur(16px)", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:600}}>
-          <div style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"88vh", display:"flex", flexDirection:"column"}}>
-
-            {/* Header */}
+          <div style={{width:"100%", maxWidth:480, background:t.modal, borderRadius:"24px 24px 0 0", border:"1px solid " + t.cardBorder, borderBottom:"none", maxHeight:"90vh", display:"flex", flexDirection:"column"}}>
             <div style={{padding:"16px 20px 12px", borderBottom:"1px solid " + t.cardBorder, display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0}}>
               <div>
-                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>AI MEAL PLANNER</div>
-                <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>Personalized nutrition powered by AI</div>
+                <div style={{fontSize:15, fontWeight:800, color:t.text, fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>MY MEAL PLAN</div>
+                <div style={{fontSize:11, color:t.textMuted, marginTop:2}}>Personalized nutrition for your goals</div>
               </div>
               <button onClick={() => setShowMealPlanner(false)} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:10, width:34, height:34, color:t.textSub, fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>✕</button>
             </div>
-
             <div style={{overflowY:"auto", flex:1, padding:"16px 20px 40px"}}>
 
               {/* QUESTIONS */}
               {mealPlanStep === "questions" && (
                 <div style={{display:"flex", flexDirection:"column", gap:14}}>
 
-                  {/* Diet type */}
-                  <div>
-                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Diet Type</div>
-                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
-                      {["Regular","Keto","Vegan","Vegetarian","Paleo","Mediterranean"].map(d => (
-                        <button key={d} onClick={() => setMealProfile(p => ({...p, dietType:d}))} style={{padding:"10px", background:mealProfile.dietType===d?t.accent:t.card, border:"1px solid " + (mealProfile.dietType===d?t.accentSolid:t.cardBorder), borderRadius:10, color:mealProfile.dietType===d?"#000":t.text, fontSize:13, fontWeight:mealProfile.dietType===d?700:400, cursor:"pointer"}}>{d}</button>
-                      ))}
+                  {/* Height + Weight */}
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                    <div>
+                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:700}}>Height</div>
+                      <input type="text" placeholder='e.g. 5ft 11in' value={mealProfile.height} onChange={e => setMealProfile(p => ({...p, height:e.target.value}))}
+                        style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
+                    </div>
+                    <div>
+                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:700}}>Current Weight</div>
+                      <input type="text" placeholder="e.g. 185 lbs" value={mealProfile.weight} onChange={e => setMealProfile(p => ({...p, weight:e.target.value}))}
+                        style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
                     </div>
                   </div>
 
                   {/* Goal */}
                   <div>
-                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Nutrition Goal</div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>My Goal</div>
                     <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
-                      {["Lose Weight","Gain Muscle","Maintain Weight","Improve Energy","Athletic Performance"].map(g => (
+                      {["Build Strength","Get Leaner","Gain Muscle","Lose Weight","Maintain Weight","Athletic Performance"].map(g => (
                         <button key={g} onClick={() => setMealProfile(p => ({...p, goal:g}))} style={{padding:"10px", background:mealProfile.goal===g?t.accent:t.card, border:"1px solid " + (mealProfile.goal===g?t.accentSolid:t.cardBorder), borderRadius:10, color:mealProfile.goal===g?"#000":t.text, fontSize:12, fontWeight:mealProfile.goal===g?700:400, cursor:"pointer"}}>{g}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Goal weight */}
+                  <div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:700}}>Goal Weight (optional)</div>
+                    <input type="text" placeholder="e.g. 175 lbs" value={mealProfile.goalWeight} onChange={e => setMealProfile(p => ({...p, goalWeight:e.target.value}))}
+                      style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
+                  </div>
+
+                  {/* Meal times */}
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                    <div>
+                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:700}}>First Meal Time</div>
+                      <input type="time" value={mealProfile.breakfastTime} onChange={e => setMealProfile(p => ({...p, breakfastTime:e.target.value}))}
+                        style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
+                    </div>
+                    <div>
+                      <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:700}}>Last Meal Time</div>
+                      <input type="time" value={mealProfile.lastMealTime} onChange={e => setMealProfile(p => ({...p, lastMealTime:e.target.value}))}
+                        style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
+                    </div>
+                  </div>
+
+                  {/* Diet type */}
+                  <div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Diet Type</div>
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8}}>
+                      {["Regular","Keto","Vegan","Vegetarian","Paleo","Mediterranean"].map(d => (
+                        <button key={d} onClick={() => setMealProfile(p => ({...p, dietType:d}))} style={{padding:"10px", background:mealProfile.dietType===d?t.accent:t.card, border:"1px solid " + (mealProfile.dietType===d?t.accentSolid:t.cardBorder), borderRadius:10, color:mealProfile.dietType===d?"#000":t.text, fontSize:12, fontWeight:mealProfile.dietType===d?700:400, cursor:"pointer"}}>{d}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Activity level */}
+                  <div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Activity Level</div>
+                    <div style={{display:"flex", flexDirection:"column", gap:8}}>
+                      {[["Sedentary","Little to no exercise"],["Light","1-3 days/week"],["Moderate","3-5 days/week — your level"],["Heavy","6-7 days/week"],["Athlete","2x/day training"]].map(([level, desc]) => (
+                        <button key={level} onClick={() => setMealProfile(p => ({...p, activityLevel:level}))} style={{padding:"10px 14px", background:mealProfile.activityLevel===level?t.accentMuted:t.card, border:"1px solid " + (mealProfile.activityLevel===level?t.accentSolid:t.cardBorder), borderRadius:10, cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                          <div>
+                            <div style={{fontSize:13, color:mealProfile.activityLevel===level?t.accentText:t.text, fontWeight:mealProfile.activityLevel===level?700:400}}>{level}</div>
+                            <div style={{fontSize:11, color:t.textMuted}}>{desc}</div>
+                          </div>
+                          {mealProfile.activityLevel===level && <div style={{width:8, height:8, borderRadius:"50%", background:t.accentSolid}} />}
+                        </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Meals per day */}
                   <div>
-                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Meals Per Day</div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Meals Per Day</div>
                     <div style={{display:"flex", gap:8}}>
-                      {["2","3","4","5"].map(n => (
+                      {["2","3","4","5","6"].map(n => (
                         <button key={n} onClick={() => setMealProfile(p => ({...p, mealsPerDay:n}))} style={{flex:1, padding:"12px", background:mealProfile.mealsPerDay===n?t.accent:t.card, border:"1px solid " + (mealProfile.mealsPerDay===n?t.accentSolid:t.cardBorder), borderRadius:10, color:mealProfile.mealsPerDay===n?"#000":t.text, fontSize:15, fontWeight:700, cursor:"pointer"}}>{n}</button>
                       ))}
                     </div>
@@ -1848,42 +2054,43 @@ export default function FitStud() {
 
                   {/* Allergies */}
                   <div>
-                    <div style={{fontSize:11, color:t.accentText, letterSpacing:2, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:8, fontWeight:700}}>Allergies / Avoid (optional)</div>
+                    <div style={{fontSize:11, color:t.accentText, letterSpacing:1, textTransform:"uppercase", fontFamily:"Montserrat,sans-serif", marginBottom:6, fontWeight:700}}>Allergies / Foods to Avoid</div>
                     <input type="text" placeholder="e.g. gluten, dairy, nuts..." value={mealProfile.allergies} onChange={e => setMealProfile(p => ({...p, allergies:e.target.value}))}
-                      style={{width:"100%", padding:"12px 14px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:12, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
+                      style={{width:"100%", padding:"12px", background:t.input, border:"1px solid " + t.inputBorder, borderRadius:10, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box"}} />
                   </div>
 
                   {mealPlanError && <div style={{color:"#f87171", fontSize:12, textAlign:"center"}}>{mealPlanError}</div>}
 
-                  <button
-                    onClick={async () => {
-                      if (!mealProfile.dietType || !mealProfile.goal) { setMealPlanError("Please select diet type and goal."); return; }
-                      setMealPlanStep("loading");
-                      setMealPlanError("");
-                      try {
-                        const prompt = "Create a daily meal plan for someone following a " + mealProfile.dietType + " diet with goal: " + mealProfile.goal + ". They eat " + mealProfile.mealsPerDay + " meals per day." + (mealProfile.allergies ? " Avoid: " + mealProfile.allergies + "." : "") + " Return ONLY valid JSON with keys: breakfast, lunch, dinner, snacks. Each meal has: name, description, calories (number), protein (number in grams), carbs (number in grams), fat (number in grams). Also include totals key with total calories, protein, carbs, fat. No markdown, no explanation, just JSON.";
-                        const res = await fetch("https://api.anthropic.com/v1/messages", {
-                          method:"POST", headers:{"Content-Type":"application/json"},
-                          body: JSON.stringify({
-                            model:"claude-sonnet-4-20250514", max_tokens:1500,
-                            system:"You are a professional nutritionist. Return ONLY valid JSON meal plans. No markdown, no backticks, no explanation. Just the raw JSON object.",
-                            messages:[{role:"user", content:prompt}]
-                          })
-                        });
-                        const data = await res.json();
-                        const text = data.content?.find(b => b.type==="text")?.text || "";
-                        const cleaned = text.replace(/```json|```/g,"").trim();
-                        const parsed = JSON.parse(cleaned);
-                        setMealPlan(parsed);
-                        setMealPlanStep("plan");
-                      } catch(e) {
-                        setMealPlanError("Could not generate plan. Please try again.");
-                        setMealPlanStep("questions");
-                      }
-                    }}
-                    disabled={!mealProfile.dietType || !mealProfile.goal}
-                    style={{width:"100%", padding:"16px", background:(!mealProfile.dietType||!mealProfile.goal)?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:15, fontWeight:800, cursor:(!mealProfile.dietType||!mealProfile.goal)?"not-allowed":"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8}}>
-                    ✨ Generate My Meal Plan
+                  <button onClick={async () => {
+                    if (!mealProfile.goal || !mealProfile.dietType || !mealProfile.activityLevel) {
+                      setMealPlanError("Please fill in goal, diet type and activity level.");
+                      return;
+                    }
+                    setMealPlanStep("loading"); setMealPlanError("");
+                    try {
+                      const macroTarget = mealProfile.goal.includes("Lean") || mealProfile.goal.includes("Lose") ? "calorie deficit (15-20% below TDEE)" : mealProfile.goal.includes("Strength") || mealProfile.goal.includes("Muscle") ? "calorie surplus (10-15% above TDEE)" : "maintenance calories";
+                      const prompt = "Create a detailed 4-week rotating meal plan. User profile: Height: " + (mealProfile.height||"not specified") + ", Weight: " + (mealProfile.weight||"not specified") + ", Goal: " + mealProfile.goal + (mealProfile.goalWeight ? ", Goal weight: " + mealProfile.goalWeight : "") + ", Diet: " + mealProfile.dietType + ", Activity: " + mealProfile.activityLevel + ", Meals per day: " + mealProfile.mealsPerDay + ", First meal: " + mealProfile.breakfastTime + ", Last meal: " + mealProfile.lastMealTime + (mealProfile.allergies ? ", Avoid: " + mealProfile.allergies : "") + ". Use " + macroTarget + ". Return ONLY valid JSON with this structure: {week1:{monday:{meals:[{time,name,foods:[{item,amount,calories,protein,carbs,fat}],totalCalories,totalProtein,totalCarbs,totalFat}]},tuesday:...,wednesday:...,thursday:...,friday:...,saturday:...,sunday:...},week2:...,week3:...,week4:...,dailyTotals:{calories,protein,carbs,fat},notes}. Use specific real foods with accurate macros. Times based on first meal " + mealProfile.breakfastTime + " and last meal " + mealProfile.lastMealTime + ". No markdown, just JSON.";
+                      const res = await fetch("https://api.anthropic.com/v1/messages", {
+                        method:"POST", headers:{"Content-Type":"application/json"},
+                        body: JSON.stringify({
+                          model:"claude-sonnet-4-20250514", max_tokens:4000,
+                          system:"You are an expert sports nutritionist and dietitian with deep knowledge of food macros. Create detailed, realistic meal plans with specific foods and accurate nutritional data. Return ONLY valid JSON, no markdown, no explanation.",
+                          messages:[{role:"user", content:prompt}]
+                        })
+                      });
+                      const data = await res.json();
+                      const raw = data.content?.find(b => b.type==="text")?.text || "";
+                      const cleaned = raw.replace(/```json|```/g,"").trim();
+                      const parsed = JSON.parse(cleaned);
+                      setMealPlan(parsed);
+                      setMealPlanStep("plan");
+                    } catch(e) {
+                      setMealPlanError("Could not generate plan. Please try again.");
+                      setMealPlanStep("questions");
+                    }
+                  }} disabled={!mealProfile.goal || !mealProfile.dietType || !mealProfile.activityLevel}
+                    style={{width:"100%", padding:"16px", background:(!mealProfile.goal||!mealProfile.dietType||!mealProfile.activityLevel)?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:14, color:"#000", fontSize:15, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif", letterSpacing:1}}>
+                    Generate My Meal Plan
                   </button>
                 </div>
               )}
@@ -1892,51 +2099,95 @@ export default function FitStud() {
               {mealPlanStep === "loading" && (
                 <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 20px", gap:20}}>
                   <div style={{width:48, height:48, border:"3px solid rgba(212,175,55,0.3)", borderTopColor:"#D4AF37", borderRadius:"50%", animation:"spin 0.8s linear infinite"}} />
-                  <div style={{fontSize:15, fontWeight:700, color:t.text, fontFamily:"Montserrat,sans-serif"}}>Building your meal plan...</div>
-                  <div style={{fontSize:12, color:t.textMuted, textAlign:"center"}}>Creating personalized meals based on your goals</div>
+                  <div style={{fontSize:15, fontWeight:700, color:t.text, fontFamily:"Montserrat,sans-serif"}}>Building your 4-week plan...</div>
+                  <div style={{fontSize:12, color:t.textMuted, textAlign:"center", lineHeight:1.6}}>Calculating your calories, macros and meal schedule based on your goals</div>
                 </div>
               )}
 
-              {/* PLAN RESULT */}
+              {/* PLAN VIEW */}
               {mealPlanStep === "plan" && mealPlan && (
                 <div>
-                  <div style={{background:"linear-gradient(135deg,rgba(212,175,55,0.12),rgba(184,148,31,0.08))", border:"1px solid rgba(212,175,55,0.3)", borderRadius:14, padding:"12px 16px", marginBottom:16, textAlign:"center"}}>
-                    <div style={{fontSize:13, fontWeight:700, color:t.accentText}}>Your {mealProfile.dietType} meal plan is ready!</div>
-                    <div style={{fontSize:11, color:t.textMuted, marginTop:4}}>{mealProfile.goal} • {mealProfile.mealsPerDay} meals per day</div>
+                  {/* Header */}
+                  <div style={{background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:14, padding:"14px 16px", marginBottom:16}}>
+                    <div style={{fontSize:13, fontWeight:800, color:t.accentText, marginBottom:4, fontFamily:"Montserrat,sans-serif"}}>{mealProfile.goal} — {mealProfile.dietType} Plan</div>
+                    <div style={{fontSize:11, color:t.textMuted}}>{mealProfile.activityLevel} activity · {mealProfile.mealsPerDay} meals/day</div>
+                    {mealPlan.dailyTotals && (
+                      <div style={{display:"flex", gap:8, marginTop:10, flexWrap:"wrap"}}>
+                        {[{l:"Calories",v:mealPlan.dailyTotals.calories,c:"#F5D070"},{l:"Protein",v:mealPlan.dailyTotals.protein+"g",c:"#ef4444"},{l:"Carbs",v:mealPlan.dailyTotals.carbs+"g",c:"#f97316"},{l:"Fat",v:mealPlan.dailyTotals.fat+"g",c:"#a78bfa"}].map(m => (
+                          <div key={m.l} style={{padding:"4px 10px", borderRadius:8, background:t.card, fontSize:11}}>
+                            <span style={{color:t.textMuted}}>{m.l}: </span><span style={{color:m.c, fontWeight:700}}>{m.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {["breakfast","lunch","dinner","snacks"].map(meal => mealPlan[meal] && (
-                    <div key={meal} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px 16px", marginBottom:10}}>
-                      <div style={{fontSize:10, fontWeight:700, color:t.accentText, textTransform:"uppercase", letterSpacing:2, marginBottom:6, fontFamily:"Montserrat,sans-serif"}}>{meal}</div>
-                      <div style={{fontSize:15, fontWeight:700, color:t.text, marginBottom:4}}>{mealPlan[meal].name}</div>
-                      <div style={{fontSize:13, color:t.textMuted, lineHeight:1.6, marginBottom:10}}>{mealPlan[meal].description}</div>
-                      <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
-                        {[{label:"Cal", val:mealPlan[meal].calories, color:"#F5D070"},{label:"Protein", val:mealPlan[meal].protein+"g", color:"#ef4444"},{label:"Carbs", val:mealPlan[meal].carbs+"g", color:"#f97316"},{label:"Fat", val:mealPlan[meal].fat+"g", color:"#a78bfa"}].map(m => (
-                          <div key={m.label} style={{padding:"4px 10px", borderRadius:8, background:t.toggleBg, fontSize:12}}>
-                            <span style={{color:t.textMuted}}>{m.label}: </span><span style={{color:m.color, fontWeight:700}}>{m.val}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                  {/* Week selector */}
+                  <div style={{display:"flex", gap:6, marginBottom:16}}>
+                    {["Week 1","Week 2","Week 3","Week 4"].map((w,i) => (
+                      <button key={i} onClick={() => setMealPlanWeek(i)} style={{flex:1, padding:"8px 4px", background:mealPlanWeek===i?t.accent:t.card, border:"1px solid " + (mealPlanWeek===i?t.accentSolid:t.cardBorder), borderRadius:10, color:mealPlanWeek===i?"#000":t.text, fontSize:11, fontWeight:700, cursor:"pointer"}}>{w}</button>
+                    ))}
+                  </div>
 
-                  {mealPlan.totals && (
-                    <div style={{background:t.accentMuted, border:"1px solid " + t.accentBorder, borderRadius:14, padding:"14px 16px", marginBottom:16}}>
-                      <div style={{fontSize:10, fontWeight:700, color:t.accentText, textTransform:"uppercase", letterSpacing:2, marginBottom:10, fontFamily:"Montserrat,sans-serif"}}>Daily Totals</div>
-                      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
-                        {[{label:"Calories", val:mealPlan.totals.calories, unit:"kcal", color:"#F5D070"},{label:"Protein", val:mealPlan.totals.protein, unit:"g", color:"#ef4444"},{label:"Carbs", val:mealPlan.totals.carbs, unit:"g", color:"#f97316"},{label:"Fat", val:mealPlan.totals.fat, unit:"g", color:"#a78bfa"}].map(s => (
-                          <div key={s.label} style={{textAlign:"center", padding:"10px", background:t.card, borderRadius:10}}>
-                            <div style={{fontSize:20, fontWeight:800, color:s.color}}>{s.val}</div>
-                            <div style={{fontSize:10, color:t.textMuted}}>{s.unit}</div>
-                            <div style={{fontSize:10, color:t.textMuted}}>{s.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Days */}
+                  {(() => {
+                    const weekKey = ["week1","week2","week3","week4"][mealPlanWeek];
+                    const weekData = mealPlan[weekKey] || {};
+                    const dayNames = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+                    return dayNames.map(day => {
+                      const dayData = weekData[day];
+                      if (!dayData || !dayData.meals) return null;
+                      return (
+                        <div key={day} style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:14, padding:"14px", marginBottom:10}}>
+                          <div style={{fontSize:12, fontWeight:800, color:t.accentText, textTransform:"uppercase", letterSpacing:2, marginBottom:10, fontFamily:"Montserrat,sans-serif"}}>{day}</div>
+                          {dayData.meals.map((meal, mi) => {
+                            const mealKey = weekKey + "-" + day + "-" + mi;
+                            const isChecked = checkedMeals[mealKey];
+                            return (
+                              <div key={mi} style={{marginBottom:12, paddingBottom:12, borderBottom:mi<dayData.meals.length-1?"1px solid " + t.cardBorder:"none", opacity:isChecked?0.6:1}}>
+                                <div style={{display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:6}}>
+                                  <div style={{flex:1}}>
+                                    <div style={{fontSize:11, color:t.textMuted, marginBottom:2}}>{meal.time}</div>
+                                    <div style={{fontSize:14, fontWeight:700, color:isChecked?t.accentText:t.text, textDecoration:isChecked?"line-through":"none"}}>{meal.name}</div>
+                                  </div>
+                                  <button onClick={() => {
+                                    setCheckedMeals(prev => {
+                                      const updated = {...prev, [mealKey]: !prev[mealKey]};
+                                      if (!prev[mealKey] && meal.totalCalories) {
+                                        const todayKey = getTodayKey();
+                                        setNutrition(n => ({...n, [todayKey]: {
+                                          calories: (n[todayKey]?.calories||0) + (meal.totalCalories||0),
+                                          protein: (n[todayKey]?.protein||0) + (meal.totalProtein||0),
+                                          carbs: (n[todayKey]?.carbs||0) + (meal.totalCarbs||0),
+                                          fat: (n[todayKey]?.fat||0) + (meal.totalFat||0),
+                                          water: n[todayKey]?.water||0,
+                                          steps: n[todayKey]?.steps||0,
+                                        }}));
+                                      }
+                                      return updated;
+                                    });
+                                  }} style={{width:32, height:32, borderRadius:"50%", border:"2px solid " + (isChecked?t.accentSolid:t.cardBorder), background:isChecked?t.accent:"transparent", color:isChecked?"#000":t.textMuted, fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginLeft:8}}>
+                                    {isChecked ? "✓" : "○"}
+                                  </button>
+                                </div>
+                                {meal.foods && meal.foods.map((food, fi) => (
+                                  <div key={fi} style={{fontSize:12, color:t.textMuted, paddingLeft:8, marginBottom:2}}>• {food.amount} {food.item} — {food.calories} cal, {food.protein}g P</div>
+                                ))}
+                                <div style={{display:"flex", gap:6, marginTop:6, flexWrap:"wrap"}}>
+                                  {[{l:"Cal",v:meal.totalCalories,c:"#F5D070"},{l:"P",v:meal.totalProtein+"g",c:"#ef4444"},{l:"C",v:meal.totalCarbs+"g",c:"#f97316"},{l:"F",v:meal.totalFat+"g",c:"#a78bfa"}].map(m => (
+                                    <span key={m.l} style={{fontSize:10, padding:"2px 6px", borderRadius:6, background:t.toggleBg, color:m.c, fontWeight:700}}>{m.l}: {m.v}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    });
+                  })()}
 
-                  <div style={{display:"flex", gap:10}}>
-                    <button onClick={() => { setShowMealPlanner(false); setView("nutrition"); }} style={{flex:1, padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>Save to Nutrition</button>
+                  <div style={{display:"flex", gap:10, marginTop:8}}>
+                    <button onClick={() => setShowMealPlanner(false)} style={{flex:1, padding:"14px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", border:"none", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>Done</button>
                     <button onClick={() => setMealPlanStep("questions")} style={{padding:"14px 16px", background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, color:t.textSub, fontSize:13, cursor:"pointer"}}>Redo</button>
                   </div>
                 </div>
