@@ -699,7 +699,7 @@ export default function FitStud() {
     if (!aiPrompt.trim()) return;
     setAiLoading(true); setAiError("");
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/ai", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:1000,
@@ -720,7 +720,7 @@ export default function FitStud() {
     if (!plannerPrompt.trim()) return;
     setPlannerLoading(true); setPlannerError(""); setPlannerPreview(null);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/ai", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:2000,
@@ -892,7 +892,7 @@ export default function FitStud() {
                   setSetupLoading(true); setSetupError("");
                   try {
                     const prompt = "Create a " + userProfile.days + "-day per week workout program for someone who wants to " + userProfile.goal + ". Fitness level: " + userProfile.level + ". Equipment: " + userProfile.equipment + (userProfile.injuries ? ". Injuries/limitations: " + userProfile.injuries : "") + ". Make it challenging but appropriate for their level.";
-                    const res = await fetch("https://api.anthropic.com/v1/messages", {
+                    const res = await fetch("/api/ai", {
                       method:"POST", headers:{"Content-Type":"application/json"},
                       body: JSON.stringify({
                         model:"claude-sonnet-4-20250514", max_tokens:2000,
@@ -1844,7 +1844,7 @@ export default function FitStud() {
                             try {
                               const base64 = reader.result.split(",")[1];
                               const mType = file.type || "image/jpeg";
-                              const res = await fetch("https://api.anthropic.com/v1/messages", {
+                              const res = await fetch("/api/ai", {
                                 method:"POST", headers:{"Content-Type":"application/json"},
                                 body: JSON.stringify({
                                   model:"claude-sonnet-4-20250514", max_tokens:1000,
@@ -1881,7 +1881,7 @@ export default function FitStud() {
                             try {
                               const base64 = reader.result.split(",")[1];
                               const mType = file.type || "image/jpeg";
-                              const res = await fetch("https://api.anthropic.com/v1/messages", {
+                              const res = await fetch("/api/ai", {
                                 method:"POST", headers:{"Content-Type":"application/json"},
                                 body: JSON.stringify({
                                   model:"claude-sonnet-4-20250514", max_tokens:1000,
@@ -2107,7 +2107,7 @@ export default function FitStud() {
                     try {
                       const macroTarget = mealProfile.goal.includes("Lean") || mealProfile.goal.includes("Lose") ? "calorie deficit (15-20% below TDEE)" : mealProfile.goal.includes("Strength") || mealProfile.goal.includes("Muscle") ? "calorie surplus (10-15% above TDEE)" : "maintenance calories";
                       const prompt = "Create a detailed 4-week rotating meal plan. User profile: Height: " + (mealProfile.height||"not specified") + ", Weight: " + (mealProfile.weight||"not specified") + ", Goal: " + mealProfile.goal + (mealProfile.goalWeight ? ", Goal weight: " + mealProfile.goalWeight : "") + ", Diet: " + mealProfile.dietType + ", Activity: " + mealProfile.activityLevel + ", Meals per day: " + mealProfile.mealsPerDay + ", First meal: " + mealProfile.breakfastTime + ", Last meal: " + mealProfile.lastMealTime + (mealProfile.allergies ? ", Avoid: " + mealProfile.allergies : "") + ". Use " + macroTarget + ". Return ONLY valid JSON with this structure: {week1:{monday:{meals:[{time,name,foods:[{item,amount,calories,protein,carbs,fat}],totalCalories,totalProtein,totalCarbs,totalFat}]},tuesday:...,wednesday:...,thursday:...,friday:...,saturday:...,sunday:...},week2:...,week3:...,week4:...,dailyTotals:{calories,protein,carbs,fat},notes}. Use specific real foods with accurate macros. Times based on first meal " + mealProfile.breakfastTime + " and last meal " + mealProfile.lastMealTime + ". No markdown, just JSON.";
-                      const res = await fetch("https://api.anthropic.com/v1/messages", {
+                      const res = await fetch("/api/ai", {
                         method:"POST", headers:{"Content-Type":"application/json"},
                         body: JSON.stringify({
                           model:"claude-sonnet-4-20250514", max_tokens:4000,
