@@ -1829,53 +1829,93 @@ export default function FitStud() {
                 <div style={{display:"flex", flexDirection:"column", gap:12}}>
                   <div style={{textAlign:"center", padding:"32px 20px", background:t.card, border:"2px dashed " + t.accentBorder, borderRadius:16}}>
                     <div style={{fontSize:48, marginBottom:12}}>📷</div>
-                    <div style={{fontSize:14, color:t.text, fontWeight:600, marginBottom:8}}>Take or upload a photo of your meal</div>
-                    <div style={{fontSize:12, color:t.textMuted, marginBottom:20}}>AI will estimate calories, protein, carbs and fat</div>
-                    <label style={{display:"inline-block", padding:"12px 24px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>
-                      Choose Photo
-                      <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={async e => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        setScanLoading(true); setScanError("");
-                        try {
+                    <div style={{fontSize:14, color:t.text, fontWeight:600, marginBottom:8}}>Snap or upload your meal</div>
+                    <div style={{fontSize:12, color:t.textMuted, marginBottom:20}}>AI estimates calories, protein, carbs and fat</div>
+                    <div style={{display:"flex", gap:10, justifyContent:"center"}}>
+                      <label style={{display:"inline-block", padding:"12px 20px", background:"linear-gradient(135deg,#D4AF37,#B8941F)", borderRadius:12, color:"#000", fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"Montserrat,sans-serif"}}>
+                        Take Photo
+                        <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setScanLoading(true); setScanError("");
                           const reader = new FileReader();
-                          reader.onload = async (ev) => {
-                            const base64 = ev.target.result.split(",")[1];
-                            const mediaType = file.type;
-                            const res = await fetch("https://api.anthropic.com/v1/messages", {
-                              method:"POST", headers:{"Content-Type":"application/json"},
-                              body: JSON.stringify({
-                                model:"claude-sonnet-4-20250514", max_tokens:1000,
-                                system:"You are a nutrition expert. Analyze food images and provide accurate nutritional estimates. Return ONLY valid JSON, no markdown.",
-                                messages:[{role:"user", content:[
-                                  {type:"image", source:{type:"base64", media_type:mediaType, data:base64}},
-                                  {type:"text", text:"Analyze this meal photo. Identify all foods and estimate portions. Return JSON: {meal_name, description, foods:[{name, amount, calories, protein, carbs, fat}], totals:{calories, protein, carbs, fat}, confidence_note}"}
-                                ]}]
-                              })
-                            });
-                            const data = await res.json();
-                            const raw = data.content?.find(b => b.type==="text")?.text || "";
-                            const cleaned = raw.replace(/```json|```/g,"").trim();
-                            const parsed = JSON.parse(cleaned);
-                            setScanResult({...parsed, imageUrl: ev.target.result});
+                          reader.onerror = () => { setScanError("Could not read photo."); setScanLoading(false); };
+                          reader.onloadend = async () => {
+                            try {
+                              const base64 = reader.result.split(",")[1];
+                              const mType = file.type || "image/jpeg";
+                              const res = await fetch("https://api.anthropic.com/v1/messages", {
+                                method:"POST", headers:{"Content-Type":"application/json"},
+                                body: JSON.stringify({
+                                  model:"claude-sonnet-4-20250514", max_tokens:1000,
+                                  system:"You are an expert nutritionist. Analyze food photos and estimate portions with accurate macros. Return ONLY raw JSON, no markdown, no backticks.",
+                                  messages:[{role:"user", content:[
+                                    {type:"image", source:{type:"base64", media_type:mType, data:base64}},
+                                    {type:"text", text:"Identify every food item in this photo. Estimate portion sizes in oz or cups. For each food provide: name, amount, calories, protein (g), carbs (g), fat (g). Return JSON: {meal_name, description, foods:[{name,amount,calories,protein,carbs,fat}], totals:{calories,protein,carbs,fat}, confidence_note}. Be specific with portions like 8oz or 1.5 cups."}
+                                  ]}]
+                                })
+                              });
+                              if (!res.ok) { setScanError("API error: " + res.status); setScanLoading(false); return; }
+                              const data = await res.json();
+                              const raw = data.content?.find(b => b.type==="text")?.text || "";
+                              const cleaned = raw.replace(/```json|```/g,"").trim();
+                              const parsed = JSON.parse(cleaned);
+                              setScanResult({...parsed, imageUrl: reader.result});
+                            } catch(err) {
+                              setScanError("Could not analyze. Try a clearer photo.");
+                            }
                             setScanLoading(false);
                           };
                           reader.readAsDataURL(file);
-                        } catch(e) {
-                          setScanError("Could not analyze photo. Please try again.");
-                          setScanLoading(false);
-                        }
-                      }} />
-                    </label>
+                        }} />
+                      </label>
+                      <label style={{display:"inline-block", padding:"12px 20px", background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, color:t.text, fontSize:14, fontWeight:700, cursor:"pointer"}}>
+                        From Gallery
+                        <input type="file" accept="image/*" style={{display:"none"}} onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setScanLoading(true); setScanError("");
+                          const reader = new FileReader();
+                          reader.onerror = () => { setScanError("Could not read photo."); setScanLoading(false); };
+                          reader.onloadend = async () => {
+                            try {
+                              const base64 = reader.result.split(",")[1];
+                              const mType = file.type || "image/jpeg";
+                              const res = await fetch("https://api.anthropic.com/v1/messages", {
+                                method:"POST", headers:{"Content-Type":"application/json"},
+                                body: JSON.stringify({
+                                  model:"claude-sonnet-4-20250514", max_tokens:1000,
+                                  system:"You are an expert nutritionist. Analyze food photos and estimate portions with accurate macros. Return ONLY raw JSON, no markdown, no backticks.",
+                                  messages:[{role:"user", content:[
+                                    {type:"image", source:{type:"base64", media_type:mType, data:base64}},
+                                    {type:"text", text:"Identify every food item in this photo. Estimate portion sizes in oz or cups. For each food provide: name, amount, calories, protein (g), carbs (g), fat (g). Return JSON: {meal_name, description, foods:[{name,amount,calories,protein,carbs,fat}], totals:{calories,protein,carbs,fat}, confidence_note}. Be specific with portions like 8oz or 1.5 cups."}
+                                  ]}]
+                                })
+                              });
+                              if (!res.ok) { setScanError("API error: " + res.status); setScanLoading(false); return; }
+                              const data = await res.json();
+                              const raw = data.content?.find(b => b.type==="text")?.text || "";
+                              const cleaned = raw.replace(/```json|```/g,"").trim();
+                              const parsed = JSON.parse(cleaned);
+                              setScanResult({...parsed, imageUrl: reader.result});
+                            } catch(err) {
+                              setScanError("Could not analyze. Try a clearer photo.");
+                            }
+                            setScanLoading(false);
+                          };
+                          reader.readAsDataURL(file);
+                        }} />
+                      </label>
+                    </div>
                   </div>
-                  {scanError && <div style={{color:"#f87171", fontSize:12, textAlign:"center"}}>{scanError}</div>}
+                  {scanError && <div style={{color:"#f87171", fontSize:13, textAlign:"center", padding:"8px 12px", background:"rgba(248,113,113,0.1)", borderRadius:10}}>{scanError}</div>}
                   <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"12px 14px"}}>
                     <div style={{fontSize:11, color:t.accentText, fontWeight:700, marginBottom:6}}>HOW IT WORKS</div>
                     <div style={{fontSize:12, color:t.textMuted, lineHeight:1.7}}>
                       1. Take a clear photo of your meal<br/>
                       2. AI identifies all food items<br/>
                       3. Estimates portions and macros<br/>
-                      4. Add to your daily nutrition log
+                      4. Tap Add to Today to log it
                     </div>
                   </div>
                 </div>
