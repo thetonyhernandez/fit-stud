@@ -1872,12 +1872,9 @@ export default function FitStud() {
                   <div style={{background:t.card, border:"1px solid " + t.cardBorder, borderRadius:12, padding:"12px 14px"}}>
                     <div style={{fontSize:11, color:t.accentText, fontWeight:700, marginBottom:6}}>HOW IT WORKS</div>
                     <div style={{fontSize:12, color:t.textMuted, lineHeight:1.7}}>
-                      1. Take a clear photo of your meal{"
-"}
-                      2. AI identifies all food items{"
-"}
-                      3. Estimates portions and macros{"
-"}
+                      1. Take a clear photo of your meal<br/>
+                      2. AI identifies all food items<br/>
+                      3. Estimates portions and macros<br/>
                       4. Add to your daily nutrition log
                     </div>
                   </div>
