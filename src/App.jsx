@@ -142,6 +142,7 @@ export default function FitStud() {
     if(lastOpenedDay&&lastOpenedDay!==todayKey){
       setSetDataState({});
       localStorage.removeItem("fs_setdata");
+      localStorage.removeItem("fs_last_opened_day");
     }
     localStorage.setItem("fs_last_opened_day",todayKey);
   },[]);
@@ -168,10 +169,9 @@ export default function FitStud() {
         supabase.from("user_library").select("library").eq("user_id",userId).single(),
       ]);
       if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}
-      // Only restore setdata from cloud if it's the same day — don't overwrite daily reset
+      // Only restore setdata from cloud if it was saved TODAY — prevents old data showing up
       const todayKey=new Date().toISOString().slice(0,10);
-      const lastDay=localStorage.getItem("fs_last_opened_day");
-      if(s.data?.setdata && lastDay===todayKey)setSetDataState(s.data.setdata);
+      if(s.data?.setdata && s.data.setdata.__date===todayKey)setSetDataState(s.data.setdata);
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
     }catch(e){console.log("Load error",e);}
@@ -209,7 +209,7 @@ export default function FitStud() {
   const exercises=(workouts||EMPTY_WORKOUTS)[selectedDay]||[];
   useEffect(()=>{setWorkoutFinished(false);},[selectedDay]);
   const getSet=(exId,i)=>setData[selectedDay+"-"+exId+"-"+i]||{reps:"",weight:"",done:false};
-  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;setSetDataState(prev=>({...prev,[key]:{...getSet(exId,i),[field]:val}}));};
+  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const __date=new Date().toISOString().slice(0,10);setSetDataState(prev=>({...prev,__date,[key]:{...getSet(exId,i),[field]:val}}));};
   const toggleDone=(exId,i)=>updateSet(exId,i,"done",!getSet(exId,i).done);
 
   // FIX 2: RESET EXERCISE
