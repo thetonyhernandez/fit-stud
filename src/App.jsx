@@ -168,7 +168,10 @@ export default function FitStud() {
         supabase.from("user_library").select("library").eq("user_id",userId).single(),
       ]);
       if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}
-      if(s.data?.setdata)setSetDataState(s.data.setdata);
+      // Only restore setdata from cloud if it's the same day — don't overwrite daily reset
+      const todayKey=new Date().toISOString().slice(0,10);
+      const lastDay=localStorage.getItem("fs_last_opened_day");
+      if(s.data?.setdata && lastDay===todayKey)setSetDataState(s.data.setdata);
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
     }catch(e){console.log("Load error",e);}
