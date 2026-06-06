@@ -208,8 +208,15 @@ export default function FitStud() {
 
   const exercises=(workouts||EMPTY_WORKOUTS)[selectedDay]||[];
   useEffect(()=>{setWorkoutFinished(false);},[selectedDay]);
-  const getSet=(exId,i)=>setData[selectedDay+"-"+exId+"-"+i]||{reps:"",weight:"",done:false};
-  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const __date=new Date().toISOString().slice(0,10);setSetDataState(prev=>({...prev,__date,[key]:{...getSet(exId,i),[field]:val}}));};
+  const getSet=(exId,i)=>{
+    const raw=setData[selectedDay+"-"+exId+"-"+i];
+    if(!raw)return{reps:"",weight:"",done:false};
+    // If this entry was saved on a different date, treat as empty (fresh day)
+    const todayKey=new Date().toISOString().slice(0,10);
+    if(raw.__entryDate&&raw.__entryDate!==todayKey)return{reps:"",weight:"",done:false};
+    return raw;
+  };
+  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const todayKey=new Date().toISOString().slice(0,10);setSetDataState(prev=>({...prev,__date:todayKey,[key]:{...getSet(exId,i),__entryDate:todayKey,[field]:val}}));};
   const toggleDone=(exId,i)=>updateSet(exId,i,"done",!getSet(exId,i).done);
 
   // FIX 2: RESET EXERCISE
@@ -359,14 +366,14 @@ export default function FitStud() {
       {/* WEEK VIEW */}
       {view==="week"&&(
         <div>
-          <div onTouchStart={e=>setTouchSwipeStart(e.touches[0].clientX)} onTouchEnd={e=>{if(touchSwipeStart===null)return;const diff=touchSwipeStart-e.changedTouches[0].clientX;if(Math.abs(diff)>40)setWeekOffset(weekOffset+(diff>0?1:-1));setTouchSwipeStart(null);}} style={{display:"flex",gap:8,padding:"16px 12px 8px",overflowX:"auto",scrollbarWidth:"none"}}>
+          <div onTouchStart={e=>setTouchSwipeStart(e.touches[0].clientX)} onTouchEnd={e=>{if(touchSwipeStart===null)return;const diff=touchSwipeStart-e.changedTouches[0].clientX;if(Math.abs(diff)>40)setWeekOffset(weekOffset+(diff>0?1:-1));setTouchSwipeStart(null);}} ref={el=>{if(el){const sel=el.querySelector("[data-selected='true']");if(sel)sel.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});}}} style={{display:"flex",gap:8,padding:"16px 12px 8px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
             {Array.from({length:7},(_,i)=>{
               const base=new Date(),slotDate=new Date(base);slotDate.setDate(base.getDate()+(weekOffset*7)+i);
               const dateNum=slotDate.getDate(),dateMonth=slotDate.getMonth(),dateYear=slotDate.getFullYear(),dayName=DAYS[slotDate.getDay()];
               const realToday=new Date(),isToday=dateNum===realToday.getDate()&&dateMonth===realToday.getMonth()&&dateYear===realToday.getFullYear();
               const histKey=dateYear+"-"+String(dateMonth+1).padStart(2,"0")+"-"+String(dateNum).padStart(2,"0")+"-"+dayName;
               const isCompleted=!!history[histKey],isSelDay=dayName===selectedDay,hasWorkout=(safeWorkouts[dayName]||[]).length>0;
-              return <button key={i} onClick={()=>{setSelectedDay(dayName);setShowStats(false);}} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 8px",borderRadius:16,minWidth:56,cursor:"pointer",border:isToday?"1.5px solid "+t.accentSolid:isCompleted?"1.5px solid #22c55e":isSelDay?"1.5px solid "+t.accentBorder:"1.5px solid "+t.cardBorder,background:isToday?t.accentMuted:isCompleted?"rgba(34,197,94,0.12)":t.card,boxShadow:isSelDay?"0 0 0 2px "+t.accentSolid:"none"}}>
+              return <button key={i} data-selected={isSelDay?"true":"false"} onClick={()=>{setSelectedDay(dayName);setShowStats(false);}} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 8px",borderRadius:16,minWidth:56,cursor:"pointer",border:isToday?"1.5px solid "+t.accentSolid:isCompleted?"1.5px solid #22c55e":isSelDay?"1.5px solid "+t.accentBorder:"1.5px solid "+t.cardBorder,background:isToday?t.accentMuted:isCompleted?"rgba(34,197,94,0.12)":t.card,boxShadow:isSelDay?"0 0 0 2px "+t.accentSolid:"none"}}>
                 <span style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",fontWeight:700,color:isToday?t.accentText:isCompleted?"#22c55e":isSelDay?t.accentText:t.textMuted}}>{dayName}</span>
                 <span style={{fontSize:18,fontWeight:800,lineHeight:1,color:t.text}}>{dateNum}</span>
                 <span style={{width:6,height:6,borderRadius:"50%",background:isCompleted?"#22c55e":isToday?t.accentSolid:hasWorkout?t.accentBorder:"transparent"}} />
@@ -396,7 +403,7 @@ export default function FitStud() {
             {exercises.map((ex,exIdx)=>{
               const done=doneCount(ex.id,ex.sets),finished=done===ex.sets;
               return(
-                <div key={ex.id} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:dragIndex===exIdx?0.4:1,transition:"all 0.15s"}}>
+                <div key={ex.id} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:dragIndex===exIdx?0.4:1,transition:"all 0.15s",outline:dragOver===exIdx&&dragIndex!==exIdx?"3px solid "+t.accentSolid:"none",outlineOffset:2}}>
                   {editMode&&<div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
                     <div draggable onDragStart={()=>{setDragIndex(exIdx);dragIndexRef.current=exIdx;}} onDragOver={e=>{e.preventDefault();setDragOver(exIdx);}} onDragEnd={handleDragEnd} onTouchStart={e=>{e.stopPropagation();setDragIndex(exIdx);dragIndexRef.current=exIdx;}} onTouchMove={e=>{e.preventDefault();const y=e.touches[0].clientY;const cards=document.querySelectorAll("[data-excard]");cards.forEach((card,ci)=>{const rect=card.getBoundingClientRect();if(y>=rect.top&&y<=rect.bottom)setDragOver(ci);});}} onTouchEnd={e=>{e.stopPropagation();handleDragEnd();}} style={{display:"flex",flexDirection:"column",gap:4,padding:"12px 14px",background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,cursor:"grab",alignItems:"center",touchAction:"none",userSelect:"none"}}>
                       {[0,1,2].map(i=><div key={i} style={{width:20,height:2.5,background:t.accentText,borderRadius:1}} />)}
@@ -517,7 +524,7 @@ export default function FitStud() {
             const isToday=date===todayDate&&calMonth===todayMonth&&calYear===todayYear;
             const histKey=calYear+"-"+String(calMonth+1).padStart(2,"0")+"-"+String(date).padStart(2,"0")+"-"+dayName;
             const wasCompleted=!!history[histKey];
-            return <button key={idx} onClick={()=>{setSelectedDay(dayName);setView("week");}} style={{aspectRatio:"1",borderRadius:12,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,border:isToday?"1.5px solid "+t.accentSolid:wasCompleted?"1.5px solid #22c55e":"1px solid "+t.cardBorder,background:wasCompleted?"rgba(34,197,94,0.12)":isToday?t.accentMuted:t.card}}>
+            return <button key={idx} onClick={()=>{setSelectedDay(dayName);setWeekOffset(0);setView("week");}} style={{aspectRatio:"1",borderRadius:12,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,border:isToday?"1.5px solid "+t.accentSolid:wasCompleted?"1.5px solid #22c55e":"1px solid "+t.cardBorder,background:wasCompleted?"rgba(34,197,94,0.12)":isToday?t.accentMuted:t.card}}>
               <span style={{fontSize:14,fontWeight:isToday||wasCompleted?700:400,color:wasCompleted?"#22c55e":isToday?t.accentText:t.text,lineHeight:1}}>{date}</span>
               {wasCompleted&&<div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}} />}
               {isToday&&!wasCompleted&&<div style={{width:5,height:5,borderRadius:"50%",background:t.accentSolid}} />}
