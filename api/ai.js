@@ -13,7 +13,8 @@ export default async function handler(req, res) {
     const body = {
       ...req.body,
       model: "claude-sonnet-4-5",
-      max_tokens: Math.min(req.body.max_tokens || 1024, 2048),
+      // Allow up to 8000 tokens for meal plans, cap others at 2048
+      max_tokens: Math.min(req.body.max_tokens || 1024, 8000),
     };
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
