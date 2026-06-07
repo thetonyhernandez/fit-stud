@@ -1,1277 +1,753 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>FitStud Coach</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  html, body { margin: 0; padding: 0; background: #0B0B0B; }
-  * { box-sizing: border-box; }
-  input:focus, textarea:focus, select:focus { border-color: #D4AF37 !important; }
-  ::placeholder { color: #6A6A6A; }
-</style>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-<div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useEffect } = React;
-
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://txddetoycdwoatruhojs.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4ZGRldG95Y2R3b2F0cnVob2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwOTIxNTAsImV4cCI6MjA5NTY2ODE1MH0.Od-MYlkLSPh8S7LYwzchgJig2r0iOzbPyNrMyDpIcMw";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-const AI_ENDPOINT = "/api/ai";
-
-const C = {
-  bg: "#0B0B0B", panel: "#141414", panel2: "#0F0F0F", card: "#1A1A1A",
-  border: "#2A2A2A", borderSoft: "#202020", gold: "#D4AF37", goldSoft: "#D4AF371A",
-  red: "#E53935", redSoft: "#E539351A", text: "#FFFFFF", muted: "#9A9A9A", faint: "#6A6A6A",
+const SUPABASE_KEY = "sb_publishable_T9zfSOIL4-1ROn3csWw1qw_FK-DNbaW";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const FULL_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_FOCUS = { Mon:"🦵 Heavy Leg Day",Tue:"💪 Chest & Triceps",Wed:"🔙 Back & Biceps",Thu:"⚡ Full Body Functional",Fri:"🍑 Glute & Leg Day",Sat:"😴 Rest Day",Sun:"😴 Rest Day" };
+const DEFAULT_WORKOUTS = {
+  Mon:[{id:1,name:"Deadlifts",sets:5,reps:6,video:"XxWcirHIwVo"},{id:2,name:"Walking Lunges",sets:4,reps:20,video:"kRzcRkKy1ns"},{id:3,name:"Leg Extensions",sets:4,reps:13,video:"YyvSfVjQeL0"},{id:4,name:"Seated Hamstring Curl",sets:4,reps:13,video:"y19_9B0s2uA"},{id:5,name:"Standing Calf Raises",sets:5,reps:17,video:"M4-G8p8fmc"},{id:6,name:"Goblet Squats",sets:4,reps:12,video:"MeIiIdhvXT4"},{id:7,name:"Hip Abductor Machine",sets:4,reps:15,video:"G_8LItOiZ0Q"},{id:8,name:"Hip Adductor Machine",sets:4,reps:15,video:"G_8LItOiZ0Q"},{id:9,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
+  Tue:[{id:10,name:"Flat Bench Press",sets:5,reps:6,video:"dblHPPUfRtE"},{id:11,name:"Incline Dumbbell Press",sets:4,reps:10,video:"8iPEnn-ltC8"},{id:12,name:"Chest Fly / Cable Fly",sets:4,reps:12,video:"Iwe6AmxVf7o"},{id:13,name:"Push-Ups",sets:3,reps:15,video:"IODxDxX7oi4"},{id:14,name:"Tricep Rope Pushdowns",sets:4,reps:12,video:"vB5OHsJ3EME"},{id:15,name:"Overhead Tricep Extensions",sets:4,reps:12,video:"_gsUck-7M74"},{id:16,name:"Dips",sets:3,reps:12,video:"2z8JmcrW-As"},{id:17,name:"Dumbbell Shoulder Press",sets:4,reps:10,video:"qEwKCR5JCog"},{id:18,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
+  Wed:[{id:19,name:"Pull-Ups / Assisted Pull-Ups",sets:4,reps:8,video:"eGo4IYlbE5g"},{id:20,name:"Barbell Rows",sets:5,reps:8,video:"vT2GjY_Umpw"},{id:21,name:"Lat Pulldowns",sets:4,reps:12,video:"CAwf7n6Luuc"},{id:22,name:"Seated Cable Rows",sets:4,reps:12,video:"HJSVR_67OlM"},{id:23,name:"Dumbbell Rows",sets:4,reps:10,video:"roCP6wCXPqo"},{id:24,name:"Pec Deck Rear Delt Fly",sets:4,reps:15,video:"EA7u4Q_8HQ0"},{id:25,name:"Rear Delt Fly Machine",sets:4,reps:15,video:"6yMdhi2DVao"},{id:26,name:"EZ Bar Curls",sets:4,reps:12,video:"kwG2ipFRgfo"},{id:27,name:"Hammer Curls",sets:4,reps:12,video:"zC3nLlEvin4"},{id:28,name:"Preacher Curls",sets:3,reps:15,video:"fIWP-FRFNU0"},{id:29,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
+  Thu:[{id:30,name:"Sled Pushes",sets:8,reps:1,video:"5VxTpqj7A"},{id:31,name:"Cable Lat Pulldowns",sets:4,reps:12,video:"CAwf7n6Luuc"},{id:32,name:"Cable Rows",sets:4,reps:12,video:"HJSVR_67OlM"},{id:33,name:"Cable Face Pulls",sets:4,reps:15,video:"rep-qVOkqgk"},{id:34,name:"Cable Woodchoppers",sets:4,reps:15,video:"AU-4zSxzi0I"},{id:35,name:"Kettlebell Swings",sets:4,reps:20,video:"YSxHifyImin"},{id:36,name:"Walking Lunges",sets:3,reps:20,video:"kRzcRkKy1ns"},{id:37,name:"Battle Ropes / Row Machine",sets:5,reps:1,video:"Y6nFmyQ5SR0"},{id:38,name:"Push-Ups",sets:3,reps:15,video:"IODxDxX7oi4"},{id:39,name:"Farmer Carries",sets:4,reps:1,video:"Fkzk_RqlYig"},{id:40,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
+  Fri:[{id:41,name:"Romanian Deadlifts",sets:5,reps:10,video:"2SHsk9AzdjA"},{id:42,name:"Walking Lunges",sets:5,reps:20,video:"kRzcRkKy1ns"},{id:43,name:"Hip Thrusts",sets:5,reps:12,video:"LM8XHLYJoYs"},{id:44,name:"Seated Hamstring Curl",sets:4,reps:15,video:"y19_9B0s2uA"},{id:45,name:"Leg Extensions",sets:4,reps:15,video:"YyvSfVjQeL0"},{id:46,name:"Hip Abductor Machine",sets:5,reps:20,video:"G_8LItOiZ0Q"},{id:47,name:"Bulgarian Split Squats",sets:4,reps:10,video:"2C-uNgKwPLE"},{id:48,name:"Standing Calf Raises",sets:5,reps:20,video:"M4-G8p8fmc"},{id:49,name:"Goblet Squats",sets:4,reps:12,video:"MeIiIdhvXT4"},{id:50,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
+  Sat:[],Sun:[],
 };
-const FB = "'Inter', system-ui, sans-serif";
-const FD = "'Bebas Neue', system-ui, sans-serif";
-const disp = (e = {}) => ({ fontFamily: FD, letterSpacing: 0.8, textTransform: "uppercase", ...e });
-const inputStyle = { width: "100%", marginTop: 6, padding: "10px 12px", borderRadius: 10, background: C.panel2, border: "1px solid " + C.border, color: C.text, fontSize: 14, fontFamily: FB, outline: "none" };
-const btnGold = { background: C.gold, color: "#0B0B0B", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: FB };
-const btnRed = { background: C.red, color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: FB };
-const btnGhost = { background: C.card, color: C.text, border: "1px solid " + C.border, borderRadius: 10, padding: "9px 14px", fontWeight: 600, fontSize: 13.5, cursor: "pointer", fontFamily: FB };
+const load=(key,fallback)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch{return fallback;}};
+const save=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val));}catch{}};
+const EMPTY_WORKOUTS={Sun:[],Mon:[],Tue:[],Wed:[],Thu:[],Fri:[],Sat:[]};
+const EXERCISE_LIBRARY=[
+  {category:"Push",icon:"💪",subs:[
+    {name:"Chest",exercises:[{name:"Flat Bench Press",sets:4,reps:8,video:"dblHPPUfRtE",desc:"Lower the bar to your chest under control and press upward."},{name:"Incline Dumbbell Press",sets:4,reps:10,video:"8iPEnn-ltC8",desc:"Press dumbbells upward from an incline bench and lower slowly."},{name:"Chest Fly",sets:4,reps:12,video:"Iwe6AmxVf7o",desc:"Bring arms together in a wide arc and squeeze chest at center."},{name:"Push-Up",sets:3,reps:15,video:"IODxDxX7oi4",desc:"Keep body straight and lower chest to floor before pressing back up."}]},
+    {name:"Shoulders",exercises:[{name:"Dumbbell Shoulder Press",sets:4,reps:10,video:"qEwKCR5JCog",desc:"Press dumbbells overhead and lower to shoulder level with control."},{name:"Lateral Raises",sets:3,reps:15,video:"ygWMEFQNJxM",desc:"Raise dumbbells out to sides until shoulder height and lower slowly."},{name:"Arnold Press",sets:4,reps:10,video:"6Z15_WdXmVw",desc:"Rotate palms outward as you press overhead."}]},
+    {name:"Triceps",exercises:[{name:"Tricep Rope Pushdown",sets:4,reps:12,video:"vB5OHsJ3EME",desc:"Push rope downward keeping elbows tucked close to sides."},{name:"Overhead Tricep Extension",sets:4,reps:12,video:"_gsUck-7M74",desc:"Lower weight behind head and extend arms upward."},{name:"Dips",sets:3,reps:12,video:"2z8JmcrW-As",desc:"Lower body by bending elbows and push back to start."},{name:"Skull Crushers",sets:4,reps:12,video:"d_KZxkY_5cM",desc:"Lower weight toward forehead and extend arms back to top."}]},
+  ]},
+  {category:"Pull",icon:"🔙",subs:[
+    {name:"Back",exercises:[{name:"Pull-Ups",sets:4,reps:8,video:"eGo4IYlbE5g",desc:"Pull chest toward bar and lower with control."},{name:"Lat Pulldown",sets:4,reps:12,video:"CAwf7n6Luuc",desc:"Pull bar to upper chest while driving elbows down."},{name:"Seated Cable Row",sets:4,reps:12,video:"HJSVR_67OlM",desc:"Pull handle toward torso and squeeze shoulder blades."},{name:"Barbell Row",sets:4,reps:8,video:"vT2GjY_Umpw",desc:"Pull bar toward stomach keeping back flat."},{name:"Dumbbell Row",sets:4,reps:10,video:"roCP6wCXPqo",desc:"Pull dumbbell toward hip and lower slowly."},{name:"Face Pull",sets:4,reps:15,video:"rep-qVOkqgk",desc:"Pull rope toward face with elbows high."},{name:"Rear Delt Fly",sets:4,reps:15,video:"6yMdhi2DVao",desc:"Open arms outward and squeeze rear shoulders."}]},
+    {name:"Biceps",exercises:[{name:"EZ Bar Curl",sets:4,reps:12,video:"kwG2ipFRgfo",desc:"Curl bar toward shoulders and lower slowly."},{name:"Dumbbell Curl",sets:4,reps:12,video:"ykJmrZ5v0Oo",desc:"Curl dumbbells keeping elbows stationary."},{name:"Hammer Curl",sets:4,reps:12,video:"zC3nLlEvin4",desc:"Keep palms inward and curl weights upward."},{name:"Preacher Curl",sets:3,reps:15,video:"fIWP-FRFNU0",desc:"Curl weight resting arms on pad and lower slowly."}]},
+  ]},
+  {category:"Legs",icon:"🦵",subs:[
+    {name:"Quads",exercises:[{name:"Goblet Squat",sets:4,reps:12,video:"MeIiIdhvXT4",desc:"Hold weight at chest and squat keeping chest up."},{name:"Barbell Squat",sets:4,reps:6,video:"ultWZbUMPL8",desc:"Lower hips until thighs parallel and stand back up."},{name:"Leg Press",sets:4,reps:12,video:"IZxyjW7MPJQ",desc:"Press platform away and return under control."},{name:"Leg Extension",sets:4,reps:15,video:"YyvSfVjQeL0",desc:"Extend legs until straight and squeeze quads."}]},
+    {name:"Hamstrings",exercises:[{name:"Deadlift",sets:5,reps:5,video:"XxWcirHIwVo",desc:"Lift by driving through heels keeping back straight."},{name:"Romanian Deadlift",sets:4,reps:10,video:"2SHsk9AzdjA",desc:"Push hips back and lower until hamstring stretch."},{name:"Seated Hamstring Curl",sets:4,reps:12,video:"y19_9B0s2uA",desc:"Curl pad downward using hamstrings and return slowly."}]},
+    {name:"Athletic Legs",exercises:[{name:"Walking Lunges",sets:4,reps:20,video:"kRzcRkKy1ns",desc:"Step forward into lunge alternating legs while walking."},{name:"Bulgarian Split Squat",sets:4,reps:10,video:"2C-uNgKwPLE",desc:"Lower body using one leg with rear foot elevated."}]},
+    {name:"Calves",exercises:[{name:"Standing Calf Raise",sets:5,reps:20,video:"gwLzBv9RP30",desc:"Raise heels high and slowly lower back down."}]},
+  ]},
+  {category:"Glutes",icon:"🍑",subs:[{name:"Glute Exercises",exercises:[{name:"Hip Thrust",sets:4,reps:12,video:"xDmFkJxPzeM",desc:"Drive hips upward and squeeze glutes at top."},{name:"Glute Bridge",sets:4,reps:15,video:"jQkKeL4Cg8M",desc:"Lift hips from floor squeezing glutes."},{name:"Hip Abductor Machine",sets:4,reps:15,video:"G_8LItOiZ0Q",desc:"Push knees outward and squeeze glutes."},{name:"Bulgarian Split Squat",sets:4,reps:10,video:"2C-uNgKwPLE",desc:"Lower body using one leg with rear foot elevated."}]}]},
+  {category:"Core & Abs",icon:"⚡",subs:[{name:"Core",exercises:[{name:"Russian Twist",sets:4,reps:20,video:"wkD8rjkodUI",desc:"Rotate side to side keeping core tight."},{name:"Hanging Leg Raise",sets:4,reps:15,video:"hdng3Nm1x_E",desc:"Raise legs while hanging and lower under control."},{name:"Plank",sets:3,reps:1,video:"ASdvN_XEl_c",desc:"Hold straight-body position bracing core."},{name:"Bicycle Crunch",sets:4,reps:20,video:"1we3bh9uhqY",desc:"Alternate elbow-to-knee keeping tension on abs."},{name:"Ab Wheel Rollout",sets:4,reps:12,video:"YXubBPBDkSE",desc:"Roll forward with tight core and return slowly."},{name:"Cable Woodchopper",sets:4,reps:15,video:"AU-4zSxzi0I",desc:"Rotate torso pulling cable across body."}]}]},
+  {category:"Functional",icon:"🔥",subs:[
+    {name:"Functional Fitness",exercises:[{name:"Sled Push",sets:4,reps:1,video:"SItS3bwnSmI",desc:"Drive sled forward using powerful leg drive."},{name:"Farmer Carry",sets:4,reps:1,video:"Fkzk_RqlYig",desc:"Walk with heavy weights keeping core braced."},{name:"Kettlebell Swing",sets:4,reps:20,video:"ZYgRuQoh6Qc",desc:"Hinge at hips and drive kettlebell with explosive hip extension."},{name:"Battle Ropes",sets:4,reps:1,video:"Y6nFmyQ5SR0",desc:"Alternate waves maintaining strong athletic stance."},{name:"Box Jump",sets:4,reps:8,video:"52FsXzBKGgE",desc:"Jump onto box with both feet and land softly."},{name:"Burpees",sets:4,reps:10,video:"dZgVxmf6jkA",desc:"Drop to floor, push-up, jump up and repeat."}]},
+    {name:"Cardio",exercises:[{name:"Walking",sets:1,reps:1,video:"",desc:"Maintain brisk walking pace to elevate heart rate."},{name:"Running",sets:1,reps:1,video:"",desc:"Maintain steady pace with good form."},{name:"Rowing Machine",sets:1,reps:1,video:"",desc:"Drive with legs first then pull handle to lower chest."},{name:"Cycling",sets:1,reps:1,video:"",desc:"Maintain steady cadence with appropriate resistance."}]},
+  ]},
+  {category:"Mobility",icon:"🧘",subs:[{name:"Mobility & Recovery",exercises:[{name:"Hip Mobility",sets:2,reps:10,video:"",desc:"Full range hip circles and stretches."},{name:"Shoulder Mobility",sets:2,reps:10,video:"",desc:"Arm circles and cross-body stretches."},{name:"Foam Rolling",sets:1,reps:1,video:"",desc:"Roll over tight muscle groups pausing on tender spots."},{name:"Active Recovery",sets:1,reps:1,video:"",desc:"Light movement to promote blood flow."}]}]},
+];
+let nextId=200;
+export default function FitStud() {
+  const now=new Date(),today=DAYS[now.getDay()],todayDate=now.getDate(),todayMonth=now.getMonth(),todayYear=now.getFullYear();
+  const [view,setView]=useState("week");
+  const [calMonth,setCalMonth]=useState(todayMonth);
+  const [calYear,setCalYear]=useState(todayYear);
+  const [selectedDay,setSelectedDay]=useState(today);
+  const [workouts,setWorkouts]=useState(()=>load("fs_workouts",null));
+  const [setData,setSetDataState]=useState(()=>load("fs_setdata",{}));
+  const [showAdd,setShowAdd]=useState(false);
+  const [addTab,setAddTab]=useState("manual");
+  const [newEx,setNewEx]=useState({name:"",sets:"",reps:"",video:""});
+  const [aiPrompt,setAiPrompt]=useState("");
+  const [aiLoading,setAiLoading]=useState(false);
+  const [aiError,setAiError]=useState("");
+  const [showStats,setShowStats]=useState(false);
+  const [showCongrats,setShowCongrats]=useState(false);
+  const [theme,setTheme]=useState(()=>load("fs_theme","gold"));
+  const [videoPlayer,setVideoPlayer]=useState(null);
+  const [showPlanner,setShowPlanner]=useState(false);
+  const [plannerPrompt,setPlannerPrompt]=useState("");
+  const [plannerLoading,setPlannerLoading]=useState(false);
+  const [plannerError,setPlannerError]=useState("");
+  const [plannerPreview,setPlannerPreview]=useState(null);
+  const [plannerMode,setPlannerMode]=useState("replace");
+  const [editMode,setEditMode]=useState(false);
+  const [dragIndex,setDragIndex]=useState(null);
+  const [dragOver,setDragOver]=useState(null);
+  const [touchStartY,setTouchStartY]=useState(null);
+  const dragIndexRef=useRef(null);
+  const [moveModal,setMoveModal]=useState(null);
+  const [history,setHistory]=useState(()=>load("fs_history",{}));
+  const [showHistory,setShowHistory]=useState(false);
+  const [historyDetail,setHistoryDetail]=useState(null);
+  const [library,setLibrary]=useState(()=>load("fs_library",[]));
+  const [showLibrary,setShowLibrary]=useState(false);
+  const [libView,setLibView]=useState("categories");
+  const [libCategory,setLibCategory]=useState(null);
+  const [libExercise,setLibExercise]=useState(null);
+  const [showSetup,setShowSetup]=useState(()=>load("fs_workouts",null)===null);
+  const [setupLoading,setSetupLoading]=useState(false);
+  const [setupError,setSetupError]=useState("");
+  const [setupStep,setSetupStep]=useState("welcome");
+  const [userProfile,setUserProfile]=useState({goal:"",level:"",days:"",equipment:"",injuries:""});
+  const [user,setUser]=useState(null);
+  const [authLoading,setAuthLoading]=useState(true);
+  const [showAuth,setShowAuth]=useState(false);
+  const [authMode,setAuthMode]=useState("login");
+  const [authEmail,setAuthEmail]=useState("");
+  const [authPassword,setAuthPassword]=useState("");
+  const [authError,setAuthError]=useState("");
+  const [authSubmitting,setAuthSubmitting]=useState(false);
+  const [syncStatus,setSyncStatus]=useState("idle");
+  const [workoutFinished,setWorkoutFinished]=useState(false);
+  const [weekOffset,setWeekOffset]=useState(0);
+  const [showMealPlanner,setShowMealPlanner]=useState(false);
+  const [mealPlanStep,setMealPlanStep]=useState("questions");
+  const [mealProfile,setMealProfile]=useState({height:"",weight:"",goal:"",dietType:"",allergies:"",mealsPerDay:"3",activityLevel:""});
+  const [mealPlanWeek,setMealPlanWeek]=useState(0);
+  const [checkedMeals,setCheckedMeals]=useState(()=>{try{return JSON.parse(localStorage.getItem("fs_checked_meals")||"{}");}catch{return {};}});
+  const [showScanner,setShowScanner]=useState(false);
+  const [scanResult,setScanResult]=useState(null);
+  const [scanLoading,setScanLoading]=useState(false);
+  const [scanError,setScanError]=useState("");
+  const [mealPlan,setMealPlan]=useState(()=>load("fs_mealplan",null));
+  const [mealPlanError,setMealPlanError]=useState("");
+  const [touchSwipeStart,setTouchSwipeStart]=useState(null);
+  const [nutrition,setNutrition]=useState(()=>load("fs_nutrition",{}));
+  const [nutritionPeriod,setNutritionPeriod]=useState("daily");
+  const [showProfile,setShowProfile]=useState(false);
+  const [profileTab,setProfileTab]=useState("info");
+  const [profileData,setProfileData]=useState(()=>load("fs_profile",{name:"",age:"",weight:"",height:"",goal:""}));
+  const [coachProfile,setCoachProfile]=useState({coach_id:null,meal_gen:true,workout_gen:true});
+  const [assignedProgram,setAssignedProgram]=useState(null);
+  const [assignedMeal,setAssignedMeal]=useState(null);
+  const [avatarUrl,setAvatarUrl]=useState(()=>load("fs_avatar",null));
+  const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
+  const [uploadingAvatar,setUploadingAvatar]=useState(false);
+  const [uploadingPhoto,setUploadingPhoto]=useState(false);
+  const [messages,setMessages]=useState(()=>load("fs_messages",[{id:1,from:"coach",text:"Welcome to FitStud! I am here to help you reach your goals. Feel free to message me anytime 💪",time:"Today"}]));
+  const [newMessage,setNewMessage]=useState("");
 
-async function aiGenerate(kind, brief) {
-  if (!AI_ENDPOINT) throw new Error("AI is not connected yet.");
-  const sys = kind === "workout"
-    ? 'You are an elite strength coach. Return ONLY valid JSON, no prose: {"name":"","focus":"","days":[{"name":"Day 1","exercises":[{"name":"","sets":4,"reps":"8-10"}]}]}'
-    : 'You are a nutrition coach. Return ONLY valid JSON, no prose: {"name":"","kcal":2200,"protein":180,"carbs":200,"fat":70,"meals":[{"name":"Breakfast","items":[""]}]}';
-  const res = await fetch(AI_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: [{ role: "user", content: sys + "\n\nClient brief: " + brief }], max_tokens: 2500 }) });
-  const data = await res.json();
-  if (data.error) throw new Error(typeof data.error === "string" ? data.error : (data.error.message || "AI error"));
-  const text = (data.content && data.content.map((b) => b.text || "").join("")) || data.text || "";
-  return JSON.parse(text.replace(/```json|```/g, "").trim());
-}
+  // AUTO-SAVE
+  useEffect(()=>{if(workouts)save("fs_workouts",workouts);},[workouts]);
+  useEffect(()=>{save("fs_theme",theme);},[theme]);
+  useEffect(()=>{save("fs_setdata",setData);},[setData]);
+  useEffect(()=>{save("fs_history",history);},[history]);
+  useEffect(()=>{save("fs_library",library);},[library]);
+  useEffect(()=>{save("fs_nutrition",nutrition);},[nutrition]);
+  useEffect(()=>{save("fs_profile",profileData);},[profileData]);
+  useEffect(()=>{if(mealPlan)save("fs_mealplan",mealPlan);},[mealPlan]);
+  useEffect(()=>{localStorage.setItem("fs_checked_meals",JSON.stringify(checkedMeals));},[checkedMeals]);
+  useEffect(()=>{save("fs_avatar",avatarUrl);},[avatarUrl]);
+  useEffect(()=>{save("fs_progress_photos",progressPhotos);},[progressPhotos]);
+  useEffect(()=>{save("fs_messages",messages);},[messages]);
 
-function Logo({ size = 28 }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ width: size, height: size, borderRadius: 9, background: "linear-gradient(135deg,#E9C75A,#C49A2A)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={disp({ color: "#0B0B0B", fontSize: size * 0.62, lineHeight: 1, letterSpacing: 0 })}>F</span>
-      </div>
-      <span style={disp({ fontSize: size * 0.56, color: C.text, letterSpacing: 1.5 })}>FIT<span style={{ color: C.gold }}>STUD</span></span>
-    </div>
-  );
-}
-function Stat({ label, value, accent }) {
-  return (
-    <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 16, padding: "16px 18px", flex: 1, minWidth: 150 }}>
-      <div style={{ color: C.muted, fontSize: 13 }}>{label}</div>
-      <div style={disp({ fontSize: 36, color: accent || C.text, marginTop: 8, lineHeight: 0.9 })}>{value}</div>
-    </div>
-  );
-}
-function Field({ label, children }) { return <div style={{ marginBottom: 12 }}><label style={{ color: C.muted, fontSize: 12.5, fontWeight: 600 }}>{label}</label>{children}</div>; }
-function fmtDate(d) { if (!d) return "—"; try { return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); } catch (e) { return "—"; } }
-function H1({ children }) { return <h1 style={disp({ fontSize: 32, color: C.text, margin: "0 0 4px" })}>{children}</h1>; }
+  // FIX 1: AUTO-RESET SET DATA ON NEW DAY
+  useEffect(()=>{
+    const todayKey=new Date().toISOString().slice(0,10);
+    const lastOpenedDay=localStorage.getItem("fs_last_opened_day");
+    if(lastOpenedDay&&lastOpenedDay!==todayKey){
+      setSetDataState({});
+      localStorage.removeItem("fs_setdata");
+      localStorage.removeItem("fs_last_opened_day");
+    }
+    localStorage.setItem("fs_last_opened_day",todayKey);
+  },[]);
 
-function Login() {
-  const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
-  const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
-  async function go() { setErr(""); setBusy(true);
-    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
-    setBusy(false); if (error) setErr(error.message); }
-  return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FB,
-      backgroundImage: "radial-gradient(900px 500px at 80% -10%, rgba(212,175,55,0.10), transparent), radial-gradient(700px 400px at 0% 110%, rgba(229,57,53,0.08), transparent)" }}>
-      <div style={{ width: 380, background: C.panel, border: "1px solid " + C.border, borderRadius: 22, padding: 34 }}>
-        <Logo size={34} />
-        <div style={{ color: C.gold, fontSize: 11, letterSpacing: 3, marginTop: 12, marginBottom: 22, fontWeight: 600 }}>COACH CONSOLE</div>
-        <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="you@email.com" /></Field>
-        <Field label="Password"><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} style={inputStyle} placeholder="••••••••" /></Field>
-        {err && <div style={{ color: C.red, fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
-        <button onClick={go} disabled={busy} style={{ ...btnRed, width: "100%", padding: 14, marginTop: 8, ...disp({ letterSpacing: 1.5, fontSize: 18 }) }}>{busy ? "SIGNING IN..." : "LOG IN"}</button>
-        <div style={{ color: C.faint, fontSize: 11.5, textAlign: "center", marginTop: 16 }}>Use the same email and password as your FitStud account</div>
-      </div>
-    </div>
-  );
-}
+  // AUTH
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setUser(session?.user??null);setAuthLoading(false);
+      if(session?.user)loadFromSupabase(session.user.id);
+    });
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
+      setUser(session?.user??null);
+      if(session?.user)loadFromSupabase(session.user.id);
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
 
-function readInvite() {
-  try {
-    const u = new URLSearchParams(window.location.search).get("invite");
-    if (u) { localStorage.setItem("fitstud_invite", u); return u; }
-    return localStorage.getItem("fitstud_invite") || "";
-  } catch (e) { return ""; }
-}
-function clearInvite() { try { localStorage.removeItem("fitstud_invite"); } catch (e) {} }
-function randCode() {
-  const ch = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s = "";
-  for (let i = 0; i < 8; i++) s += ch[Math.floor(Math.random() * ch.length)];
-  return s;
-}
+  const loadFromSupabase=async(userId)=>{
+    try{
+      const[w,s,h,l,p]=await Promise.all([
+        supabase.from("user_workouts").select("workouts").eq("user_id",userId).single(),
+        supabase.from("user_setdata").select("setdata").eq("user_id",userId).single(),
+        supabase.from("user_history").select("history").eq("user_id",userId).single(),
+        supabase.from("user_library").select("library").eq("user_id",userId).single(),
+        supabase.from("profiles").select("coach_id,meal_gen,workout_gen").eq("id",userId).single(),
+      ]);
+      if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}
+      // Only restore setdata from cloud if it was saved TODAY — prevents old data showing up
+      const todayKey=new Date().toISOString().slice(0,10);
+      if(s.data?.setdata && s.data.setdata.__date===todayKey)setSetDataState(s.data.setdata);
+      if(h.data?.history)setHistory(h.data.history);
+      if(l.data?.library)setLibrary(l.data.library);
+      if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});}
+      // Load coach-assigned workout program and meal plan
+      try{
+        const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
+        const wpA=(asg||[]).find(a=>a.kind==="workout");
+        const mpA=(asg||[]).find(a=>a.kind==="meal");
+        if(wpA){const{data:wp}=await supabase.from("workout_programs").select("*").eq("id",wpA.program_id).maybeSingle();if(wp)setAssignedProgram(wp);}
+        if(mpA){const{data:mp}=await supabase.from("meal_plans").select("*").eq("id",mpA.meal_plan_id).maybeSingle();if(mp)setAssignedMeal(mp);}
+      }catch(e){console.log("Assignments load error",e);}
+    }catch(e){console.log("Load error",e);}
+  };
 
-function Signup({ code }) {
-  const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
-  const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const [done, setDone] = useState("");
-  async function go() {
-    setErr(""); setDone(""); setBusy(true);
-    const { data, error } = await sb.auth.signUp({ email: email.trim(), password: pw });
-    setBusy(false);
-    if (error) { setErr(error.message); return; }
-    if (!data.session) setDone("Account created. Check your email to confirm, then open this same invite link again to finish setup.");
-    // If a session is returned, the app will apply the invite and route you in automatically.
-  }
-  return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FB,
-      backgroundImage: "radial-gradient(900px 500px at 80% -10%, rgba(212,175,55,0.10), transparent), radial-gradient(700px 400px at 0% 110%, rgba(229,57,53,0.08), transparent)" }}>
-      <div style={{ width: 380, background: C.panel, border: "1px solid " + C.border, borderRadius: 22, padding: 34 }}>
-        <Logo size={34} />
-        <div style={{ color: C.gold, fontSize: 11, letterSpacing: 3, marginTop: 12, marginBottom: 14, fontWeight: 600 }}>JOIN AS A COACH</div>
-        <div style={{ background: C.goldSoft, color: C.gold, borderRadius: 10, padding: "8px 12px", fontSize: 12.5, marginBottom: 18 }}>You have an invite to FitStud Coach. Create your account to get started.</div>
-        <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="you@email.com" /></Field>
-        <Field label="Password"><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} style={inputStyle} placeholder="Choose a password" /></Field>
-        {err && <div style={{ color: C.red, fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
-        {done && <div style={{ color: C.gold, fontSize: 12.5, marginBottom: 10 }}>{done}</div>}
-        <button onClick={go} disabled={busy} style={{ ...btnRed, width: "100%", padding: 14, marginTop: 8, ...disp({ letterSpacing: 1.5, fontSize: 18 }) }}>{busy ? "CREATING..." : "CREATE ACCOUNT"}</button>
-        <div onClick={() => { clearInvite(); window.location.search = ""; }} style={{ color: C.faint, fontSize: 11.5, textAlign: "center", marginTop: 16, cursor: "pointer" }}>Already have an account? Log in</div>
-      </div>
-    </div>
-  );
-}
+  const saveToSupabase=useCallback(async(table,field,data)=>{
+    if(!user)return;setSyncStatus("saving");
+    try{
+      const existing=await supabase.from(table).select("id").eq("user_id",user.id).single();
+      if(existing.data){await supabase.from(table).update({[field]:data,updated_at:new Date().toISOString()}).eq("user_id",user.id);}
+      else{await supabase.from(table).insert({user_id:user.id,[field]:data});}
+      setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);
+    }catch(e){console.log("Save error",e);setSyncStatus("idle");}
+  },[user]);
 
-function WorkoutBuilder({ onSave, onCancel, busy, clients, presetClientId }) {
-  const [name, setName] = useState(""); const [focus, setFocus] = useState("");
-  const [days, setDays] = useState([{ name: "Day 1", exercises: [{ name: "", sets: 3, reps: "8-12" }] }]);
-  const [brief, setBrief] = useState(""); const [aiErr, setAiErr] = useState(""); const [aiBusy, setAiBusy] = useState(false);
-  const [forClient, setForClient] = useState(presetClientId || "");
-  const setDay = (i, p) => setDays((ds) => ds.map((d, k) => k === i ? { ...d, ...p } : d));
-  const setEx = (di, ei, p) => setDays((ds) => ds.map((d, k) => k === di ? { ...d, exercises: d.exercises.map((e, j) => j === ei ? { ...e, ...p } : e) } : d));
-  const addDay = () => setDays((ds) => [...ds, { name: "Day " + (ds.length + 1), exercises: [{ name: "", sets: 3, reps: "8-12" }] }]);
-  const addEx = (di) => setDays((ds) => ds.map((d, k) => k === di ? { ...d, exercises: [...d.exercises, { name: "", sets: 3, reps: "8-12" }] } : d));
-  const rmEx = (di, ei) => setDays((ds) => ds.map((d, k) => k === di ? { ...d, exercises: d.exercises.filter((_, j) => j !== ei) } : d));
-  const rmDay = (di) => setDays((ds) => ds.filter((_, k) => k !== di));
-  async function runAI() { setAiErr(""); setAiBusy(true);
-    try { const p = await aiGenerate("workout", brief); setName(p.name || ""); setFocus(p.focus || "");
-      if (Array.isArray(p.days) && p.days.length) setDays(p.days.map((d) => ({ name: d.name || "Day", exercises: (d.exercises || []).map((e) => ({ name: e.name || "", sets: e.sets || 3, reps: e.reps || "" })) })));
-    } catch (e) { setAiErr(e.message); } setAiBusy(false); }
-  const sel = { ...inputStyle, cursor: "pointer" };
-  return (
-    <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 22 }}>
-      <h2 style={disp({ fontSize: 22, color: C.text, margin: "0 0 6px" })}>NEW WORKOUT PROGRAM</h2>
-      <Field label="Build for client (optional — auto-assigns on save)">
-        <select value={forClient} onChange={(e) => setForClient(e.target.value)} style={sel}>
-          <option value="">Just save to library (assign later)</option>
-          {(clients || []).map((c) => <option key={c.id} value={c.id}>{c.full_name || c.email}</option>)}
-        </select>
-      </Field>
-      <div style={{ background: C.panel2, border: "1px solid " + C.gold + "55", borderRadius: 12, padding: 16, margin: "8px 0 18px" }}>
-        <div style={disp({ color: C.gold, fontSize: 17, marginBottom: 8 })}>✨ AI Workout Builder</div>
-        <textarea value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="e.g. 4-day upper/lower for intermediate lifter, goal hypertrophy" style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} />
-        {aiErr && <div style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>{aiErr}</div>}
-        <button onClick={runAI} disabled={aiBusy} style={{ ...btnGold, marginTop: 10 }}>{aiBusy ? "Generating…" : "Generate plan"}</button>
-      </div>
-      <Field label="Program name"><input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} placeholder="Hypertrophy 5-Day Split" /></Field>
-      <Field label="Focus"><input value={focus} onChange={(e) => setFocus(e.target.value)} style={inputStyle} placeholder="Muscle gain" /></Field>
-      {days.map((d, di) => (
-        <div key={di} style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-            <input value={d.name} onChange={(e) => setDay(di, { name: e.target.value })} style={{ ...inputStyle, marginTop: 0, fontWeight: 700, flex: 1 }} />
-            <button onClick={() => rmDay(di)} style={{ ...btnGhost, color: C.red }}>Remove day</button>
-          </div>
-          {d.exercises.map((ex, ei) => (
-            <div key={ei} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <input value={ex.name} onChange={(e) => setEx(di, ei, { name: e.target.value })} placeholder="Exercise" style={{ ...inputStyle, marginTop: 0, flex: 2 }} />
-              <input type="number" value={ex.sets} onChange={(e) => setEx(di, ei, { sets: e.target.value })} placeholder="Sets" style={{ ...inputStyle, marginTop: 0, width: 70 }} />
-              <input value={ex.reps} onChange={(e) => setEx(di, ei, { reps: e.target.value })} placeholder="Reps" style={{ ...inputStyle, marginTop: 0, width: 90 }} />
-              <button onClick={() => rmEx(di, ei)} style={{ ...btnGhost, padding: "9px 12px" }}>✕</button>
-            </div>
-          ))}
-          <button onClick={() => addEx(di)} style={{ ...btnGhost, marginTop: 4 }}>+ Add exercise</button>
-        </div>
-      ))}
-      <button onClick={addDay} style={{ ...btnGhost, marginBottom: 18 }}>+ Add day</button>
-      <div style={{ display: "flex", gap: 10 }}>
-        <button disabled={busy || !name} onClick={() => onSave({ name, focus, days_per_week: days.length, structure: days }, forClient || null)} style={{ ...btnGold, opacity: (busy || !name) ? 0.5 : 1 }}>{busy ? "Saving…" : (forClient ? "Save & assign" : "Save program")}</button>
-        <button onClick={onCancel} style={btnGhost}>Cancel</button>
-      </div>
-    </div>
-  );
-}
+  useEffect(()=>{if(user&&workouts)saveToSupabase("user_workouts","workouts",workouts);},[workouts,user]);
+  useEffect(()=>{if(user)saveToSupabase("user_setdata","setdata",setData);},[setData,user]);
+  useEffect(()=>{if(user)saveToSupabase("user_history","history",history);},[history,user]);
+  useEffect(()=>{if(user)saveToSupabase("user_library","library",library);},[library,user]);
 
-function MealBuilder({ onSave, onCancel, busy, clients, nutrition, presetClientId }) {
-  const [name, setName] = useState(""); const [m, setM] = useState({ kcal: 2200, protein: 180, carbs: 200, fat: 70 });
-  const [meals, setMeals] = useState([{ name: "Breakfast", items: [""] }]);
-  const [aiErr, setAiErr] = useState(""); const [aiBusy, setAiBusy] = useState(false);
-  const [forClient, setForClient] = useState(presetClientId || "");
-  const [goal, setGoal] = useState("Any"); const [diet, setDiet] = useState("Any");
-  const [allergies, setAllergies] = useState(""); const [cals, setCals] = useState(""); const [perDay, setPerDay] = useState(4);
-  const [notes, setNotes] = useState("");
-  const setMeal = (i, p) => setMeals((ms) => ms.map((x, k) => k === i ? { ...x, ...p } : x));
-  const setItem = (mi, ii, v) => setMeals((ms) => ms.map((x, k) => k === mi ? { ...x, items: x.items.map((it, j) => j === ii ? v : it) } : x));
-  const addMeal = () => setMeals((ms) => [...ms, { name: "Meal " + (ms.length + 1), items: [""] }]);
-  const addItem = (mi) => setMeals((ms) => ms.map((x, k) => k === mi ? { ...x, items: [...x.items, ""] } : x));
-  const rmItem = (mi, ii) => setMeals((ms) => ms.map((x, k) => k === mi ? { ...x, items: x.items.filter((_, j) => j !== ii) } : x));
-  const rmMeal = (mi) => setMeals((ms) => ms.filter((_, k) => k !== mi));
+  const uploadAvatar=async(file)=>{
+    if(!user||!file)return;setUploadingAvatar(true);
+    try{const ext=file.name.split(".").pop();const path=user.id+"/avatar."+ext;const{error}=await supabase.storage.from("avatars").upload(path,file,{upsert:true});if(!error){const{data}=supabase.storage.from("avatars").getPublicUrl(path);setAvatarUrl(data.publicUrl+"?t="+Date.now());}}catch(e){}
+    setUploadingAvatar(false);
+  };
+  const uploadProgressPhoto=async(file,monthKey)=>{
+    if(!user||!file)return;setUploadingPhoto(true);
+    try{const ext=file.name.split(".").pop();const path=user.id+"/"+monthKey+"_"+Date.now()+"."+ext;const{error}=await supabase.storage.from("progress-photos").upload(path,file);if(!error){const{data}=supabase.storage.from("progress-photos").getPublicUrl(path);setProgressPhotos(prev=>({...prev,[monthKey]:[...(prev[monthKey]||[]),data.publicUrl]}));}}catch(e){}
+    setUploadingPhoto(false);
+  };
+  const handleSignUp=async()=>{if(!authEmail||!authPassword)return;setAuthSubmitting(true);setAuthError("");const{error}=await supabase.auth.signUp({email:authEmail,password:authPassword});if(error)setAuthError(error.message);else{setShowAuth(false);setAuthEmail("");setAuthPassword("");}setAuthSubmitting(false);};
+  const handleLogin=async()=>{if(!authEmail||!authPassword)return;setAuthSubmitting(true);setAuthError("");const{error}=await supabase.auth.signInWithPassword({email:authEmail,password:authPassword});if(error)setAuthError(error.message);else{setShowAuth(false);setAuthEmail("");setAuthPassword("");}setAuthSubmitting(false);};
+  const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);};
 
-  async function runAI() { setAiErr(""); setAiBusy(true);
-    try {
-      let brief = "Create a meal plan with " + perDay + " meals per day" + (cals ? " at about " + cals + " kcal/day." : ".");
-      if (nutrition) {
-        const g = nutrition.goals.find((x) => x.name === goal);
-        const d = nutrition.diets.find((x) => x.name === diet);
-        if (g) brief += " Goal: " + g.name + " — " + g.desc + " Protein " + g.protein + ", carbs " + g.carbs + ", fat " + g.fat + ".";
-        if (d) brief += " Diet: " + d.name + " — only use compatible foods. Avoid: " + d.avoid.join(", ") + ".";
-        const dietKey = (diet !== "Any") ? diet.toLowerCase() : null;
-        const foodsUse = nutrition.foods.filter((f) => !dietKey || (f.diets || []).indexOf(dietKey) >= 0);
-        brief += " Build meals from these foods with their macros: " + foodsUse.map((f) => f.name + " (" + f.serving + ": " + f.kcal + "kcal " + f.p + "P/" + f.c + "C/" + f.f + "F)").join("; ") + ".";
-        brief += " Rules: " + nutrition.rules.join(" ");
-      }
-      if (allergies) brief += " Strictly avoid these allergens/foods: " + allergies + ".";
-      if (notes) brief += " Extra notes: " + notes + ".";
-      brief += " Each item must include a portion size.";
-      const p = await aiGenerate("meal", brief);
-      setName(p.name || ""); setM({ kcal: p.kcal || 0, protein: p.protein || 0, carbs: p.carbs || 0, fat: p.fat || 0 });
-      if (Array.isArray(p.meals) && p.meals.length) setMeals(p.meals.map((x) => ({ name: x.name || "Meal", items: x.items || [""] })));
-    } catch (e) { setAiErr(e.message); } setAiBusy(false); }
+  const exercises=(workouts||EMPTY_WORKOUTS)[selectedDay]||[];
+  useEffect(()=>{setWorkoutFinished(false);},[selectedDay]);
+  const getSet=(exId,i)=>{
+    const raw=setData[selectedDay+"-"+exId+"-"+i];
+    if(!raw)return{reps:"",weight:"",done:false};
+    // If this entry was saved on a different date, treat as empty (fresh day)
+    const todayKey=new Date().toISOString().slice(0,10);
+    if(raw.__entryDate&&raw.__entryDate!==todayKey)return{reps:"",weight:"",done:false};
+    return raw;
+  };
+  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const todayKey=new Date().toISOString().slice(0,10);setSetDataState(prev=>({...prev,__date:todayKey,[key]:{...getSet(exId,i),__entryDate:todayKey,[field]:val}}));};
+  const toggleDone=(exId,i)=>updateSet(exId,i,"done",!getSet(exId,i).done);
 
-  const sel = { ...inputStyle, cursor: "pointer" };
-  const goalOpts = nutrition ? nutrition.goals.map((g) => g.name) : [];
-  const dietOpts = nutrition ? nutrition.diets.map((d) => d.name) : [];
-  return (
-    <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 22 }}>
-      <h2 style={disp({ fontSize: 22, color: C.text, margin: "0 0 6px" })}>NEW MEAL PLAN</h2>
-      <Field label="Build for client (optional — auto-assigns on save)">
-        <select value={forClient} onChange={(e) => setForClient(e.target.value)} style={sel}>
-          <option value="">Just save to library (assign later)</option>
-          {(clients || []).map((c) => <option key={c.id} value={c.id}>{c.full_name || c.email}</option>)}
-        </select>
-      </Field>
+  // FIX 2: RESET EXERCISE
+  const resetExercise=(exId)=>{
+    setSetDataState(prev=>{
+      const next={...prev};
+      Object.keys(next).forEach(k=>{if(k.startsWith(selectedDay+"-"+exId+"-"))delete next[k];});
+      return next;
+    });
+  };
 
-      <div style={{ background: C.panel2, border: "1px solid " + C.gold + "55", borderRadius: 12, padding: 16, margin: "8px 0 18px" }}>
-        <div style={disp({ color: C.gold, fontSize: 17, marginBottom: 4 })}>✨ AI Meal Builder</div>
-        <div style={{ color: C.faint, fontSize: 12, marginBottom: 12 }}>Set the client's needs — the AI builds it from your Nutrition Library.</div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 150 }}><Field label="Goal"><select value={goal} onChange={(e) => setGoal(e.target.value)} style={sel}><option>Any</option>{goalOpts.map((g) => <option key={g}>{g}</option>)}</select></Field></div>
-          <div style={{ flex: 1, minWidth: 150 }}><Field label="Diet type"><select value={diet} onChange={(e) => setDiet(e.target.value)} style={sel}><option>Any</option>{dietOpts.map((d) => <option key={d}>{d}</option>)}</select></Field></div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 110 }}><Field label="Daily calories"><input type="number" value={cals} onChange={(e) => setCals(e.target.value)} style={inputStyle} placeholder="2200" /></Field></div>
-          <div style={{ flex: 1, minWidth: 110 }}><Field label="Meals per day"><input type="number" value={perDay} onChange={(e) => setPerDay(e.target.value)} style={inputStyle} /></Field></div>
-        </div>
-        <Field label="Allergies / foods to avoid"><input value={allergies} onChange={(e) => setAllergies(e.target.value)} style={inputStyle} placeholder="e.g. dairy, peanuts, shellfish" /></Field>
-        <Field label="Extra notes (optional)"><input value={notes} onChange={(e) => setNotes(e.target.value)} style={inputStyle} placeholder="e.g. likes simple prep, no fish" /></Field>
-        {!nutrition && <div style={{ color: C.red, fontSize: 11.5, marginBottom: 8 }}>Nutrition library not loaded — add nutrition.json and redeploy for library-grounded plans.</div>}
-        {aiErr && <div style={{ color: C.muted, fontSize: 12, marginBottom: 8 }}>{aiErr}</div>}
-        <button onClick={runAI} disabled={aiBusy} style={btnGold}>{aiBusy ? "Generating…" : "Generate plan"}</button>
-      </div>
+  const doneCount=(exId,total)=>Array.from({length:total},(_,i)=>getSet(exId,i).done).filter(Boolean).length;
+  const allDone=exercises.length>0&&exercises.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
+  const safeWorkouts=workouts||EMPTY_WORKOUTS;
+  const addExerciseToDay=(day,ex)=>setWorkouts(prev=>({...prev,[day]:[...(prev[day]||[]),ex]}));
+  const removeExercise=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].filter(e=>e.id!==exId)}));
+  const addSet=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].map(ex=>ex.id===exId?{...ex,sets:ex.sets+1}:ex)}));
+  const removeSet=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].map(ex=>ex.id===exId&&ex.sets>1?{...ex,sets:ex.sets-1}:ex)}));
+  const handleDragEnd=()=>{
+    const di=dragIndexRef.current;
+    setDragOver(prev=>{
+      if(di!==null&&prev!==null&&di!==prev){setWorkouts(w=>{const list=[...(w[selectedDay]||[])];const[moved]=list.splice(di,1);list.splice(prev,0,moved);return{...w,[selectedDay]:list};});}
+      return null;
+    });
+    setDragIndex(null);dragIndexRef.current=null;
+  };
+  const moveToDay=(ex,targetDay)=>{setWorkouts(prev=>({...prev,[selectedDay]:(prev[selectedDay]||[]).filter(e=>e.id!==ex.id),[targetDay]:[...(prev[targetDay]||[]),ex]}));setMoveModal(null);};
+  const saveToHistory=()=>{
+    const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay;
+    setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}}));
+  };
+  const saveToLibrary=()=>{const entry={id:Date.now(),name:FULL_DAYS[DAYS.indexOf(selectedDay)]+" · "+MONTHS[todayMonth]+" "+todayDate,day:selectedDay,date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}))};setLibrary(prev=>[entry,...prev]);};
+  const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const getTodayNutrition=()=>nutrition[getTodayKey()]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0};
+  const updateNutrition=(field,val)=>{const key=getTodayKey();setNutrition(prev=>({...prev,[key]:{...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}),[field]:parseFloat(val)||0}}));};
+  const isTimeBased=(name)=>["sled","battle rope","farmer carry","farmer carries","cardio","run","sprint","plank","carry","carries","bike","rower","jump rope"].some(k=>name.toLowerCase().includes(k));
+  const getLastRecord=(exName,setIndex)=>{
+    const keys=Object.keys(history).sort((a,b)=>b.localeCompare(a));
+    for(const key of keys){const rec=history[key];const histEx=rec.exercises?.find(e=>e.name===exName);if(histEx&&histEx.sets[setIndex]){const hs=histEx.sets[setIndex];if(hs.reps||hs.weight)return{reps:hs.reps||"",weight:hs.weight||""};}}
+    return null;
+  };
+  const getDaysInMonth=(m,y)=>new Date(y,m+1,0).getDate();
+  const getFirstDay=(m,y)=>new Date(y,m,1).getDay();
+  const daysInMonth=getDaysInMonth(calMonth,calYear),firstDay=getFirstDay(calMonth,calYear);
+  const calCells=[];for(let i=0;i<firstDay;i++)calCells.push(null);for(let d=1;d<=daysInMonth;d++)calCells.push(d);while(calCells.length%7!==0)calCells.push(null);
+  const buildStats=()=>{
+    let totalVolume=0,totalReps=0,totalSets=0;
+    const exStats=exercises.map(ex=>{let exVol=0,exReps=0,bestSet=null;Array.from({length:ex.sets},(_,i)=>{const s=getSet(ex.id,i);if(s.done){const r=parseInt(s.reps)||ex.reps,w=parseFloat(s.weight)||0;exReps+=r;exVol+=r*w;totalReps+=r;totalVolume+=r*w;totalSets++;if(!bestSet||r*w>bestSet.vol)bestSet={set:i+1,reps:r,weight:w,vol:r*w};}});return{name:ex.name,volume:exVol,reps:exReps,bestSet};});
+    return{totalVolume,totalReps,totalSets,exStats};
+  };
+  const QUOTES=[{msg:"You showed up. That is already more than most people did today.",emoji:"🔥"},{msg:"Every rep, every set — you are building a version of yourself that will not quit.",emoji:"💪"},{msg:"The pain you feel today is the strength you will feel tomorrow.",emoji:"⚡"},{msg:"You did not come this far to only come this far. Keep going.",emoji:"🚀"},{msg:"Champions are not born. They are built — exactly like you are doing right now.",emoji:"🏆"},{msg:"Discipline is choosing what you want most over what you want now.",emoji:"👑"},{msg:"Your future self is thanking you right now.",emoji:"✨"},{msg:"Greatness is not given. It is earned. Today you earned it.",emoji:"💎"}];
+  const getQuote=()=>QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  const THEMES={
+    gold:{bg:"#0B0B0B",card:"rgba(212,175,55,0.06)",cardBorder:"rgba(212,175,55,0.15)",cardActive:"rgba(212,175,55,0.12)",cardActiveBorder:"rgba(212,175,55,0.5)",accent:"linear-gradient(135deg,#D4AF37,#B8941F)",accentSolid:"#D4AF37",accentLight:"rgba(212,175,55,0.15)",accentBorder:"rgba(212,175,55,0.4)",accentText:"#D4AF37",accentMuted:"rgba(212,175,55,0.1)",text:"#FFFFFF",textSub:"#a1a1aa",textMuted:"#71717a",textDim:"#3f3f46",header:"rgba(0,0,0,0.6)",headerBorder:"rgba(212,175,55,0.15)",input:"rgba(212,175,55,0.06)",inputBorder:"rgba(212,175,55,0.2)",modal:"#111111",handle:"#3f3f46",toggleBg:"rgba(255,255,255,0.04)"},
+    dark:{bg:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)",card:"rgba(255,255,255,0.03)",cardBorder:"rgba(255,255,255,0.07)",cardActive:"rgba(229,57,53,0.08)",cardActiveBorder:"rgba(229,57,53,0.3)",accent:"linear-gradient(135deg,#E53935,#b71c1c)",accentSolid:"#E53935",accentLight:"rgba(229,57,53,0.15)",accentBorder:"rgba(229,57,53,0.3)",accentText:"#ef9a9a",accentMuted:"rgba(229,57,53,0.1)",text:"#f8fafc",textSub:"#94a3b8",textMuted:"#475569",textDim:"#334155",header:"rgba(255,255,255,0.02)",headerBorder:"rgba(255,255,255,0.06)",input:"rgba(255,255,255,0.07)",inputBorder:"rgba(255,255,255,0.12)",modal:"#13151f",handle:"#334155",toggleBg:"rgba(255,255,255,0.04)"},
+    light:{bg:"linear-gradient(135deg,#f8fafc 0%,#f1f5f9 50%,#e2e8f0 100%)",card:"rgba(255,255,255,0.9)",cardBorder:"rgba(0,0,0,0.08)",cardActive:"rgba(212,175,55,0.06)",cardActiveBorder:"rgba(212,175,55,0.3)",accent:"linear-gradient(135deg,#D4AF37,#B8941F)",accentSolid:"#D4AF37",accentLight:"rgba(212,175,55,0.1)",accentBorder:"rgba(212,175,55,0.3)",accentText:"#B8941F",accentMuted:"rgba(212,175,55,0.08)",text:"#0f172a",textSub:"#475569",textMuted:"#64748b",textDim:"#94a3b8",header:"rgba(255,255,255,0.8)",headerBorder:"rgba(0,0,0,0.08)",input:"rgba(0,0,0,0.04)",inputBorder:"rgba(0,0,0,0.12)",modal:"#ffffff",handle:"#cbd5e1",toggleBg:"rgba(0,0,0,0.04)"},
+  };
+  const t=THEMES[theme]||THEMES.gold;
+  const inp={width:"100%",padding:"12px 14px",background:t.input,border:"1.5px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"};
+  const addManual=()=>{if(!newEx.name||!newEx.sets||!newEx.reps)return;addExerciseToDay(selectedDay,{id:nextId++,name:newEx.name,sets:parseInt(newEx.sets),reps:parseInt(newEx.reps),video:newEx.video||""});setNewEx({name:"",sets:"",reps:"",video:""});setShowAdd(false);};
+  const addWithAI=async()=>{if(!aiPrompt.trim())return;setAiLoading(true);setAiError("");try{const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:"Return ONLY a valid JSON array of exercise objects. Each: name(string),sets(number),reps(number),video(YouTube ID or empty).",messages:[{role:"user",content:aiPrompt}]})});const data=await res.json();const text=data.content?.find(b=>b.type==="text")?.text||"";JSON.parse(text.trim()).forEach(ex=>addExerciseToDay(selectedDay,{id:nextId++,name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}));setAiPrompt("");setShowAdd(false);}catch(e){setAiError("Could not parse. Try rephrasing.");}setAiLoading(false);};
+  const generatePlan=async()=>{if(!plannerPrompt.trim())return;setPlannerLoading(true);setPlannerError("");setPlannerPreview(null);try{const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:2000,system:"Return ONLY valid JSON with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is array of exercises: name,sets,reps,video. Rest days=[].",messages:[{role:"user",content:plannerPrompt}]})});const data=await res.json();const text=data.content?.find(b=>b.type==="text")?.text||"";const parsed=JSON.parse(text.trim());if(!DAYS.some(d=>Array.isArray(parsed[d])))throw new Error("Invalid");setPlannerPreview(parsed);}catch(e){setPlannerError("Could not generate plan.");}setPlannerLoading(false);};
+  const applyPlan=()=>{if(!plannerPreview)return;setWorkouts(prev=>{const next={...prev};DAYS.forEach(day=>{if(!Array.isArray(plannerPreview[day]))return;const newExs=plannerPreview[day].map(ex=>({id:nextId++,name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}));next[day]=plannerMode==="replace"?newExs:[...(prev[day]||[]),...newExs];});return next;});setPlannerPreview(null);setPlannerPrompt("");setShowPlanner(false);};
+  const stats=buildStats();
+  // Coach gating: no coach = full access; with coach = only if coach enabled it
+  const canMealGen=!coachProfile.coach_id||coachProfile.meal_gen;
+  const canWorkoutGen=!coachProfile.coach_id||coachProfile.workout_gen;
+  if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:600}}>FORGE YOUR LEGACY</div><div style={{marginTop:16,width:24,height:24,border:"2px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
-      <Field label="Plan name"><input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} placeholder="Lean Bulk 2800" /></Field>
-      <div style={{ display: "flex", gap: 10 }}>
-        {["kcal", "protein", "carbs", "fat"].map((k) => (<div key={k} style={{ flex: 1 }}><Field label={k}><input type="number" value={m[k]} onChange={(e) => setM({ ...m, [k]: e.target.value })} style={inputStyle} /></Field></div>))}
-      </div>
-      {meals.map((meal, mi) => (
-        <div key={mi} style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-            <input value={meal.name} onChange={(e) => setMeal(mi, { name: e.target.value })} style={{ ...inputStyle, marginTop: 0, fontWeight: 700, flex: 1 }} />
-            <button onClick={() => rmMeal(mi)} style={{ ...btnGhost, color: C.red }}>Remove meal</button>
-          </div>
-          {meal.items.map((it, ii) => (
-            <div key={ii} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <input value={it} onChange={(e) => setItem(mi, ii, e.target.value)} placeholder="e.g. 200g chicken, 1 cup rice" style={{ ...inputStyle, marginTop: 0, flex: 1 }} />
-              <button onClick={() => rmItem(mi, ii)} style={{ ...btnGhost, padding: "9px 12px" }}>✕</button>
-            </div>
-          ))}
-          <button onClick={() => addItem(mi)} style={{ ...btnGhost, marginTop: 4 }}>+ Add item</button>
-        </div>
-      ))}
-      <button onClick={addMeal} style={{ ...btnGhost, marginBottom: 18 }}>+ Add meal</button>
-      <div style={{ display: "flex", gap: 10 }}>
-        <button disabled={busy || !name} onClick={() => onSave({ name, kcal: +m.kcal, protein: +m.protein, carbs: +m.carbs, fat: +m.fat, structure: meals }, forClient || null)} style={{ ...btnGold, opacity: (busy || !name) ? 0.5 : 1 }}>{busy ? "Saving…" : (forClient ? "Save & assign" : "Save meal plan")}</button>
-        <button onClick={onCancel} style={btnGhost}>Cancel</button>
-      </div>
-    </div>
-  );
-}
-
-function AssignRow({ label, clients, onAssign }) {
-  const [sel, setSel] = useState("");
-  return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-      <select value={sel} onChange={(e) => setSel(e.target.value)} style={{ ...inputStyle, marginTop: 0, flex: 1 }}>
-        <option value="">Assign {label} to a client…</option>
-        {clients.map((c) => <option key={c.id} value={c.id}>{c.email}</option>)}
-      </select>
-      <button disabled={!sel} onClick={() => { onAssign(sel); setSel(""); }} style={{ ...btnGold, opacity: sel ? 1 : 0.5 }}>Assign</button>
-    </div>
-  );
-}
-
-function AddToClient({ clients, onPick, label }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ marginTop: 12 }}>
-      <button onClick={() => setOpen(!open)} style={btnGold}>{open ? "Close" : "+ Add to client"}</button>
-      {open && (
-        <div style={{ marginTop: 8, background: C.card, border: "1px solid " + C.border, borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "8px 14px", color: C.faint, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid " + C.border }}>Send {label || "this"} to</div>
-          {(clients || []).length === 0 && <div style={{ color: C.faint, padding: 14, fontSize: 13 }}>No clients yet.</div>}
-          {(clients || []).map((c) => (
-            <div key={c.id} onClick={() => { onPick(c.id); setOpen(false); }} style={{ padding: "11px 14px", borderBottom: "1px solid " + C.borderSoft, cursor: "pointer", color: C.text, fontSize: 14, fontWeight: 600 }}>{c.full_name || c.email}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------- Sidebar shell ----------------
-function NavItem({ label, active, soon, onClick }) {
-  return (
-    <button onClick={onClick} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", textAlign: "left", padding: "9px 12px", marginBottom: 3, borderRadius: 9, border: "none", cursor: "pointer", background: active ? C.goldSoft : "transparent", color: active ? C.gold : C.muted, fontFamily: FB, fontSize: 14, fontWeight: active ? 700 : 600 }}>
-      <span>{label}</span>{soon && <span style={{ fontSize: 9.5, color: C.faint, border: "1px solid " + C.border, borderRadius: 999, padding: "1px 6px", textTransform: "uppercase", letterSpacing: 0.5 }}>soon</span>}
-    </button>
-  );
-}
-function SectionLabel({ children }) { return <div style={{ color: C.faint, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, padding: "14px 12px 6px" }}>{children}</div>; }
-
-function AppShell({ profile, brandName, main, other, active, setActive, children }) {
-  return (
-    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text, fontFamily: FB }}>
-      <aside style={{ width: 238, background: C.panel2, borderRight: "1px solid " + C.border, padding: "18px 14px", display: "flex", flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
-        <div style={{ padding: "0 6px 14px" }}><Logo size={26} /></div>
-        <div style={{ padding: "10px 8px", background: C.card, border: "1px solid " + C.border, borderRadius: 11, marginBottom: 6 }}>
-          <div style={{ color: C.text, fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{brandName}</div>
-          <div style={{ color: C.gold, fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>{profile.role}</div>
-        </div>
-        <SectionLabel>Main</SectionLabel>
-        {main.map((it) => <NavItem key={it.id} label={it.label} soon={it.soon} active={active === it.id} onClick={() => setActive(it.id)} />)}
-        <SectionLabel>Other</SectionLabel>
-        {other.map((it) => <NavItem key={it.id} label={it.label} soon={it.soon} active={active === it.id} onClick={() => setActive(it.id)} />)}
-        <div style={{ flex: 1 }} />
-        <div style={{ borderTop: "1px solid " + C.border, paddingTop: 12 }}>
-          <div style={{ color: C.faint, fontSize: 11, marginBottom: 8, padding: "0 8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile.email}</div>
-          <button onClick={() => sb.auth.signOut()} style={{ ...btnGhost, width: "100%" }}>Log out</button>
-        </div>
-      </aside>
-      <main style={{ flex: 1, minWidth: 0, padding: 28, overflowY: "auto", maxWidth: 1100 }}>{children}</main>
-    </div>
-  );
-}
-
-function SoonPage({ title, desc }) {
-  return (
-    <div>
-      <H1>{title}</H1>
-      <div style={{ background: C.panel, border: "1px dashed " + C.border, borderRadius: 16, padding: 40, textAlign: "center", marginTop: 18 }}>
-        <div style={disp({ fontSize: 20, color: C.gold })}>Coming soon</div>
-        <div style={{ color: C.muted, fontSize: 14, marginTop: 8, maxWidth: 460, margin: "8px auto 0" }}>{desc}</div>
-      </div>
-    </div>
-  );
-}
-
-function SettingsPage({ profile, settings, onSaved }) {
-  const [f, setF] = useState({ business_name: "", logo_url: "", primary_color: "#D4AF37", accent_color: "#E53935" });
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
-  useEffect(() => { if (settings) setF({ business_name: settings.business_name || "", logo_url: settings.logo_url || "", primary_color: settings.primary_color || "#D4AF37", accent_color: settings.accent_color || "#E53935" }); }, [settings]);
-  const wl = settings && settings.plan === "whitelabel";
-  async function save() { setBusy(true); setMsg("");
-    const { error } = await sb.from("coaches").update(f).eq("id", profile.id);
-    setBusy(false); if (error) { setMsg(error.message); return; } setMsg("Saved."); onSaved && onSaved(); }
-  return (
-    <div>
-      <H1>Settings</H1>
-      <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>Your plan: <span style={{ color: C.gold, fontWeight: 700, textTransform: "uppercase" }}>{settings ? settings.plan : "free"}</span></p>
-      <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 22, marginTop: 16, maxWidth: 560 }}>
-        <h2 style={disp({ fontSize: 20, color: C.text, margin: "0 0 4px" })}>White-label branding</h2>
-        <p style={{ color: C.faint, fontSize: 12.5, marginTop: 0, marginBottom: 16 }}>{wl ? "On the white-label plan, these brand the experience your clients see." : "Branding applies on the $70 white-label plan. You can set it up now and it activates when you upgrade."}</p>
-        <Field label="Business name"><input value={f.business_name} onChange={(e) => setF({ ...f, business_name: e.target.value })} style={inputStyle} placeholder="Your Coaching Co." /></Field>
-        <Field label="Logo URL"><input value={f.logo_url} onChange={(e) => setF({ ...f, logo_url: e.target.value })} style={inputStyle} placeholder="https://…/logo.png" /></Field>
-        <div style={{ display: "flex", gap: 12 }}>
-          <div style={{ flex: 1 }}><Field label="Primary color"><input value={f.primary_color} onChange={(e) => setF({ ...f, primary_color: e.target.value })} style={inputStyle} placeholder="#D4AF37" /></Field></div>
-          <div style={{ flex: 1 }}><Field label="Accent color"><input value={f.accent_color} onChange={(e) => setF({ ...f, accent_color: e.target.value })} style={inputStyle} placeholder="#E53935" /></Field></div>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}>
-          <button onClick={save} disabled={busy} style={btnGold}>{busy ? "Saving…" : "Save branding"}</button>
-          <div style={{ display: "flex", gap: 6 }}>
-            <span style={{ width: 26, height: 26, borderRadius: 7, background: f.primary_color, border: "1px solid " + C.border }} />
-            <span style={{ width: 26, height: 26, borderRadius: 7, background: f.accent_color, border: "1px solid " + C.border }} />
-          </div>
-          {msg && <span style={{ color: msg === "Saved." ? C.gold : C.red, fontSize: 13 }}>{msg}</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------- Nutrition library ----------------
-function NutritionLibrary({ embedded }) {
-  const [data, setData] = useState(null); const [err, setErr] = useState(""); const [tab, setTab] = useState("goals");
-  const [foodQ, setFoodQ] = useState(""); const [foodCat, setFoodCat] = useState("All");
-  useEffect(() => { (async () => {
-    try { const res = await fetch("/nutrition.json"); if (!res.ok) throw new Error("Could not load nutrition.json"); setData(await res.json()); }
-    catch (e) { setErr(e.message); }
-  })(); }, []);
-  if (err) return <div><H1>Nutrition Library</H1><div style={{ background: C.panel, border: "1px dashed " + C.border, borderRadius: 16, padding: 30, marginTop: 16, color: C.muted }}>The library file is not loaded yet. Add <span style={{ color: C.gold }}>nutrition.json</span> to your repo and redeploy, then refresh. ({err})</div></div>;
-  if (!data) return <div><H1>Nutrition Library</H1><div style={{ color: C.muted, marginTop: 16 }}>Loading…</div></div>;
-
-  const tabs = [["goals", "Goals"], ["diets", "Diet Types"], ["activity", "Activity"], ["foods", "Food Database"], ["swaps", "Food Swaps"], ["supplements", "Supplements"], ["conditions", "Conditions"], ["allergies", "Allergies"], ["rules", "AI Rules"]];
-  const card = { background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 18, marginBottom: 12 };
-  const chip = (active, on) => ({ background: active ? C.goldSoft : "transparent", color: active ? C.gold : C.muted, border: "1px solid " + (active ? C.gold + "55" : C.border), borderRadius: 999, padding: "6px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap" });
-  const tag = (t) => <span key={t} style={{ fontSize: 10.5, color: C.gold, background: C.goldSoft, borderRadius: 6, padding: "2px 7px", marginRight: 5, textTransform: "capitalize" }}>{t}</span>;
-  const pill = (t, i) => <span key={i} style={{ fontSize: 12, color: C.muted, background: C.card, border: "1px solid " + C.border, borderRadius: 7, padding: "3px 9px", marginRight: 6, marginBottom: 6, display: "inline-block" }}>{t}</span>;
-  const cats = ["All", "Protein", "Carb", "Fruit", "Vegetable", "Fat"];
-  const foods = data.foods.filter((f) => (foodCat === "All" || f.category === foodCat) && (!foodQ || f.name.toLowerCase().indexOf(foodQ.toLowerCase()) >= 0));
-
-  return (
-    <div>
-      {!embedded && <H1>Nutrition Library</H1>}
-      {!embedded && <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>The built-in knowledge base your meal plans and AI generator draw from.</p>}
-      <div style={{ display: "flex", gap: 8, margin: embedded ? "4px 0 16px" : "16px 0", overflowX: "auto", paddingBottom: 4 }}>
-        {tabs.map(([id, lbl]) => <button key={id} onClick={() => setTab(id)} style={chip(tab === id)}>{lbl}</button>)}
-      </div>
-
-      {tab === "goals" && data.goals.map((g) => (
-        <div key={g.name} style={card}>
-          <div style={disp({ fontSize: 21, color: C.gold })}>{g.name}</div>
-          <div style={{ color: C.muted, fontSize: 13.5, margin: "4px 0 12px" }}>{g.desc}</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Stat label="Calories" value={<span style={{ fontSize: 15, fontFamily: FB, fontWeight: 700 }}>{g.calories}</span>} />
-            <Stat label="Protein" value={<span style={{ fontSize: 15, fontFamily: FB, fontWeight: 700 }}>{g.protein}</span>} />
-            <Stat label="Carbs" value={<span style={{ fontSize: 15, fontFamily: FB, fontWeight: 700 }}>{g.carbs}</span>} />
-            <Stat label="Fat" value={<span style={{ fontSize: 15, fontFamily: FB, fontWeight: 700 }}>{g.fat}</span>} />
-          </div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 12 }}>Timing: <span style={{ color: C.muted }}>{g.timing}</span></div>
-          <div style={{ marginTop: 8 }}>{g.bestFoods.map((x, i) => pill(x, i))}</div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 6 }}>Limit: {g.limit.join(", ")}</div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 8, fontStyle: "italic" }}>{g.structure}</div>
-        </div>
-      ))}
-
-      {tab === "diets" && data.diets.map((d) => (
-        <div key={d.name} style={card}>
-          <div style={disp({ fontSize: 21, color: C.gold })}>{d.name}</div>
-          <div style={{ color: C.muted, fontSize: 13.5, margin: "4px 0 10px" }}>{d.desc}</div>
-          <div style={{ color: C.faint, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Protein sources</div>
-          <div style={{ marginTop: 4, marginBottom: 8 }}>{d.protein.map((x, i) => pill(x, i))}</div>
-          <div style={{ color: C.faint, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Carb sources</div>
-          <div style={{ marginTop: 4, marginBottom: 8 }}>{d.carbs.map((x, i) => pill(x, i))}</div>
-          <div style={{ color: C.faint, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Fat sources</div>
-          <div style={{ marginTop: 4, marginBottom: 10 }}>{d.fats.map((x, i) => pill(x, i))}</div>
-          <div style={{ color: C.faint, fontSize: 12.5 }}>Avoid: {d.avoid.join(", ")}</div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 8 }}><span style={{ color: C.gold }}>Example dinner:</span> {d.dinner.join(" · ")}</div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}><span style={{ color: C.gold }}>Macros:</span> {d.macros}</div>
-        </div>
-      ))}
-
-      {tab === "activity" && data.activity.map((a) => (
-        <div key={a.name} style={card}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div style={disp({ fontSize: 20, color: C.gold })}>{a.name}</div>
-            <span style={{ color: C.gold, fontWeight: 700, fontFamily: FB }}>{a.multiplier}</span>
-          </div>
-          <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Training: {a.frequency} · Protein: {a.protein}</div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 4 }}>Hydration: {a.hydration}</div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 4 }}>Recovery: {a.recovery}</div>
-        </div>
-      ))}
-
-      {tab === "foods" && (
-        <div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-            <input value={foodQ} onChange={(e) => setFoodQ(e.target.value)} placeholder="Search foods" style={{ ...inputStyle, maxWidth: 240, marginTop: 0 }} />
-            {cats.map((c) => <button key={c} onClick={() => setFoodCat(c)} style={chip(foodCat === c)}>{c}</button>)}
-          </div>
-          <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1.3fr repeat(5, 0.7fr)", padding: "10px 16px", color: C.faint, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid " + C.border }}>
-              <span>Food</span><span>Serving</span><span>Kcal</span><span>P</span><span>C</span><span>F</span><span>Fiber</span>
-            </div>
-            {foods.length === 0 && <div style={{ color: C.faint, padding: 20, textAlign: "center" }}>No foods match.</div>}
-            {foods.map((f) => (
-              <div key={f.name} style={{ display: "grid", gridTemplateColumns: "2fr 1.3fr repeat(5, 0.7fr)", padding: "12px 16px", borderBottom: "1px solid " + C.borderSoft, fontSize: 13.5, alignItems: "center" }}>
-                <span style={{ color: C.text, fontWeight: 600, fontSize: 14.5 }}>{f.name}</span>
-                <span style={{ color: C.muted, fontSize: 12.5 }}>{f.serving}</span>
-                <span style={{ color: C.gold, fontWeight: 700 }}>{f.kcal}</span>
-                <span style={{ color: C.muted }}>{f.p}g</span><span style={{ color: C.muted }}>{f.c}g</span><span style={{ color: C.muted }}>{f.f}g</span><span style={{ color: C.muted }}>{f.fiber}g</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ color: C.faint, fontSize: 12, marginTop: 8 }}>{foods.length} foods shown.</div>
-        </div>
-      )}
-
-      {tab === "swaps" && data.swaps.map((s) => (
-        <div key={s.category} style={card}>
-          <div style={disp({ fontSize: 18, color: C.gold, marginBottom: 8 })}>{s.category}</div>
-          {s.items.map((it, i) => (
-            <div key={i} style={{ padding: "8px 0", borderBottom: i < s.items.length - 1 ? "1px solid " + C.borderSoft : "none" }}>
-              <span style={{ color: C.text, fontWeight: 600, fontSize: 13.5 }}>{it.from}</span>
-              <span style={{ color: C.faint, fontSize: 13 }}> → {it.to.join(", ")}</span>
-            </div>
-          ))}
-        </div>
-      ))}
-
-      {tab === "supplements" && data.supplements.map((s) => (
-        <div key={s.name} style={card}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div style={disp({ fontSize: 19, color: C.gold })}>{s.name}</div>
-            <span style={{ color: C.muted, fontSize: 12.5 }}>{s.dose}</span>
-          </div>
-          <div style={{ color: C.muted, fontSize: 13.5, marginTop: 6 }}>{s.benefits}</div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 6 }}>Timing: {s.timing} · Best for: {s.goals}</div>
-        </div>
-      ))}
-
-      {tab === "conditions" && data.conditions.map((c) => (
-        <div key={c.name} style={card}>
-          <div style={disp({ fontSize: 19, color: C.gold })}>{c.name}</div>
-          <div style={{ color: C.muted, fontSize: 13.5, margin: "4px 0 8px" }}>{c.goals}</div>
-          <div style={{ color: C.faint, fontSize: 12.5 }}>Encouraged: <span style={{ color: C.muted }}>{c.encouraged.join(", ")}</span></div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 4 }}>Limit: <span style={{ color: C.muted }}>{c.limited.join(", ")}</span></div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 4 }}>Macros: {c.macros}</div>
-          <div style={{ color: C.red, fontSize: 12, marginTop: 8 }}>{c.note}</div>
-        </div>
-      ))}
-
-      {tab === "allergies" && data.allergies.map((a) => (
-        <div key={a.name} style={card}>
-          <div style={disp({ fontSize: 19, color: C.gold })}>{a.name}</div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 6 }}>Avoid: <span style={{ color: C.muted }}>{a.avoid.join(", ")}</span></div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 4 }}>Safe: <span style={{ color: C.muted }}>{a.safe.join(", ")}</span></div>
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 4 }}>Swaps: <span style={{ color: C.muted }}>{a.subs.join(", ")}</span></div>
-        </div>
-      ))}
-
-      {tab === "rules" && (
-        <div style={card}>
-          <div style={disp({ fontSize: 18, color: C.gold, marginBottom: 10 })}>Rules the AI follows</div>
-          {data.rules.map((r, i) => (
-            <div key={i} style={{ display: "flex", gap: 10, padding: "7px 0", borderBottom: i < data.rules.length - 1 ? "1px solid " + C.borderSoft : "none" }}>
-              <span style={{ color: C.gold, fontWeight: 700, fontFamily: FD }}>{i + 1}</span>
-              <span style={{ color: C.muted, fontSize: 13.5 }}>{r}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------- Exercise library ----------------
-function ExerciseLibrary({ embedded }) {
-  const [data, setData] = useState(null); const [err, setErr] = useState("");
-  const [q, setQ] = useState(""); const [cat, setCat] = useState("All"); const [sel, setSel] = useState(null);
-  useEffect(() => { (async () => {
-    try { const r = await fetch("/exercises.json"); if (!r.ok) throw new Error("Could not load exercises.json"); setData(await r.json()); }
-    catch (e) { setErr(e.message); }
-  })(); }, []);
-  if (err) return <div><H1>Exercise Library</H1><div style={{ background: C.panel, border: "1px dashed " + C.border, borderRadius: 16, padding: 30, marginTop: 16, color: C.muted }}>Add <span style={{ color: C.gold }}>exercises.json</span> to your repo and redeploy, then refresh. ({err})</div></div>;
-  if (!data) return <div><H1>Exercise Library</H1><div style={{ color: C.muted, marginTop: 16 }}>Loading…</div></div>;
-  const diffColor = (d) => d === "Advanced" ? C.red : (d === "Beginner" ? C.gold : C.muted);
-  const chip = (active) => ({ background: active ? C.goldSoft : "transparent", color: active ? C.gold : C.muted, border: "1px solid " + (active ? C.gold + "55" : C.border), borderRadius: 999, padding: "6px 13px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap" });
-
-  if (sel) {
-    const list2 = ["form", "tips", "mistakes"];
-    const labels = { form: "Form", tips: "Coaching tips", mistakes: "Common mistakes" };
-    return (
-      <div>
-        <button onClick={() => setSel(null)} style={{ ...btnGhost, marginBottom: 14 }}>← All exercises</button>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <H1>{sel.name}</H1>
-          <span style={{ ...chip(false), color: C.gold, borderColor: C.gold + "55" }}>{sel.category}</span>
-          <span style={{ ...chip(false), color: diffColor(sel.difficulty), borderColor: diffColor(sel.difficulty) + "55" }}>{sel.difficulty}</span>
-        </div>
-        <p style={{ color: C.muted, fontSize: 14, marginTop: 0 }}>{sel.description}</p>
-        <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-          <div style={{ color: C.faint, fontSize: 12.5 }}>Primary: <span style={{ color: C.text }}>{sel.primary}</span></div>
-          {sel.secondary && sel.secondary.length > 0 && <div style={{ color: C.faint, fontSize: 12.5, marginTop: 3 }}>Secondary: <span style={{ color: C.muted }}>{sel.secondary.join(", ")}</span></div>}
-          <div style={{ color: C.faint, fontSize: 12.5, marginTop: 3 }}>Equipment: <span style={{ color: C.muted }}>{sel.equipment}</span></div>
-          <a href={sel.video} target="_blank" rel="noreferrer" style={{ ...btnGold, textDecoration: "none", display: "inline-block", marginTop: 12 }}>▶ Watch demo</a>
-        </div>
-        {list2.map((k) => (
-          <div key={k} style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <div style={disp({ fontSize: 16, color: C.gold, marginBottom: 8 })}>{labels[k]}</div>
-            {(sel[k] || []).map((it, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, padding: "5px 0" }}>
-                <span style={{ color: C.gold, fontFamily: FD, fontSize: k === "form" ? 14 : 12 }}>{k === "form" ? (i + 1) : "•"}</span>
-                <span style={{ color: C.muted, fontSize: 13.5 }}>{it}</span>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  const list = data.exercises.filter((e) => (cat === "All" || e.category === cat) && (!q || e.name.toLowerCase().indexOf(q.toLowerCase()) >= 0));
-  return (
-    <div>
-      {!embedded && <H1>Exercise Library</H1>}
-      {!embedded && <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>{data.exercises.length} exercises with form, tips, and video. Tap any one for the full breakdown.</p>}
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises" style={{ ...inputStyle, maxWidth: 320, marginTop: 8 }} />
-      <div style={{ display: "flex", gap: 8, margin: "12px 0", overflowX: "auto", paddingBottom: 4 }}>
-        {["All"].concat(data.categories).map((c) => <button key={c} onClick={() => setCat(c)} style={chip(cat === c)}>{c}</button>)}
-      </div>
-      <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, overflow: "hidden" }}>
-        {list.length === 0 && <div style={{ color: C.faint, padding: 22, textAlign: "center" }}>No exercises match.</div>}
-        {list.map((e) => (
-          <div key={e.name + e.category} onClick={() => setSel(e)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid " + C.borderSoft, cursor: "pointer", gap: 8 }}>
-            <div>
-              <div style={{ color: C.text, fontWeight: 600, fontSize: 15.5 }}>{e.name}</div>
-              <div style={{ color: C.muted, fontSize: 13, marginTop: 3 }}>{e.primary} · {e.equipment}</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11.5, color: diffColor(e.difficulty) }}>{e.difficulty}</span>
-              <span style={{ color: C.muted }}>›</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ color: C.muted, fontSize: 12.5, marginTop: 8 }}>{list.length} shown.</div>
-    </div>
-  );
-}
-
-// ---------------- Coach app ----------------
-function CoachApp({ profile }) {
-  const [active, setActive] = useState("overview");
-  const [builder, setBuilder] = useState(null);
-  const [selClient, setSelClient] = useState(null);
-  const [mealSub, setMealSub] = useState("plans");
-  const [wkSub, setWkSub] = useState("programs");
-  const [clients, setClients] = useState([]); const [programs, setPrograms] = useState([]);
-  const [mealplans, setMealplans] = useState([]); const [assignments, setAssignments] = useState([]);
-  const [settings, setSettings] = useState(null); const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false); const [msg, setMsg] = useState("");
-  const [nutrition, setNutrition] = useState(null);
-
-  async function loadAll() {
-    const me = profile.id;
-    const [cl, pr, mp, asg, st] = await Promise.all([
-      sb.from("profiles").select("id,email,created_at,full_name,meal_gen,workout_gen").eq("coach_id", me),
-      sb.from("workout_programs").select("*").eq("coach_id", me).order("created_at", { ascending: false }),
-      sb.from("meal_plans").select("*").eq("coach_id", me).order("created_at", { ascending: false }),
-      sb.from("assignments").select("*").eq("coach_id", me),
-      sb.from("coaches").select("*").eq("id", me).maybeSingle(),
-    ]);
-    setClients(cl.data || []); setPrograms(pr.data || []); setMealplans(mp.data || []);
-    setAssignments(asg.data || []); setSettings(st.data); setLoading(false);
-    try { const r = await fetch("/nutrition.json"); if (r.ok) setNutrition(await r.json()); } catch (e) {}
-  }
-  useEffect(() => { loadAll(); }, []);
-  function flash(t) { setMsg(t); setTimeout(() => setMsg(""), 2500); }
-
-  async function saveProgram(p, clientId) { setSaving(true);
-    const { data, error } = await sb.from("workout_programs").insert({ coach_id: profile.id, name: p.name, focus: p.focus, days_per_week: p.days_per_week, structure: p.structure }).select("id").single();
-    setSaving(false); if (error) { flash(error.message); return; } setBuilder(null);
-    if (clientId) { await assign("workout", data.id, clientId); flash("Saved and assigned."); } else { flash("Program saved."); loadAll(); } }
-  async function saveMeal(p, clientId) { setSaving(true);
-    const { data, error } = await sb.from("meal_plans").insert({ coach_id: profile.id, name: p.name, kcal: p.kcal, protein: p.protein, carbs: p.carbs, fat: p.fat, structure: p.structure }).select("id").single();
-    setSaving(false); if (error) { flash(error.message); return; } setBuilder(null);
-    if (clientId) { await assign("meal", data.id, clientId); flash("Saved and assigned."); } else { flash("Meal plan saved."); loadAll(); } }
-  async function assign(kind, refId, clientId) {
-    await sb.from("assignments").delete().eq("client_id", clientId).eq("kind", kind);
-    const row = { coach_id: profile.id, client_id: clientId, kind };
-    if (kind === "workout") row.program_id = refId; else row.meal_plan_id = refId;
-    const { error } = await sb.from("assignments").insert(row);
-    if (error) { flash(error.message); return; } flash("Assigned."); loadAll();
-  }
-  async function setAccess(clientId, meal, workout) {
-    const { data: r } = await sb.rpc("set_client_access", { p_client: clientId, p_meal: meal, p_workout: workout });
-    if (r === "ok") { flash("Access updated"); loadAll(); } else { flash("Could not update access"); }
-  }
-
-  const main = [
-    { id: "overview", label: "Overview" }, { id: "clients", label: "Clients" }, { id: "nutrition", label: "Nutrition Library" }, { id: "exercises", label: "Exercise Library" },
-    { id: "messages", label: "Messages", soon: true }, { id: "scheduling", label: "Scheduling", soon: true },
-    { id: "payments", label: "Payments", soon: true }, { id: "announcements", label: "Announcements", soon: true },
-  ];
-  const other = [{ id: "settings", label: "Settings" }];
-  const brandName = (settings && settings.business_name) || "FitStud Coach";
-  const plan = settings && settings.plan ? settings.plan : "free";
-
-  function Overview() {
-    return (
-      <div>
-        <H1>Overview</H1>
-        <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>Plan: <span style={{ color: C.gold, fontWeight: 700, textTransform: "uppercase" }}>{plan}</span></p>
-        <div style={{ display: "flex", gap: 14, marginTop: 18, flexWrap: "wrap" }}>
-          <Stat label="Active clients" value={clients.length} accent={C.gold} />
-          <Stat label="Workout programs" value={programs.length} />
-          <Stat label="Meal plans" value={mealplans.length} />
-          <Stat label="Client limit" value={plan === "free" ? (settings ? settings.client_limit : 5) : "∞"} />
-        </div>
-        <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 20, marginTop: 18 }}>
-          <div style={disp({ fontSize: 18, color: C.text, marginBottom: 6 })}>Quick start</div>
-          <div style={{ color: C.muted, fontSize: 13.5 }}>Open a client to build right for them, or create a program or meal plan in the libraries. Use the ✨ AI button to draft one in seconds.</div>
-          <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-            <button onClick={() => { setActive("exercises"); setWkSub("programs"); setBuilder("workout"); }} style={btnGold}>✨ New program</button>
-            <button onClick={() => { setActive("nutrition"); setMealSub("plans"); setBuilder("meal"); }} style={btnGhost}>✨ New meal plan</button>
-            <button onClick={() => setActive("clients")} style={btnGhost}>View clients</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function Clients() {
-    return (
-      <div>
-        <H1>Your Clients</H1>
-        <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>{clients.length}/{plan === "free" ? (settings ? settings.client_limit : 5) : "∞"} clients · tap a client to open their page</p>
-        <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, overflow: "hidden", marginTop: 16 }}>
-          {clients.length === 0 && <div style={{ color: C.muted, padding: 24, textAlign: "center", fontSize: 14 }}>No clients yet.</div>}
-          {clients.map((c) => {
-            const wp = assignments.find((a) => a.client_id === c.id && a.kind === "workout");
-            const mp = assignments.find((a) => a.client_id === c.id && a.kind === "meal");
-            const wpName = wp ? (programs.find((p) => p.id === wp.program_id) || {}).name : null;
-            const mpName = mp ? (mealplans.find((p) => p.id === mp.meal_plan_id) || {}).name : null;
-            return (
-              <div key={c.id} onClick={() => setSelClient(c)} style={{ padding: "15px 18px", borderBottom: "1px solid " + C.borderSoft, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <div>
-                  <div style={{ color: C.text, fontWeight: 600, fontSize: 16 }}>{c.full_name || c.email}</div>
-                  <div style={{ color: C.muted, fontSize: 13, marginTop: 3 }}>Program: <span style={{ color: wpName ? C.gold : C.muted }}>{wpName || "none"}</span> · Meal: <span style={{ color: mpName ? C.gold : C.muted }}>{mpName || "none"}</span></div>
+  if(showSetup)return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)",color:"#e2e8f0",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",textAlign:"center"}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{fontSize:48,marginBottom:16}}>💪</div>
+      <div style={{fontSize:32,fontWeight:900,color:"#FFFFFF",letterSpacing:4,marginBottom:4,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>FITSTUD</div>
+      <div style={{fontSize:11,letterSpacing:4,textTransform:"uppercase",color:"#D4AF37",marginBottom:8,fontFamily:"Montserrat,sans-serif",fontWeight:600}}>FORGE YOUR LEGACY</div>
+      <div style={{fontSize:14,color:"#71717a",marginBottom:48,lineHeight:1.6}}>The all-in-one workout tracker built for coaches and athletes</div>
+      <div style={{width:"100%",maxWidth:380,display:"flex",flexDirection:"column",gap:12}}>
+        <button onClick={()=>{setWorkouts(DEFAULT_WORKOUTS);setShowSetup(false);}} style={{padding:"16px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:16,color:"#000",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif",letterSpacing:1,textTransform:"uppercase"}}>Load Month 1 Program</button>
+        {setupStep==="welcome"&&<button onClick={()=>setSetupStep("questionnaire")} style={{padding:"16px",background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,color:"#D4AF37",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif",letterSpacing:1,textTransform:"uppercase"}}>✨ Build My Custom Plan with AI</button>}
+        {setupStep==="questionnaire"&&(
+          <div style={{background:"rgba(212,175,55,0.05)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16,padding:"16px"}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#D4AF37",marginBottom:16,fontFamily:"Montserrat,sans-serif",letterSpacing:1,textTransform:"uppercase"}}>Tell us about yourself</div>
+            {[{label:"Your Goal",key:"goal",opts:["Gain Muscle","Lose Weight","Build Strength","Improve Agility","Full Body Conditioning","Athletic Performance"],cols:2},{label:"Fitness Level",key:"level",opts:["Beginner","Intermediate","Advanced"],cols:3},{label:"Days per Week",key:"days",opts:["2","3","4","5","6"],cols:5},{label:"Equipment",key:"equipment",opts:["Full Gym","Home Gym","No Equipment"],cols:3}].map(field=>(
+              <div key={field.key} style={{marginBottom:12}}>
+                <div style={{fontSize:11,color:"#D4AF37",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>{field.label}</div>
+                <div style={{display:"grid",gridTemplateColumns:`repeat(${field.cols},1fr)`,gap:6}}>
+                  {field.opts.map(opt=><button key={opt} onClick={()=>setUserProfile(p=>({...p,[field.key]:opt}))} style={{padding:"8px",background:userProfile[field.key]===opt?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.06)",border:"1px solid "+(userProfile[field.key]===opt?"#D4AF37":"rgba(212,175,55,0.2)"),borderRadius:8,color:userProfile[field.key]===opt?"#000":"#D4AF37",fontSize:11,fontWeight:700,cursor:"pointer"}}>{opt}</button>)}
                 </div>
-                <span style={{ color: C.muted, fontSize: 20 }}>›</span>
               </div>
-            );
+            ))}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,color:"#D4AF37",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Any injuries? (optional)</div>
+              <input type="text" placeholder="e.g. bad knees, lower back pain..." value={userProfile.injuries||""} onChange={e=>setUserProfile(p=>({...p,injuries:e.target.value}))} style={{width:"100%",padding:"10px 12px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:10,color:"#fff",fontSize:13,outline:"none",boxSizing:"border-box"}} />
+            </div>
+            {setupError&&<div style={{color:"#f87171",fontSize:12,marginBottom:10,textAlign:"center"}}>{setupError}</div>}
+            <button onClick={async()=>{
+              if(!userProfile.goal||!userProfile.level||!userProfile.days||!userProfile.equipment){setSetupError("Please select all options.");return;}
+              setSetupLoading(true);setSetupError("");
+              try{
+                const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:2000,system:"Return ONLY valid JSON with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is array: name,sets,reps,video(YouTube ID or empty). Rest days=[].",messages:[{role:"user",content:"Create a "+userProfile.days+"-day/week program. Goal: "+userProfile.goal+". Level: "+userProfile.level+". Equipment: "+userProfile.equipment+(userProfile.injuries?". Injuries: "+userProfile.injuries:"")}]})});
+                const data=await res.json();const raw=data.content?.find(b=>b.type==="text")?.text||"";
+                const parsed=JSON.parse(raw.replace(/```json|```/g,"").trim());
+                if(!DAYS.some(d=>Array.isArray(parsed[d])))throw new Error("Invalid");
+                setWorkouts(parsed);setShowSetup(false);
+              }catch(e){setSetupError("Could not generate. Please try again.");}
+              setSetupLoading(false);
+            }} disabled={setupLoading} style={{width:"100%",padding:"14px",background:setupLoading?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              {setupLoading?<><span style={{display:"inline-block",width:16,height:16,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />Building...</>:"BUILD MY PROGRAM →"}
+            </button>
+            <button onClick={()=>{setSetupStep("welcome");setSetupError("");}} style={{width:"100%",marginTop:8,padding:"10px",background:"transparent",border:"none",color:"#52525b",fontSize:12,cursor:"pointer"}}>← Back</button>
+          </div>
+        )}
+        <button onClick={()=>{setWorkouts(EMPTY_WORKOUTS);setShowSetup(false);}} style={{padding:"14px",background:"transparent",border:"1px solid rgba(212,175,55,0.15)",borderRadius:16,color:"#52525b",fontSize:13,cursor:"pointer"}}>Start empty — I will add workouts myself</button>
+      </div>
+    </div>
+  );
+
+  return(
+    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:80,margin:0,boxSizing:"border-box"}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box} html,body,#root{background:#0B0B0B;min-height:100vh}`}</style>
+
+      {/* HEADER */}
+      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div>
+            <div style={{fontSize:9,letterSpacing:3,textTransform:"uppercase",color:t.accentText,fontFamily:"Montserrat,sans-serif",fontWeight:600,lineHeight:1,marginTop:3}}>FORGE YOUR LEGACY</div>
+          </div>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            {syncStatus==="saving"&&<div style={{fontSize:10,color:t.textMuted}}>Saving...</div>}
+            {syncStatus==="saved"&&<div style={{fontSize:10,color:"#10b981"}}>✓ Saved</div>}
+            <button onClick={()=>setShowLibrary(true)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"8px 10px",color:t.textSub,fontSize:12,fontWeight:600,cursor:"pointer"}}>📚</button>
+            {canWorkoutGen&&<button onClick={()=>{setShowPlanner(true);setPlannerPreview(null);setPlannerError("");}} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"8px 10px",color:t.textSub,fontSize:12,fontWeight:600,cursor:"pointer"}}>🗓</button>}
+            {user?<button onClick={()=>setShowProfile(true)} style={{width:34,height:34,background:avatarUrl?"transparent":t.card,border:"1px solid "+t.cardBorder,borderRadius:"50%",overflow:"hidden",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{avatarUrl?<img src={avatarUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="avatar" />:<span style={{fontSize:16}}>👤</span>}</button>:<button onClick={()=>{setShowAuth(true);setAuthMode("login");}} style={{background:t.accent,border:"none",borderRadius:12,padding:"8px 12px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Login</button>}
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
+          <div style={{fontSize:13,color:t.textMuted}}>{FULL_DAYS[now.getDay()]} · {MONTHS[todayMonth]} {todayYear}</div>
+          <div style={{display:"flex",gap:6}}>
+            {[["gold","★"],["dark","🌙"],["light","☀️"]].map(([th,icon])=><button key={th} onClick={()=>setTheme(th)} style={{width:28,height:28,borderRadius:"50%",border:theme===th?"2px solid "+t.accentSolid:"1px solid "+t.cardBorder,background:theme===th?t.accentMuted:"rgba(255,255,255,0.05)",fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{icon}</button>)}
+          </div>
+        </div>
+      </div>
+
+      {/* VIEW TOGGLE */}
+      <div style={{display:"flex",margin:"12px 16px 0",background:t.toggleBg,borderRadius:12,padding:4}}>
+        {[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]].map(([v,label])=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:"pointer",background:view===v?t.accent:"transparent",color:view===v?"#fff":t.textMuted,fontSize:12,fontWeight:700,textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none"}}>{label}</button>)}
+      </div>
+
+      {/* WEEK VIEW */}
+      {view==="week"&&(
+        <div>
+          <div onTouchStart={e=>setTouchSwipeStart(e.touches[0].clientX)} onTouchEnd={e=>{if(touchSwipeStart===null)return;const diff=touchSwipeStart-e.changedTouches[0].clientX;if(Math.abs(diff)>40)setWeekOffset(weekOffset+(diff>0?1:-1));setTouchSwipeStart(null);}} ref={el=>{if(el){const sel=el.querySelector("[data-selected='true']");if(sel)sel.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});}}} style={{display:"flex",gap:8,padding:"16px 12px 8px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+            {Array.from({length:7},(_,i)=>{
+              const base=new Date(),slotDate=new Date(base);slotDate.setDate(base.getDate()+(weekOffset*7)+i);
+              const dateNum=slotDate.getDate(),dateMonth=slotDate.getMonth(),dateYear=slotDate.getFullYear(),dayName=DAYS[slotDate.getDay()];
+              const realToday=new Date(),isToday=dateNum===realToday.getDate()&&dateMonth===realToday.getMonth()&&dateYear===realToday.getFullYear();
+              const histKey=dateYear+"-"+String(dateMonth+1).padStart(2,"0")+"-"+String(dateNum).padStart(2,"0")+"-"+dayName;
+              const isCompleted=!!history[histKey],isSelDay=dayName===selectedDay,hasWorkout=(safeWorkouts[dayName]||[]).length>0;
+              return <button key={i} data-selected={isSelDay?"true":"false"} onClick={()=>{setSelectedDay(dayName);setShowStats(false);}} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 8px",borderRadius:16,minWidth:56,cursor:"pointer",border:isToday?"1.5px solid "+t.accentSolid:isCompleted?"1.5px solid #22c55e":isSelDay?"1.5px solid "+t.accentBorder:"1.5px solid "+t.cardBorder,background:isToday?t.accentMuted:isCompleted?"rgba(34,197,94,0.12)":t.card,boxShadow:isSelDay?"0 0 0 2px "+t.accentSolid:"none"}}>
+                <span style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",fontWeight:700,color:isToday?t.accentText:isCompleted?"#22c55e":isSelDay?t.accentText:t.textMuted}}>{dayName}</span>
+                <span style={{fontSize:18,fontWeight:800,lineHeight:1,color:t.text}}>{dateNum}</span>
+                <span style={{width:6,height:6,borderRadius:"50%",background:isCompleted?"#22c55e":isToday?t.accentSolid:hasWorkout?t.accentBorder:"transparent"}} />
+              </button>;
+            })}
+          </div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,padding:"2px 16px 8px"}}>
+            <button onClick={()=>setWeekOffset(p=>p-1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>‹</button>
+            <span style={{fontSize:11,color:t.textMuted,letterSpacing:1}}>{weekOffset===0?"THIS WEEK":weekOffset>0?"+"+weekOffset+" WEEK"+(Math.abs(weekOffset)>1?"S":""):Math.abs(weekOffset)+" WEEK"+(Math.abs(weekOffset)>1?"S":"")+" AGO"}</span>
+            <button onClick={()=>setWeekOffset(p=>p+1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>›</button>
+          </div>
+          <div style={{padding:"0 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontSize:20,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",letterSpacing:1}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
+              <div style={{fontSize:15,fontWeight:600,color:t.accentText,marginTop:2}}>{DAY_FOCUS[selectedDay]}</div>
+              <div style={{fontSize:12,color:"#475569",marginTop:2}}>{exercises.length} exercise{exercises.length!==1?"s":""}</div>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowHistory(true)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"8px 12px",color:t.textSub,fontSize:12,fontWeight:600,cursor:"pointer"}}>📖</button>
+              <button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?t.accentLight:t.card,border:"1px solid "+(editMode?t.accentBorder:t.cardBorder),borderRadius:12,padding:"8px 12px",color:editMode?"#fbbf24":"#94a3b8",fontSize:12,fontWeight:600,cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>
+              <button onClick={()=>setShowAdd(true)} style={{background:t.accent,border:"none",borderRadius:12,padding:"8px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Add</button>
+            </div>
+          </div>
+          {workoutFinished&&<div style={{margin:"0 16px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(212,175,55,0.12),rgba(184,148,31,0.08))",border:"1px solid rgba(212,175,55,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:10}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10b981",flexShrink:0}} /><div><div style={{fontSize:14,fontWeight:800,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>WORKOUT SAVED</div><div style={{fontSize:12,color:"rgba(212,175,55,0.7)",marginTop:2}}>Great work! Your progress has been recorded.</div></div></div>}
+          <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:14}}>
+            {/* COACH ASSIGNED PROGRAM */}
+            {assignedProgram&&<div style={{background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,padding:"16px",marginBottom:4}}>
+              <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your Coach's Program</div>
+              <div style={{fontSize:17,fontWeight:800,color:t.text,marginBottom:12}}>{assignedProgram.name}</div>
+              {(assignedProgram.structure||[]).map((day,di)=><div key={di} style={{marginBottom:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#D4AF37",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{day.name}</div>
+                {(day.exercises||[]).map((ex,ei)=><div key={ei} style={{fontSize:13,color:t.text,padding:"4px 0",borderBottom:ei<day.exercises.length-1?"1px solid "+t.cardBorder:"none",display:"flex",justifyContent:"space-between"}}>
+                  <span>{ex.name}</span>
+                  <span style={{color:t.textMuted,fontSize:12}}>{ex.sets} × {ex.reps}</span>
+                </div>)}
+              </div>)}
+              {!canWorkoutGen&&<div style={{fontSize:12,color:t.textMuted,marginTop:8,textAlign:"center"}}>Follow your coach's program above</div>}
+            </div>}
+            {!assignedProgram&&!canWorkoutGen&&<div style={{textAlign:"center",padding:"32px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16}}><div style={{fontSize:28,marginBottom:8}}>🏋️</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your program soon.</div></div>}
+            {exercises.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
+            {exercises.map((ex,exIdx)=>{
+              const done=doneCount(ex.id,ex.sets),finished=done===ex.sets;
+              return(
+                <div key={ex.id} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:dragIndex===exIdx?0.4:1,transition:"all 0.15s",outline:dragOver===exIdx&&dragIndex!==exIdx?"3px solid "+t.accentSolid:"none",outlineOffset:2}}>
+                  {editMode&&<div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
+                    <div draggable onDragStart={()=>{setDragIndex(exIdx);dragIndexRef.current=exIdx;}} onDragOver={e=>{e.preventDefault();setDragOver(exIdx);}} onDragEnd={handleDragEnd} onTouchStart={e=>{e.stopPropagation();setDragIndex(exIdx);dragIndexRef.current=exIdx;}} onTouchMove={e=>{e.preventDefault();const y=e.touches[0].clientY;const cards=document.querySelectorAll("[data-excard]");cards.forEach((card,ci)=>{const rect=card.getBoundingClientRect();if(y>=rect.top&&y<=rect.bottom)setDragOver(ci);});}} onTouchEnd={e=>{e.stopPropagation();handleDragEnd();}} style={{display:"flex",flexDirection:"column",gap:4,padding:"12px 14px",background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,cursor:"grab",alignItems:"center",touchAction:"none",userSelect:"none"}}>
+                      {[0,1,2].map(i=><div key={i} style={{width:20,height:2.5,background:t.accentText,borderRadius:1}} />)}
+                    </div>
+                    <button onClick={()=>setMoveModal(ex)} style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"6px 12px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>Move day →</button>
+                    <div style={{flex:1}} />
+                    <button onClick={()=>removeExercise(ex.id)} style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:8,padding:"6px 10px",color:"#f87171",fontSize:12,cursor:"pointer",fontWeight:600}}>Remove</button>
+                  </div>}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                    <div>
+                      <div style={{fontSize:17,fontWeight:700,color:finished?t.accentText:(theme==="light"?"#000":"#FFF")}}>{ex.name}</div>
+                      <div style={{fontSize:12,color:theme==="light"?"#000":"#fff",marginTop:3,textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{ex.sets} sets · target {ex.reps} reps · {done}/{ex.sets} done</div>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
+                      {ex.video&&<button onClick={()=>setVideoPlayer({videoId:ex.video,title:ex.name})} style={{background:t.accentLight,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"4px 8px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>▶ Watch</button>}
+                      {/* FIX 3: RESET BUTTON */}
+                      <button onClick={e=>{e.stopPropagation();resetExercise(ex.id);}} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"4px 8px",color:"#f87171",fontSize:10,fontWeight:600,cursor:"pointer"}}>↺ Reset</button>
+                      {!editMode&&<button onClick={()=>removeExercise(ex.id)} style={{background:t.card,border:"none",borderRadius:8,padding:"4px 8px",color:t.textMuted,fontSize:13,cursor:"pointer"}}>✕</button>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginBottom:10}}>
+                    <button onClick={()=>removeSet(ex.id)} style={{flex:1,padding:"9px",background:ex.sets<=1?"rgba(255,255,255,0.02)":"rgba(239,68,68,0.08)",border:ex.sets<=1?"1px solid "+t.cardBorder:"1px solid "+t.accentBorder,borderRadius:10,color:ex.sets<=1?"#334155":"#f87171",fontSize:14,fontWeight:700,cursor:ex.sets<=1?"not-allowed":"pointer"}}>− Set</button>
+                    <button onClick={()=>addSet(ex.id)} style={{flex:1,padding:"9px",background:"rgba(99,102,241,0.1)",border:"1px solid "+t.accentBorder,borderRadius:10,color:t.accentText,fontSize:14,fontWeight:700,cursor:"pointer"}}>+ Set</button>
+                  </div>
+                  {(()=>{const tb=isTimeBased(ex.name);return <div style={{display:"grid",gridTemplateColumns:"32px 52px 1fr 1fr 44px",gap:6,marginBottom:6,padding:"0 2px"}}><div /><div style={{fontSize:9,color:"#fff",textTransform:"uppercase",textAlign:"center",letterSpacing:1,textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>Last</div><div style={{fontSize:10,color:"#fff",textTransform:"uppercase",letterSpacing:1,textAlign:"center",textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>{tb?"Rounds":"Reps"}</div><div style={{fontSize:10,color:"#fff",textTransform:"uppercase",letterSpacing:1,textAlign:"center",textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>{tb?"Time (s)":"Weight"}</div><div style={{fontSize:10,color:"#fff",textTransform:"uppercase",letterSpacing:1,textAlign:"center",textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>✓</div></div>})()}
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {Array.from({length:ex.sets},(_,i)=>{
+                      const s=getSet(ex.id,i),last=getLastRecord(ex.name,i);
+                      return <div key={i} style={{display:"grid",gridTemplateColumns:"32px 52px 1fr 1fr 44px",gap:6,alignItems:"center",background:s.done?t.accentMuted:t.card,border:"1px solid "+(s.done?t.accentSolid:t.cardBorder),borderRadius:12,padding:"8px 6px"}}>
+                        <div style={{fontSize:11,fontWeight:700,color:s.done?t.accentText:"#fff",textAlign:"center",textShadow:"0 1px 4px rgba(0,0,0,0.9)"}}>S{i+1}</div>
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.accentMuted,borderRadius:8,padding:"4px 2px",minHeight:40,border:"1px solid "+t.accentBorder}}>
+                          {last?<><span style={{fontSize:11,fontWeight:700,color:t.textSub,lineHeight:1.2}}>{last.reps||"—"}</span><span style={{fontSize:9,color:t.accentText,lineHeight:1.2}}>{last.weight?last.weight+"lb":"bw"}</span></>:<span style={{fontSize:12,color:t.accentText,fontWeight:700}}>—</span>}
+                        </div>
+                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:15,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:15,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <button onClick={()=>toggleDone(ex.id,i)} style={{width:40,height:40,borderRadius:10,border:s.done?"none":"2px solid rgba(212,175,55,0.5)",background:s.done?t.accent:t.card,color:s.done?"#fff":"rgba(212,175,55,0.7)",fontSize:18,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{s.done?"✓":"○"}</button>
+                      </div>;
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {exercises.length>0&&<div style={{padding:"20px 16px 8px"}}>
+            <button onClick={()=>{saveToHistory();saveToLibrary();setWorkoutFinished(true);setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
+            {!allDone&&<div style={{textAlign:"center",fontSize:11,color:t.textMuted,marginTop:8}}>You can finish anytime — your progress is saved</div>}
+          </div>}
+        </div>
+      )}
+
+      {/* NUTRITION */}
+      {view==="nutrition"&&(()=>{
+        const todayN=getTodayNutrition();
+        const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");return{key,day:DAYS[d.getDay()],...(nutrition[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0})};});
+        const goals={calories:2000,protein:150,carbs:200,fat:65,water:8,steps:10000};
+        return <div style={{padding:"16px"}}>
+          <div style={{fontSize:16,fontWeight:800,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>NUTRITION</div>
+          {/* COACH ASSIGNED MEAL PLAN */}
+          {assignedMeal&&<div style={{background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,padding:"16px",marginBottom:16}}>
+            <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your Coach's Meal Plan</div>
+            <div style={{fontSize:17,fontWeight:800,color:t.text,marginBottom:10}}>{assignedMeal.name}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14}}>
+              {[{l:"Calories",v:assignedMeal.kcal||"—",c:"#F5D070"},{l:"Protein",v:(assignedMeal.protein||"—")+"g",c:"#ef4444"},{l:"Carbs",v:(assignedMeal.carbs||"—")+"g",c:"#f97316"},{l:"Fat",v:(assignedMeal.fat||"—")+"g",c:"#a78bfa"}].map(m=><div key={m.l} style={{textAlign:"center",padding:"10px 6px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10}}>
+                <div style={{fontSize:16,fontWeight:800,color:m.c}}>{m.v}</div>
+                <div style={{fontSize:9,color:t.textMuted,textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{m.l}</div>
+              </div>)}
+            </div>
+            {(assignedMeal.structure||[]).map((meal,mi)=><div key={mi} style={{marginBottom:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#D4AF37",marginBottom:6}}>{meal.name}</div>
+              {(meal.items||[]).map((item,ii)=><div key={ii} style={{fontSize:12,color:t.textMuted,padding:"2px 0"}}>• {item}</div>)}
+            </div>)}
+            {!canMealGen&&<div style={{fontSize:12,color:t.textMuted,marginTop:4,textAlign:"center"}}>Follow your coach's meal plan above</div>}
+          </div>}
+          {!assignedMeal&&!canMealGen&&<div style={{textAlign:"center",padding:"28px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16,marginBottom:16}}><div style={{fontSize:28,marginBottom:8}}>🥗</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your meal plan soon.</div></div>}
+          <div style={{display:"flex",gap:10,marginBottom:16}}>
+            {canMealGen?<button onClick={()=>{setShowMealPlanner(true);setMealPlanStep("questions");setMealPlanError("");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Generate My Meal Plan</button>:<div style={{flex:1,padding:"14px",background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:14,textAlign:"center",fontSize:13,color:"#D4AF37",fontWeight:600}}>📋 Follow your coach's plan</div>}
+            <button onClick={()=>{setShowScanner(true);setScanResult(null);setScanError("");}} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>📷 Scan Meal</button>
+          </div>
+          <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"Montserrat,sans-serif"}}>Today's Intake</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[{key:"calories",label:"Calories",unit:"kcal",goal:goals.calories,color:"#F5D070"},{key:"protein",label:"Protein",unit:"g",goal:goals.protein,color:"#ef4444"},{key:"carbs",label:"Carbs",unit:"g",goal:goals.carbs,color:"#f97316"},{key:"fat",label:"Fat",unit:"g",goal:goals.fat,color:"#a78bfa"},{key:"water",label:"Water",unit:"glasses",goal:goals.water,color:"#38bdf8"},{key:"steps",label:"Steps",unit:"steps",goal:goals.steps,color:"#34d399"}].map(item=>{
+                const val=todayN[item.key]||0,pct=Math.min(100,Math.round((val/item.goal)*100));
+                return <div key={item.key} style={{background:t.toggleBg,borderRadius:12,padding:"12px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:11,color:t.textSub,fontWeight:600}}>{item.label}</span><span style={{fontSize:10,color:t.textMuted}}>{pct}%</span></div>
+                  <input type="number" inputMode="decimal" placeholder="0" value={todayN[item.key]||""} onChange={e=>updateNutrition(item.key,e.target.value)} style={{width:"100%",padding:"8px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:8,color:t.text,fontSize:16,fontWeight:700,outline:"none",textAlign:"center",boxSizing:"border-box",marginBottom:6}} />
+                  <div style={{fontSize:9,color:t.textMuted,textAlign:"center"}}>{item.unit} · goal: {item.goal}</div>
+                  <div style={{height:4,background:t.cardBorder,borderRadius:2,marginTop:6}}><div style={{height:4,width:pct+"%",background:item.color,borderRadius:2,transition:"width 0.3s"}} /></div>
+                </div>;
+              })}
+            </div>
+          </div>
+          <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px"}}>
+            <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14}}>Weekly Overview</div>
+            <div style={{display:"flex",alignItems:"flex-end",gap:6,height:80,marginBottom:8}}>
+              {last7.map((d,i)=>{const pct=Math.min(100,Math.round(((d.calories||0)/goals.calories)*100)),isTodayBar=i===6;return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><div style={{width:"100%",borderRadius:"4px 4px 0 0",background:isTodayBar?"linear-gradient(135deg,#D4AF37,#B8941F)":d.calories>0?"rgba(212,175,55,0.3)":"rgba(255,255,255,0.05)",height:Math.max(4,(pct/100)*72)+"px",transition:"all 0.3s"}} /><div style={{fontSize:9,color:isTodayBar?t.accentText:t.textMuted,textTransform:"uppercase",fontWeight:isTodayBar?700:400}}>{d.day}</div></div>;})}
+            </div>
+            <div style={{fontSize:11,color:t.textMuted,textAlign:"center"}}>Calorie intake — last 7 days</div>
+          </div>
+        </div>;
+      })()}
+
+      {/* STATS DASHBOARD */}
+      {view==="dashboard"&&(()=>{
+        const now2=new Date(),allEntries=Object.entries(history).sort((a,b)=>b[0].localeCompare(a[0]));
+        const totalWorkouts=allEntries.length;
+        let streak=0;for(let i=0;i<30;i++){const d=new Date(now2);d.setDate(d.getDate()-i);const dn=DAYS[d.getDay()];const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"-"+dn;if(history[k])streak++;else if(i>0)break;}
+        let allTimeVolume=0,allTimeReps=0;Object.values(history).forEach(rec=>{rec.exercises?.forEach(ex=>{ex.sets?.forEach(s=>{if(s.done){allTimeReps+=parseInt(s.reps)||ex.reps||0;allTimeVolume+=(parseInt(s.reps)||ex.reps||0)*(parseFloat(s.weight)||0);}});});});
+        const prs={};Object.values(history).forEach(rec=>{rec.exercises?.forEach(ex=>{ex.sets?.forEach(s=>{if(s.done&&s.weight){const w=parseFloat(s.weight);if(!prs[ex.name]||w>prs[ex.name])prs[ex.name]=w;}});});});
+        const last7vol=allEntries.slice(0,7).map(([key,rec])=>{let vol=0;rec.exercises?.forEach(ex=>{ex.sets?.forEach(s=>{if(s.done)vol+=(parseInt(s.reps)||ex.reps||0)*(parseFloat(s.weight)||0);});});return{label:key.split("-")[3]||"?",vol};}).reverse();
+        const maxVol=Math.max(...last7vol.map(d=>d.vol),1);
+        return <div style={{padding:"16px"}}>
+          <div style={{fontSize:16,fontWeight:700,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif"}}>Your Progress</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+            {[{icon:"🔥",value:streak,label:"Day Streak"},{icon:"💪",value:totalWorkouts,label:"Workouts Done"},{icon:"🏋️",value:allTimeVolume>0?Math.round(allTimeVolume/1000)+"k lbs":"—",label:"Total Volume"},{icon:"🔁",value:allTimeReps||"—",label:"Total Reps"}].map(s=><div key={s.label} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"14px",display:"flex",alignItems:"center",gap:12}}><div style={{fontSize:28}}>{s.icon}</div><div><div style={{fontSize:22,fontWeight:800,color:"#a5b4fc"}}>{s.value}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{s.label}</div></div></div>)}
+          </div>
+          {last7vol.some(d=>d.vol>0)&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}><div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:16}}>📈 Volume — Last Workouts</div><div style={{display:"flex",alignItems:"flex-end",gap:6,height:80}}>{last7vol.map((d,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><div style={{width:"100%",borderRadius:"4px 4px 0 0",background:d.vol>0?"linear-gradient(135deg,#4f46e5,#7c3aed)":"rgba(255,255,255,0.05)",height:d.vol>0?Math.max(8,(d.vol/maxVol)*72)+"px":"4px"}} /><div style={{fontSize:9,color:"#475569",textTransform:"uppercase"}}>{d.label}</div></div>)}</div></div>}
+          {Object.keys(prs).length>0&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}><div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:12}}>🏆 Personal Records</div>{Object.entries(prs).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,weight])=><div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:"rgba(99,102,241,0.06)",borderRadius:10,marginBottom:6}}><span style={{fontSize:13,color:t.text,fontWeight:600}}>{name}</span><span style={{fontSize:14,fontWeight:800,color:"#fbbf24"}}>{weight} lbs 🏅</span></div>)}</div>}
+          {allEntries.length>0?<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px"}}><div style={{fontSize:13,fontWeight:700,color:t.text,marginBottom:12}}>📅 Recent Workouts</div>{allEntries.slice(0,5).map(([key,rec])=>{let vol=0,reps=0;rec.exercises?.forEach(ex=>{ex.sets?.forEach(s=>{if(s.done){reps+=parseInt(s.reps)||ex.reps||0;vol+=(parseInt(s.reps)||ex.reps||0)*(parseFloat(s.weight)||0);}});});return <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid "+t.cardBorder}}><div><div style={{fontSize:13,fontWeight:700,color:t.text}}>{rec.fullDay}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{rec.date} · {rec.exercises?.length} exercises</div></div><div style={{textAlign:"right"}}>{vol>0&&<div style={{fontSize:12,fontWeight:700,color:"#a5b4fc"}}>{vol.toLocaleString()} lbs</div>}<div style={{fontSize:11,color:"#475569"}}>{reps} reps</div></div></div>;})}</div>:<div style={{textAlign:"center",padding:"40px 20px",fontSize:13}}><div style={{fontSize:48,marginBottom:12}}>📊</div><div style={{color:"#475569",marginBottom:8,fontSize:15,fontWeight:600}}>No data yet</div><div style={{fontSize:12,color:"#334155",lineHeight:1.6}}>Complete workouts and tap Save & Finish to start tracking!</div></div>}
+        </div>;
+      })()}
+
+      {/* MONTH VIEW */}
+      {view==="month"&&<div style={{padding:"16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:38,height:38,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+          <div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:t.text}}>{MONTHS[calMonth]}</div><div style={{fontSize:13,color:"#475569"}}>{calYear}</div></div>
+          <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:38,height:38,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>{["S","M","T","W","T","F","S"].map((d,i)=><div key={i} style={{textAlign:"center",fontSize:11,fontWeight:700,color:"#475569",padding:"4px 0"}}>{d}</div>)}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+          {calCells.map((date,idx)=>{
+            if(!date)return <div key={idx} />;
+            const dow=new Date(calYear,calMonth,date).getDay(),dayName=DAYS[dow];
+            const isToday=date===todayDate&&calMonth===todayMonth&&calYear===todayYear;
+            const histKey=calYear+"-"+String(calMonth+1).padStart(2,"0")+"-"+String(date).padStart(2,"0")+"-"+dayName;
+            const wasCompleted=!!history[histKey];
+            return <button key={idx} onClick={()=>{setSelectedDay(dayName);setWeekOffset(0);setView("week");}} style={{aspectRatio:"1",borderRadius:12,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,border:isToday?"1.5px solid "+t.accentSolid:wasCompleted?"1.5px solid #22c55e":"1px solid "+t.cardBorder,background:wasCompleted?"rgba(34,197,94,0.12)":isToday?t.accentMuted:t.card}}>
+              <span style={{fontSize:14,fontWeight:isToday||wasCompleted?700:400,color:wasCompleted?"#22c55e":isToday?t.accentText:t.text,lineHeight:1}}>{date}</span>
+              {wasCompleted&&<div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}} />}
+              {isToday&&!wasCompleted&&<div style={{width:5,height:5,borderRadius:"50%",background:t.accentSolid}} />}
+            </button>;
           })}
         </div>
-      </div>
-    );
-  }
+      </div>}
 
-  function ClientDetail({ client }) {
-    const c = clients.find((x) => x.id === client.id) || client;
-    const [gen, setGen] = useState(null);
-    const tog = (on) => ({ fontSize: 12, fontWeight: 700, borderRadius: 999, padding: "5px 13px", cursor: "pointer", fontFamily: FB, border: "1px solid " + (on ? C.gold + "55" : C.border), background: on ? C.goldSoft : "transparent", color: on ? C.gold : C.muted });
-    const wp = assignments.find((a) => a.client_id === c.id && a.kind === "workout");
-    const mp = assignments.find((a) => a.client_id === c.id && a.kind === "meal");
-    const wpName = wp ? (programs.find((p) => p.id === wp.program_id) || {}).name : null;
-    const mpName = mp ? (mealplans.find((p) => p.id === mp.meal_plan_id) || {}).name : null;
-    const joined = c.created_at ? new Date(c.created_at).toLocaleDateString() : "—";
+      {/* VIDEO PLAYER */}
+      {videoPlayer&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:400,padding:"20px 16px"}} onClick={()=>setVideoPlayer(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><div><div style={{fontSize:11,color:"#6366f1",letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>How-To Guide</div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{videoPlayer.title}</div></div><button onClick={()=>setVideoPlayer(null)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:36,height:36,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div><div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000"}}><iframe src={"https://www.youtube.com/embed/"+videoPlayer.videoId+"?autoplay=1&rel=0&modestbranding=1"} title={videoPlayer.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div></div></div>}
 
-    if (gen === "workout") return (<div><button onClick={() => setGen(null)} style={{ ...btnGhost, marginBottom: 14 }}>← Back to client</button><WorkoutBuilder busy={saving} clients={clients} presetClientId={c.id} onSave={async (p, cid) => { await saveProgram(p, cid); setGen(null); }} onCancel={() => setGen(null)} /></div>);
-    if (gen === "meal") return (<div><button onClick={() => setGen(null)} style={{ ...btnGhost, marginBottom: 14 }}>← Back to client</button><MealBuilder busy={saving} clients={clients} nutrition={nutrition} presetClientId={c.id} onSave={async (p, cid) => { await saveMeal(p, cid); setGen(null); }} onCancel={() => setGen(null)} /></div>);
-
-    const sectionTitle = (t) => <div style={disp({ fontSize: 17, color: C.text, margin: "0 0 10px" })}>{t}</div>;
-    const cardS = { background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 20, marginBottom: 14 };
-    return (
-      <div>
-        <button onClick={() => setSelClient(null)} style={{ ...btnGhost, marginBottom: 14 }}>← All clients</button>
-        <H1>{c.full_name || c.email}</H1>
-        <p style={{ color: C.muted, marginTop: 0, fontSize: 13.5 }}>{c.email}{c.phone ? " · " + c.phone : ""} · joined {joined}</p>
-
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14 }}>
-          <Stat label="Current program" value={<span style={{ fontSize: 15, fontFamily: FB, fontWeight: 700, color: wpName ? C.gold : C.muted }}>{wpName || "None"}</span>} />
-          <Stat label="Current meal plan" value={<span style={{ fontSize: 15, fontFamily: FB, fontWeight: 700, color: mpName ? C.gold : C.muted }}>{mpName || "None"}</span>} />
-        </div>
-
-        <div style={cardS}>
-          {sectionTitle("Build for this client")}
-          <div style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>Generate a fresh plan with AI — it auto-assigns to {c.full_name || "this client"} when you save.</div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={() => setGen("workout")} style={{ ...btnGold, ...disp({ fontSize: 15 }) }}>✨ Generate workout</button>
-            <button onClick={() => setGen("meal")} style={{ ...btnGold, ...disp({ fontSize: 15 }) }}>✨ Generate meal plan</button>
+      {/* EXERCISE LIBRARY */}
+      {showLibrary&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:500}} onClick={()=>{setShowLibrary(false);setLibView("categories");setLibCategory(null);setLibExercise(null);}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"16px 20px 12px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+            {libView!=="categories"&&<button onClick={()=>{if(libView==="exercise"){setLibView("subcats");setLibExercise(null);}else{setLibView("categories");setLibCategory(null);}}} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>←</button>}
+            <div style={{flex:1}}><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>{libView==="categories"?"EXERCISE LIBRARY":libView==="subcats"?libCategory?.category.toUpperCase():libExercise?.name.toUpperCase()}</div></div>
+            <button onClick={()=>{setShowLibrary(false);setLibView("categories");setLibCategory(null);setLibExercise(null);}} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+          </div>
+          <div style={{overflowY:"auto",flex:1,padding:"12px 16px 40px"}}>
+            {libView==="categories"&&<div style={{display:"flex",flexDirection:"column",gap:10,marginTop:4}}>{EXERCISE_LIBRARY.map(cat=><button key={cat.category} onClick={()=>{setLibCategory(cat);setLibView("subcats");}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,cursor:"pointer",width:"100%",textAlign:"left"}}><div style={{display:"flex",alignItems:"center",gap:14}}><div style={{width:44,height:44,borderRadius:12,background:t.accentMuted,border:"1px solid "+t.accentBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{cat.icon}</div><div><div style={{fontSize:15,fontWeight:700,color:t.text}}>{cat.category}</div><div style={{fontSize:12,color:t.textMuted,marginTop:2}}>{cat.subs.reduce((a,s)=>a+s.exercises.length,0)} exercises</div></div></div><div style={{fontSize:18,color:t.accentText}}>›</div></button>)}</div>}
+            {libView==="subcats"&&libCategory&&<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>{libCategory.subs.map(sub=><div key={sub.name} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,overflow:"hidden"}}><div style={{padding:"10px 14px",borderBottom:"1px solid "+t.cardBorder}}><div style={{fontSize:11,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase"}}>{sub.name}</div></div>{sub.exercises.map((ex,i)=><button key={ex.name} onClick={()=>{setLibExercise(ex);setLibView("exercise");}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"transparent",border:"none",borderBottom:i<sub.exercises.length-1?"1px solid "+t.cardBorder:"none",cursor:"pointer",width:"100%",textAlign:"left"}}><div><div style={{fontSize:14,color:t.text,fontWeight:500}}>{ex.name}</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{ex.sets} sets × {ex.reps} reps</div></div><div style={{fontSize:16,color:t.accentText}}>›</div></button>)}</div>)}</div>}
+            {libView==="exercise"&&libExercise&&<div style={{marginTop:4}}>
+              {libExercise.video?<div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000",marginBottom:16}}><iframe src={"https://www.youtube.com/embed/"+libExercise.video+"?rel=0&modestbranding=1"} title={libExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div>:<div style={{width:"100%",height:120,borderRadius:16,background:t.card,border:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,flexDirection:"column",gap:6}}><div style={{fontSize:28}}>🎬</div><div style={{fontSize:12,color:t.textMuted}}>Video coming soon</div></div>}
+              <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:11,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>How to perform</div><div style={{fontSize:14,color:t.text,lineHeight:1.7}}>{libExercise.desc}</div></div>
+              <div style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:700}}>Add to day</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{DAYS.map(day=><button key={day} onClick={()=>{addExerciseToDay(day,{id:nextId++,name:libExercise.name,sets:libExercise.sets,reps:libExercise.reps,video:libExercise.video||""});setShowLibrary(false);setLibView("categories");setSelectedDay(day);setView("week");}} style={{padding:"10px",background:day===selectedDay?t.accent:t.card,border:"1px solid "+(day===selectedDay?t.accentSolid:t.cardBorder),borderRadius:10,color:day===selectedDay?"#000":t.text,fontSize:13,fontWeight:day===selectedDay?700:500,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{FULL_DAYS[DAYS.indexOf(day)].slice(0,3)}</span>{day===selectedDay&&<span style={{fontSize:10,fontWeight:700}}>NOW</span>}</button>)}</div>
+            </div>}
           </div>
         </div>
+      </div>}
 
-        <div style={cardS}>
-          {sectionTitle("Assign an existing program")}
-          {programs.length === 0 ? <div style={{ color: C.muted, fontSize: 13 }}>No programs yet — generate one above.</div>
-            : programs.map((p) => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid " + C.borderSoft }}>
-                <span style={{ color: C.text, fontSize: 14 }}>{p.name}</span>
-                <button onClick={() => assign("workout", p.id, c.id)} style={{ ...btnGhost, color: wp && wp.program_id === p.id ? C.gold : C.muted }}>{wp && wp.program_id === p.id ? "Assigned" : "Assign"}</button>
-              </div>
-            ))}
-        </div>
+      {/* MOVE TO DAY */}
+      {moveModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:20}} onClick={()=>setMoveModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:360,background:"#13151f",borderRadius:20,padding:"24px 20px",border:"1px solid "+t.cardBorder}}><div style={{fontSize:16,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Move Exercise</div><div style={{fontSize:13,color:"#64748b",marginBottom:16}}>Move <span style={{color:"#a5b4fc",fontWeight:600}}>{moveModal.name}</span> to:</div><div style={{display:"flex",flexDirection:"column",gap:8}}>{DAYS.filter(d=>d!==selectedDay).map(day=><button key={day} onClick={()=>moveToDay(moveModal,day)} style={{padding:"12px 16px",background:"rgba(99,102,241,0.07)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:12,color:"#e2e8f0",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",justifyContent:"space-between"}}><span>{FULL_DAYS[DAYS.indexOf(day)]}</span><span style={{fontSize:11,color:"#475569"}}>{(safeWorkouts[day]||[]).length} exercises</span></button>)}</div><button onClick={()=>setMoveModal(null)} style={{width:"100%",marginTop:14,padding:"12px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:12,color:"#64748b",fontSize:14,cursor:"pointer"}}>Cancel</button></div></div>}
 
-        <div style={cardS}>
-          {sectionTitle("Assign an existing meal plan")}
-          {mealplans.length === 0 ? <div style={{ color: C.muted, fontSize: 13 }}>No meal plans yet — generate one above.</div>
-            : mealplans.map((p) => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid " + C.borderSoft }}>
-                <span style={{ color: C.text, fontSize: 14 }}>{p.name}</span>
-                <button onClick={() => assign("meal", p.id, c.id)} style={{ ...btnGhost, color: mp && mp.meal_plan_id === p.id ? C.gold : C.muted }}>{mp && mp.meal_plan_id === p.id ? "Assigned" : "Assign"}</button>
-              </div>
-            ))}
+      {/* HISTORY */}
+      {showHistory&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(12px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:500}} onClick={()=>{setShowHistory(false);setHistoryDetail(null);}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"24px 20px 48px",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"88vh",overflowY:"auto"}}>
+          <div style={{width:36,height:4,background:"#334155",borderRadius:2,margin:"0 auto 20px"}} />
+          {historyDetail?(<><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}><button onClick={()=>setHistoryDetail(null)} style={{background:"rgba(255,255,255,0.06)",border:"none",borderRadius:8,padding:"6px 10px",color:"#94a3b8",fontSize:13,cursor:"pointer"}}>← Back</button><div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{history[historyDetail].fullDay}</div><div style={{fontSize:12,color:"#64748b"}}>{history[historyDetail].date} · {history[historyDetail].completedAt}</div></div></div>{history[historyDetail].exercises.map((ex,ei)=><div key={ei} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:10}}><div style={{fontSize:15,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>{ex.name}</div>{ex.sets.map((s,si)=><div key={si} style={{display:"flex",gap:12,fontSize:12,color:"#64748b",marginBottom:4}}><span style={{color:"#475569",minWidth:32}}>S{si+1}</span><span>{s.reps||ex.reps} reps</span>{s.weight&&<span style={{color:"#a5b4fc"}}>{s.weight} lbs</span>}{s.done&&<span style={{color:"#34d399"}}>✓</span>}</div>)}</div>)}</>):(<><div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>📖 Workout History</div><div style={{fontSize:13,color:"#64748b",marginBottom:20}}>All completed workouts</div>{Object.keys(history).length===0?<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:13}}><div style={{fontSize:32,marginBottom:10}}>🗂️</div>No history yet.</div>:Object.entries(history).sort((a,b)=>b[0].localeCompare(a[0])).map(([key,rec])=><button key={key} onClick={()=>setHistoryDetail(key)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",marginBottom:8,textAlign:"left"}}><div><div style={{fontSize:14,fontWeight:700,color:"#f1f5f9"}}>{rec.fullDay}</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{rec.date} · {rec.completedAt}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{rec.exercises.length} exercises</div></div><div style={{fontSize:20,color:"#334155"}}>›</div></button>)}</>)}
         </div>
+      </div>}
 
-        <div style={cardS}>
-          {sectionTitle("Self-generate access")}
-          <div style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>Off means this client follows the plans you assign. On lets them generate their own in the client app.</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setAccess(c.id, !c.meal_gen, !!c.workout_gen)} style={tog(c.meal_gen)}>Meal AI {c.meal_gen ? "ON" : "OFF"}</button>
-            <button onClick={() => setAccess(c.id, !!c.meal_gen, !c.workout_gen)} style={tog(c.workout_gen)}>Workout AI {c.workout_gen ? "ON" : "OFF"}</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function WorkoutLibrary() {
-    if (builder === "workout") return <WorkoutBuilder busy={saving} clients={clients} onSave={saveProgram} onCancel={() => setBuilder(null)} />;
-    const subChip = (a) => ({ background: a ? C.goldSoft : "transparent", color: a ? C.gold : C.muted, border: "1px solid " + (a ? C.gold + "55" : C.border), borderRadius: 999, padding: "6px 16px", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: FB });
-    return (
-      <div>
-        <H1>Exercise Library</H1>
-        <div style={{ display: "flex", gap: 10, margin: "14px 0" }}>
-          <button onClick={() => setWkSub("programs")} style={subChip(wkSub === "programs")}>My Programs</button>
-          <button onClick={() => setWkSub("exercises")} style={subChip(wkSub === "exercises")}>Exercise Catalog</button>
-        </div>
-        {wkSub === "exercises" ? <ExerciseLibrary embedded /> : (
-          <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              <button onClick={() => setBuilder("workout")} style={{ ...btnGold, ...disp({ fontSize: 15, letterSpacing: 0.5 }) }}>✨ AI Workout Builder</button>
-              <button onClick={() => setBuilder("workout")} style={btnGhost}>+ Build manually</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {programs.length === 0 && <div style={{ color: C.muted, fontSize: 14 }}>No programs yet — build your first one above.</div>}
-              {programs.map((p) => (
-                <div key={p.id} style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 14, padding: 16 }}>
-                  <div style={disp({ fontSize: 20, color: C.text })}>{p.name}</div>
-                  <div style={{ color: C.muted, fontSize: 13.5, marginTop: 3 }}>{p.days_per_week} days/week · {p.focus || "—"} · {(p.structure || []).reduce((n, d) => n + (d.exercises ? d.exercises.length : 0), 0)} exercises</div>
-                  <AddToClient clients={clients} label="program" onPick={(cid) => assign("workout", p.id, cid)} />
+      {/* MEAL SCANNER */}
+      {showScanner&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}}>
+        <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"88vh",display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"16px 20px 12px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}><div><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>SCAN YOUR MEAL</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>AI estimates calories and macros</div></div><button onClick={()=>setShowScanner(false)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
+          <div style={{overflowY:"auto",flex:1,padding:"20px"}}>
+            {!scanResult&&!scanLoading&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{textAlign:"center",padding:"32px 20px",background:t.card,border:"2px dashed "+t.accentBorder,borderRadius:16}}>
+                <div style={{fontSize:48,marginBottom:12}}>📷</div>
+                <div style={{fontSize:14,color:t.text,fontWeight:600,marginBottom:8}}>Snap or upload your meal</div>
+                <div style={{fontSize:12,color:t.textMuted,marginBottom:20}}>AI estimates calories, protein, carbs and fat</div>
+                <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                  {[{capture:"environment",label:"Take Photo",primary:true},{capture:"",label:"From Gallery",primary:false}].map((btn,idx)=><label key={idx} style={{display:"inline-block",padding:"12px 20px",background:btn.primary?"linear-gradient(135deg,#D4AF37,#B8941F)":t.card,border:btn.primary?"none":"1px solid "+t.cardBorder,borderRadius:12,color:btn.primary?"#000":t.text,fontSize:14,fontWeight:btn.primary?800:700,cursor:"pointer"}}>
+                    {btn.label}
+                    <input type="file" accept="image/*" capture={btn.capture||undefined} style={{display:"none"}} onChange={e=>{
+                      const file=e.target.files?.[0];if(!file)return;
+                      setScanLoading(true);setScanError("");
+                      const reader=new FileReader();
+                      reader.onloadend=async()=>{
+                        try{
+                          const base64=reader.result.split(",")[1],mType=file.type||"image/jpeg";
+                          const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,system:"You are an expert nutritionist AI similar to MyFitnessPal. Analyze food photos with extreme accuracy. Always return ONLY raw JSON with no markdown, no backticks, no explanation.",messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mType,data:base64}},{type:"text",text:"Analyze this food image carefully. If you see a nutrition label, read it exactly. If you see food without a label, estimate based on portion size and food type. Be as accurate as MyFitnessPal. Return this exact JSON: {meal_name: string, description: string, foods: [{name: string, amount: string, calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}], totals: {calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}, serving_size: string, confidence: string}. For nutrition labels read the exact values. For whole foods estimate based on standard USDA portions. Always populate every field with a number, never null."}]}]})});
+                          if(!res.ok){setScanError("API error: "+res.status);setScanLoading(false);return;}
+                          const data=await res.json();const raw=data.content?.find(b=>b.type==="text")?.text||"";
+                          setScanResult({...JSON.parse(raw.replace(/```json|```/g,"").trim()),imageUrl:reader.result});
+                        }catch(err){setScanError("Could not analyze. Try a clearer photo.");}
+                        setScanLoading(false);
+                      };
+                      reader.readAsDataURL(file);
+                    }} />
+                  </label>)}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function MealLibrary() {
-    if (builder === "meal") return <MealBuilder busy={saving} clients={clients} nutrition={nutrition} onSave={saveMeal} onCancel={() => setBuilder(null)} />;
-    const subChip = (a) => ({ background: a ? C.goldSoft : "transparent", color: a ? C.gold : C.muted, border: "1px solid " + (a ? C.gold + "55" : C.border), borderRadius: 999, padding: "6px 16px", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: FB });
-    return (
-      <div>
-        <H1>Nutrition Library</H1>
-        <div style={{ display: "flex", gap: 10, margin: "14px 0" }}>
-          <button onClick={() => setMealSub("plans")} style={subChip(mealSub === "plans")}>My Meal Plans</button>
-          <button onClick={() => setMealSub("reference")} style={subChip(mealSub === "reference")}>Reference</button>
-        </div>
-        {mealSub === "reference" ? <NutritionLibrary embedded /> : (
-          <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              <button onClick={() => setBuilder("meal")} style={{ ...btnGold, ...disp({ fontSize: 15, letterSpacing: 0.5 }) }}>✨ AI Meal Builder</button>
-              <button onClick={() => setBuilder("meal")} style={btnGhost}>+ Build manually</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {mealplans.length === 0 && <div style={{ color: C.muted, fontSize: 14 }}>No meal plans yet — build your first one above.</div>}
-              {mealplans.map((p) => (
-                <div key={p.id} style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 14, padding: 16 }}>
-                  <div style={disp({ fontSize: 20, color: C.text })}>{p.name}</div>
-                  <div style={{ color: C.muted, fontSize: 13.5, marginTop: 3 }}>{p.kcal} kcal · {p.protein}P / {p.carbs}C / {p.fat}F · {(p.structure || []).length} meals</div>
-                  <AddToClient clients={clients} label="meal plan" onPick={(cid) => assign("meal", p.id, cid)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  let page = null;
-  if (loading) page = <div style={{ color: C.muted }}>Loading…</div>;
-  else if (active === "overview") page = <Overview />;
-  else if (active === "clients") page = selClient ? <ClientDetail client={selClient} /> : <Clients />;
-  else if (active === "nutrition") page = <MealLibrary />;
-  else if (active === "exercises") page = <WorkoutLibrary />;
-  else if (active === "settings") page = <SettingsPage profile={profile} settings={settings} onSaved={loadAll} />;
-  else if (active === "messages") page = <SoonPage title="Messages" desc="Real-time chat with your clients, one-to-one. Coming next." />;
-  else if (active === "scheduling") page = <SoonPage title="Scheduling" desc="A calendar for sessions, availability, and bookings." />;
-  else if (active === "payments") page = <SoonPage title="Payments" desc="Charge clients and run subscriptions through Stripe." />;
-  else if (active === "announcements") page = <SoonPage title="Announcements" desc="Broadcast updates to your whole roster at once." />;
-
-  return (
-    <AppShell profile={profile} brandName={brandName} main={main} other={other} active={active} setActive={(id) => { setActive(id); setBuilder(null); setSelClient(null); }}>
-      {msg && <div style={{ background: C.goldSoft, color: C.gold, borderRadius: 10, padding: "8px 12px", fontSize: 13, marginBottom: 16 }}>{msg}</div>}
-      {page}
-    </AppShell>
-  );
-}
-
-// ---------------- Admin settings ----------------
-function Card({ children, style }) { return <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 22, marginTop: 16, maxWidth: 640, ...(style || {}) }}>{children}</div>; }
-function H2({ children }) { return <h2 style={disp({ fontSize: 20, color: C.text, margin: "0 0 4px" })}>{children}</h2>; }
-
-function CoachPlanRow({ c, freeLimit, onSaved }) {
-  const [plan, setPlan] = useState(c.plan || "free");
-  const [limit, setLimit] = useState(c.client_limit != null ? c.client_limit : freeLimit);
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
-  function pick(v) { setPlan(v); setLimit(v === "free" ? freeLimit : 999999); }
-  async function save() { setBusy(true); setMsg("");
-    const { error } = await sb.from("coaches").upsert({ id: c.id, plan: plan, client_limit: Number(limit) });
-    setBusy(false); if (error) { setMsg(error.message); return; } setMsg("Saved"); onSaved && onSaved(); }
-  const sel = { ...inputStyle, width: "auto", marginTop: 0, padding: "8px 10px", cursor: "pointer" };
-  return (
-    <div style={{ padding: "14px 0", borderBottom: "1px solid " + C.borderSoft }}>
-      <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{c.email}</div>
-      <div style={{ color: C.faint, fontSize: 12, marginBottom: 8 }}>{c.business_name || "No business name set"}</div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <select value={plan} onChange={(e) => pick(e.target.value)} style={sel}>
-          <option value="free">Free — 5 clients</option>
-          <option value="pro">Pro — $50/mo</option>
-          <option value="whitelabel">White-label — $70/mo</option>
-        </select>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ color: C.muted, fontSize: 12.5 }}>Limit</span>
-          <input value={limit} onChange={(e) => setLimit(e.target.value)} style={{ ...inputStyle, width: 86, marginTop: 0, padding: "8px 10px" }} />
-          {Number(limit) >= 9999 && <span style={{ color: C.gold, fontSize: 14 }}>∞</span>}
-        </div>
-        <button onClick={save} disabled={busy} style={btnGold}>{busy ? "…" : "Save"}</button>
-        {msg && <span style={{ color: msg === "Saved" ? C.gold : C.red, fontSize: 12.5 }}>{msg}</span>}
-      </div>
-    </div>
-  );
-}
-
-function AdminSettings({ profile, coaches, pricing, onReload }) {
-  const price = pricing || { price_pro: 50, price_whitelabel: 70, free_client_limit: 5 };
-  const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [accMsg, setAccMsg] = useState("");
-  async function changeEmail() { setAccMsg("");
-    if (!email.trim()) { setAccMsg("Enter a new email first."); return; }
-    const { error } = await sb.auth.updateUser({ email: email.trim() });
-    setAccMsg(error ? error.message : "Check your new inbox to confirm the change."); }
-  async function changePw() { setAccMsg("");
-    if (pw.length < 6) { setAccMsg("Password needs at least 6 characters."); return; }
-    const { error } = await sb.auth.updateUser({ password: pw });
-    if (error) { setAccMsg(error.message); return; } setAccMsg("Password updated."); setPw(""); }
-
-  const [pr, setPr] = useState({ price_pro: price.price_pro, price_whitelabel: price.price_whitelabel, free_client_limit: price.free_client_limit });
-  useEffect(() => { setPr({ price_pro: price.price_pro, price_whitelabel: price.price_whitelabel, free_client_limit: price.free_client_limit }); }, [pricing]);
-  const [prBusy, setPrBusy] = useState(false); const [prMsg, setPrMsg] = useState("");
-  async function savePricing() { setPrBusy(true); setPrMsg("");
-    const { error } = await sb.from("platform_settings").upsert({ id: 1, price_pro: Number(pr.price_pro), price_whitelabel: Number(pr.price_whitelabel), free_client_limit: Number(pr.free_client_limit) });
-    setPrBusy(false); if (error) { setPrMsg(error.message); return; } setPrMsg("Saved."); onReload && onReload(); }
-
-  const proN = coaches.filter((c) => c.plan === "pro").length;
-  const wlN = coaches.filter((c) => c.plan === "whitelabel").length;
-  const freeN = coaches.filter((c) => !c.plan || c.plan === "free").length;
-  const mrr = proN * Number(price.price_pro) + wlN * Number(price.price_whitelabel);
-  const half = { flex: 1, minWidth: 130 };
-
-  return (
-    <div>
-      <H1>Settings</H1>
-      <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>Platform owner controls.</p>
-
-      <Card>
-        <H2>My account</H2>
-        <p style={{ color: C.faint, fontSize: 12.5, marginTop: 0, marginBottom: 14 }}>Signed in as {profile.email}</p>
-        <Field label="New email"><input value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="new@email.com" /></Field>
-        <button onClick={changeEmail} style={btnGhost}>Update email</button>
-        <div style={{ height: 1, background: C.border, margin: "18px 0" }} />
-        <Field label="New password"><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} style={inputStyle} placeholder="••••••••" /></Field>
-        <button onClick={changePw} style={btnGhost}>Update password</button>
-        {accMsg && <div style={{ color: accMsg.indexOf("updated") >= 0 || accMsg.indexOf("Check") >= 0 ? C.gold : C.red, fontSize: 13, marginTop: 12 }}>{accMsg}</div>}
-      </Card>
-
-      <Card>
-        <H2>Coach plans &amp; limits</H2>
-        <p style={{ color: C.faint, fontSize: 12.5, marginTop: 0, marginBottom: 6 }}>Set a coach to a paid tier the moment they pay you. Pro and White-label unlock unlimited clients.</p>
-        {coaches.length === 0
-          ? <div style={{ color: C.faint, padding: "16px 0", fontSize: 13.5 }}>No coaches yet.</div>
-          : coaches.map((c) => <CoachPlanRow key={c.id} c={c} freeLimit={Number(price.free_client_limit)} onSaved={onReload} />)}
-      </Card>
-
-      <Card>
-        <H2>Plan pricing</H2>
-        <p style={{ color: C.faint, fontSize: 12.5, marginTop: 0, marginBottom: 14 }}>These numbers feed the billing summary below.</p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <div style={half}><Field label="Pro $/mo"><input value={pr.price_pro} onChange={(e) => setPr({ ...pr, price_pro: e.target.value })} style={inputStyle} /></Field></div>
-          <div style={half}><Field label="White-label $/mo"><input value={pr.price_whitelabel} onChange={(e) => setPr({ ...pr, price_whitelabel: e.target.value })} style={inputStyle} /></Field></div>
-          <div style={half}><Field label="Free tier client limit"><input value={pr.free_client_limit} onChange={(e) => setPr({ ...pr, free_client_limit: e.target.value })} style={inputStyle} /></Field></div>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}>
-          <button onClick={savePricing} disabled={prBusy} style={btnGold}>{prBusy ? "Saving…" : "Save pricing"}</button>
-          {prMsg && <span style={{ color: prMsg === "Saved." ? C.gold : C.red, fontSize: 13 }}>{prMsg}</span>}
-        </div>
-        {!pricing && <div style={{ color: C.red, fontSize: 12, marginTop: 12 }}>Run the one-time database step (sent in chat) so pricing can save.</div>}
-      </Card>
-
-      <Card>
-        <H2>Billing</H2>
-        <p style={{ color: C.faint, fontSize: 12.5, marginTop: 0, marginBottom: 14 }}>Estimated monthly revenue from your coaches.</p>
-        <div style={disp({ fontSize: 48, color: C.gold, lineHeight: 0.9 })}>${mrr}<span style={{ fontSize: 16, color: C.muted }}> /mo</span></div>
-        <div style={{ display: "flex", gap: 14, marginTop: 18, flexWrap: "wrap" }}>
-          <Stat label="Free coaches" value={freeN} />
-          <Stat label={"Pro · $" + price.price_pro} value={proN} accent={C.gold} />
-          <Stat label={"White-label · $" + price.price_whitelabel} value={wlN} accent={C.gold} />
-        </div>
-        <div style={{ color: C.faint, fontSize: 12, marginTop: 16 }}>Automatic card billing through Stripe is coming. For now, mark each coach paid in the section above when money lands in your account.</div>
-      </Card>
-    </div>
-  );
-}
-
-// ---------------- Admin invites ----------------
-function AdminInvites({ profile }) {
-  const [list, setList] = useState([]); const [loading, setLoading] = useState(true);
-  const [plan, setPlan] = useState("pro"); const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
-  function flash(t) { setMsg(t); setTimeout(() => setMsg(""), 2500); }
-  async function load() { const { data } = await sb.from("invites").select("*").order("created_at", { ascending: false }); setList(data || []); setLoading(false); }
-  useEffect(() => { load(); }, []);
-  async function generate() {
-    setBusy(true);
-    const code = randCode();
-    const limit = plan === "free" ? 5 : 999999;
-    const { error } = await sb.from("invites").insert({ code: code, plan: plan, client_limit: limit, note: note, created_by: profile.id });
-    setBusy(false); if (error) { flash(error.message); return; } setNote(""); flash("Invite created"); load();
-  }
-  function linkFor(code) { return window.location.origin + window.location.pathname + "?invite=" + code; }
-  function copy(code) { try { navigator.clipboard.writeText(linkFor(code)); flash("Link copied"); } catch (e) { flash("Could not copy - long-press the link to copy"); } }
-  const planLabel = { free: "Free", pro: "Pro ($50 value)", whitelabel: "White-label ($70 value)" };
-  return (
-    <div>
-      <H1>Invites</H1>
-      <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>Create a one-time link that signs a coach up on a plan you choose - free of charge.</p>
-      {msg && <div style={{ background: C.goldSoft, color: C.gold, borderRadius: 10, padding: "8px 12px", fontSize: 13, margin: "12px 0" }}>{msg}</div>}
-      <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 22, marginTop: 8, maxWidth: 640 }}>
-        <H2>New invite</H2>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div style={{ flex: 1, minWidth: 160 }}><Field label="Grants plan">
-            <select value={plan} onChange={(e) => setPlan(e.target.value)} style={inputStyle}>
-              <option value="free">Free - 5 clients</option>
-              <option value="pro">Pro - unlimited (free of charge)</option>
-              <option value="whitelabel">White-label - unlimited + branding (free of charge)</option>
-            </select>
-          </Field></div>
-          <div style={{ flex: 1, minWidth: 160 }}><Field label="Note (optional)"><input value={note} onChange={(e) => setNote(e.target.value)} style={inputStyle} placeholder="e.g. John from gym expo" /></Field></div>
-        </div>
-        <button onClick={generate} disabled={busy} style={btnGold}>{busy ? "Creating…" : "Generate invite link"}</button>
-      </div>
-
-      <H2>{loading ? "" : "Your invites"}</H2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8, maxWidth: 640 }}>
-        {!loading && list.length === 0 && <div style={{ color: C.faint, fontSize: 13.5 }}>No invites yet.</div>}
-        {list.map((iv) => (
-          <div key={iv.code} style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 14, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-              <div>
-                <span style={disp({ fontSize: 20, color: C.gold, letterSpacing: 2 })}>{iv.code}</span>
-                <span style={{ color: C.muted, fontSize: 12.5, marginLeft: 10 }}>{planLabel[iv.plan] || iv.plan}</span>
               </div>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: iv.used_at ? C.faint : C.gold, border: "1px solid " + C.border, borderRadius: 999, padding: "2px 10px", textTransform: "uppercase" }}>{iv.used_at ? "Used" : "Active"}</span>
-            </div>
-            {iv.note && <div style={{ color: C.faint, fontSize: 12, marginTop: 4 }}>{iv.note}</div>}
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
-              <input readOnly value={linkFor(iv.code)} style={{ ...inputStyle, marginTop: 0, flex: 1, color: C.muted, fontSize: 12 }} />
-              <button onClick={() => copy(iv.code)} style={btnGhost}>Copy link</button>
-            </div>
+              {scanError&&<div style={{color:"#f87171",fontSize:13,textAlign:"center",padding:"8px 12px",background:"rgba(248,113,113,0.1)",borderRadius:10}}>{scanError}</div>}
+            </div>}
+            {scanLoading&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",gap:20}}><div style={{width:48,height:48,border:"3px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><div style={{fontSize:15,fontWeight:700,color:t.text}}>Analyzing your meal...</div></div>}
+            {scanResult&&!scanLoading&&<div>
+              {scanResult.imageUrl&&<div style={{width:"100%",borderRadius:16,overflow:"hidden",marginBottom:16,maxHeight:200}}><img src={scanResult.imageUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="meal" /></div>}
+              <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",marginBottom:12}}><div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:4}}>{scanResult.meal_name}</div><div style={{fontSize:12,color:t.textMuted,marginBottom:12}}>{scanResult.description}</div>{scanResult.foods?.map((food,i)=><div key={i} style={{fontSize:12,color:t.textMuted,marginBottom:6,paddingLeft:8}}><div style={{fontWeight:600,color:t.text}}>• {food.amount} {food.name}</div><div style={{paddingLeft:12,marginTop:2}}>{food.calories} cal · {food.protein||0}g protein · {food.carbs||0}g carbs · {food.fat||0}g fat{food.fiber?` · ${food.fiber}g fiber`:""}</div></div>)}</div>
+              {scanResult.totals&&<div style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:14,padding:"14px 16px",marginBottom:16}}><div style={{fontSize:11,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Estimated Totals</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[{l:"Calories",v:scanResult.totals.calories,c:"#F5D070"},{l:"Protein",v:(scanResult.totals.protein||0)+"g",c:"#ef4444"},{l:"Carbs",v:(scanResult.totals.carbs||0)+"g",c:"#f97316"},{l:"Fat",v:(scanResult.totals.fat||0)+"g",c:"#a78bfa"},{l:"Fiber",v:(scanResult.totals.fiber||0)+"g",c:"#34d399"},{l:"Sugar",v:(scanResult.totals.sugar||0)+"g",c:"#fb923c"}].map(m=><div key={m.l} style={{textAlign:"center",padding:"10px",background:t.card,borderRadius:10}}><div style={{fontSize:18,fontWeight:800,color:m.c}}>{m.v}</div><div style={{fontSize:10,color:t.textMuted}}>{m.l}</div></div>)}</div>{scanResult.confidence_note&&<div style={{fontSize:11,color:t.textMuted,marginTop:10,fontStyle:"italic"}}>{scanResult.confidence_note}</div>}</div>}
+              <div style={{display:"flex",gap:10}}><button onClick={()=>{if(scanResult.totals){const key=getTodayKey();setNutrition(n=>({...n,[key]:{calories:(n[key]?.calories||0)+(scanResult.totals.calories||0),protein:(n[key]?.protein||0)+(scanResult.totals.protein||0),carbs:(n[key]?.carbs||0)+(scanResult.totals.carbs||0),fat:(n[key]?.fat||0)+(scanResult.totals.fat||0),water:n[key]?.water||0,steps:n[key]?.steps||0}}));}setShowScanner(false);setView("nutrition");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer"}}>Add to Today</button><button onClick={()=>setScanResult(null)} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,cursor:"pointer"}}>Retake</button></div>
+            </div>}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ---------------- Admin offers ----------------
-function AdminOffers({ profile }) {
-  const [list, setList] = useState([]); const [loading, setLoading] = useState(true);
-  const [f, setF] = useState({ code: "", kind: "percent", amount: "", applies_to: "all", note: "" });
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
-  function flash(t) { setMsg(t); setTimeout(() => setMsg(""), 2500); }
-  async function load() { const { data } = await sb.from("offers").select("*").order("created_at", { ascending: false }); setList(data || []); setLoading(false); }
-  useEffect(() => { load(); }, []);
-  async function create() {
-    if (!f.code.trim()) { flash("Enter a code"); return; }
-    setBusy(true);
-    const { error } = await sb.from("offers").insert({ code: f.code.trim().toUpperCase(), kind: f.kind, amount: Number(f.amount) || 0, applies_to: f.applies_to, note: f.note });
-    setBusy(false); if (error) { flash(error.message); return; } setF({ code: "", kind: "percent", amount: "", applies_to: "all", note: "" }); flash("Offer saved"); load();
-  }
-  async function toggle(o) { await sb.from("offers").update({ active: !o.active }).eq("id", o.id); load(); }
-  async function remove(o) { await sb.from("offers").delete().eq("id", o.id); load(); }
-  const half = { flex: 1, minWidth: 130 };
-  return (
-    <div>
-      <H1>Offers</H1>
-      <p style={{ color: C.muted, marginTop: 0, fontSize: 14 }}>Create and manage discount codes.</p>
-      <div style={{ background: C.redSoft, color: C.red, borderRadius: 10, padding: "8px 12px", fontSize: 12.5, margin: "12px 0", maxWidth: 640 }}>These are stored and ready. They start reducing real payments once card billing (Stripe) is connected.</div>
-      {msg && <div style={{ background: C.goldSoft, color: C.gold, borderRadius: 10, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>{msg}</div>}
-      <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, padding: 22, maxWidth: 640 }}>
-        <H2>New offer</H2>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <div style={half}><Field label="Code"><input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} style={inputStyle} placeholder="LAUNCH20" /></Field></div>
-          <div style={half}><Field label="Type">
-            <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} style={inputStyle}>
-              <option value="percent">Percent off</option>
-              <option value="fixed">Dollars off</option>
-            </select>
-          </Field></div>
-          <div style={half}><Field label={f.kind === "percent" ? "Percent (%)" : "Amount ($)"}><input value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} style={inputStyle} placeholder={f.kind === "percent" ? "20" : "10"} /></Field></div>
-          <div style={half}><Field label="Applies to">
-            <select value={f.applies_to} onChange={(e) => setF({ ...f, applies_to: e.target.value })} style={inputStyle}>
-              <option value="all">All paid plans</option>
-              <option value="pro">Pro only</option>
-              <option value="whitelabel">White-label only</option>
-            </select>
-          </Field></div>
         </div>
-        <Field label="Note (optional)"><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} style={inputStyle} placeholder="e.g. Black Friday" /></Field>
-        <button onClick={create} disabled={busy} style={btnGold}>{busy ? "Saving…" : "Save offer"}</button>
-      </div>
+      </div>}
 
-      <H2>{loading ? "" : "Your offers"}</H2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8, maxWidth: 640 }}>
-        {!loading && list.length === 0 && <div style={{ color: C.faint, fontSize: 13.5 }}>No offers yet.</div>}
-        {list.map((o) => (
-          <div key={o.id} style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 14, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div>
-              <span style={disp({ fontSize: 20, color: C.gold, letterSpacing: 2 })}>{o.code}</span>
-              <span style={{ color: C.muted, fontSize: 12.5, marginLeft: 10 }}>{o.kind === "percent" ? o.amount + "% off" : "$" + o.amount + " off"} · {o.applies_to === "all" ? "all paid plans" : o.applies_to}</span>
-              {o.note && <div style={{ color: C.faint, fontSize: 12, marginTop: 3 }}>{o.note}</div>}
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button onClick={() => toggle(o)} style={{ ...btnGhost, color: o.active ? C.gold : C.faint }}>{o.active ? "Active" : "Off"}</button>
-              <button onClick={() => remove(o)} style={{ ...btnGhost, color: C.red }}>Delete</button>
-            </div>
+      {/* MEAL PLANNER */}
+      {showMealPlanner&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}}>
+        <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"16px 20px 12px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}><div><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>MY MEAL PLAN</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>Personalized nutrition for your goals</div></div><button onClick={()=>setShowMealPlanner(false)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
+          <div style={{overflowY:"auto",flex:1,padding:"16px 20px 40px"}}>
+            {mealPlanStep==="questions"&&<div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:6,fontWeight:700}}>Height</div><input type="text" placeholder="e.g. 5ft 11in" value={mealProfile.height} onChange={e=>setMealProfile(p=>({...p,height:e.target.value}))} style={{width:"100%",padding:"12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:14,outline:"none",boxSizing:"border-box"}} /></div>
+                <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:6,fontWeight:700}}>Weight</div><input type="text" placeholder="e.g. 185 lbs" value={mealProfile.weight} onChange={e=>setMealProfile(p=>({...p,weight:e.target.value}))} style={{width:"100%",padding:"12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:14,outline:"none",boxSizing:"border-box"}} /></div>
+              </div>
+              <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>My Goal</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{["Build Strength","Get Leaner","Gain Muscle","Lose Weight","Maintain Weight","Athletic Performance"].map(g=><button key={g} onClick={()=>setMealProfile(p=>({...p,goal:g}))} style={{padding:"10px",background:mealProfile.goal===g?t.accent:t.card,border:"1px solid "+(mealProfile.goal===g?t.accentSolid:t.cardBorder),borderRadius:10,color:mealProfile.goal===g?"#000":t.text,fontSize:12,fontWeight:mealProfile.goal===g?700:400,cursor:"pointer"}}>{g}</button>)}</div></div>
+              <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>Diet Type</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{["Regular","Keto","Vegan","Vegetarian","Paleo","Mediterranean"].map(d=><button key={d} onClick={()=>setMealProfile(p=>({...p,dietType:d}))} style={{padding:"10px",background:mealProfile.dietType===d?t.accent:t.card,border:"1px solid "+(mealProfile.dietType===d?t.accentSolid:t.cardBorder),borderRadius:10,color:mealProfile.dietType===d?"#000":t.text,fontSize:12,fontWeight:mealProfile.dietType===d?700:400,cursor:"pointer"}}>{d}</button>)}</div></div>
+              <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>Activity Level</div><div style={{display:"flex",flexDirection:"column",gap:8}}>{[["Sedentary","Little to no exercise"],["Light","1-3 days/week"],["Moderate","3-5 days/week"],["Heavy","6-7 days/week"],["Athlete","2x/day training"]].map(([level,desc])=><button key={level} onClick={()=>setMealProfile(p=>({...p,activityLevel:level}))} style={{padding:"10px 14px",background:mealProfile.activityLevel===level?t.accentMuted:t.card,border:"1px solid "+(mealProfile.activityLevel===level?t.accentSolid:t.cardBorder),borderRadius:10,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:13,color:mealProfile.activityLevel===level?t.accentText:t.text,fontWeight:mealProfile.activityLevel===level?700:400}}>{level}</div><div style={{fontSize:11,color:t.textMuted}}>{desc}</div></div>{mealProfile.activityLevel===level&&<div style={{width:8,height:8,borderRadius:"50%",background:t.accentSolid}} />}</button>)}</div></div>
+              <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>Meals Per Day</div><div style={{display:"flex",gap:8}}>{["2","3","4","5","6"].map(n=><button key={n} onClick={()=>setMealProfile(p=>({...p,mealsPerDay:n}))} style={{flex:1,padding:"12px",background:mealProfile.mealsPerDay===n?t.accent:t.card,border:"1px solid "+(mealProfile.mealsPerDay===n?t.accentSolid:t.cardBorder),borderRadius:10,color:mealProfile.mealsPerDay===n?"#000":t.text,fontSize:15,fontWeight:700,cursor:"pointer"}}>{n}</button>)}</div></div>
+              <div><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:6,fontWeight:700}}>Allergies / Foods to Avoid</div><input type="text" placeholder="e.g. gluten, dairy, nuts..." value={mealProfile.allergies} onChange={e=>setMealProfile(p=>({...p,allergies:e.target.value}))} style={{width:"100%",padding:"12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:14,outline:"none",boxSizing:"border-box"}} /></div>
+              {mealPlanError&&<div style={{color:"#f87171",fontSize:12,textAlign:"center"}}>{mealPlanError}</div>}
+              <button onClick={async()=>{
+                if(!mealProfile.goal||!mealProfile.dietType||!mealProfile.activityLevel){setMealPlanError("Please fill in goal, diet type and activity level.");return;}
+                setMealPlanStep("loading");setMealPlanError("");
+                try{
+                  const mealsNum=parseInt(mealProfile.mealsPerDay)||3;
+                  const prompt="Create a detailed daily meal plan for ONE day that repeats across 4 weeks with variations. User: height="+( mealProfile.height||"not specified")+", weight="+(mealProfile.weight||"not specified")+", goal="+mealProfile.goal+", diet="+mealProfile.dietType+", activity="+mealProfile.activityLevel+", meals per day="+mealsNum+(mealProfile.allergies?", avoid="+mealProfile.allergies:"")+". Return ONLY valid JSON like this exact structure with NO deviations: {week1:{monday:{meals:[{time:\"7:00 AM\",name:\"Breakfast\",foods:[{item:\"Oatmeal\",amount:\"1 cup\",calories:300,protein:10,carbs:54,fat:5}],totalCalories:500,totalProtein:35,totalCarbs:60,totalFat:10}]},tuesday:{meals:[]},wednesday:{meals:[]},thursday:{meals:[]},friday:{meals:[]},saturday:{meals:[]},sunday:{meals:[]}},week2:{monday:{meals:[]},tuesday:{meals:[]},wednesday:{meals:[]},thursday:{meals:[]},friday:{meals:[]},saturday:{meals:[]},sunday:{meals:[]}},week3:{monday:{meals:[]},tuesday:{meals:[]},wednesday:{meals:[]},thursday:{meals:[]},friday:{meals:[]},saturday:{meals:[]},sunday:{meals:[]}},week4:{monday:{meals:[]},tuesday:{meals:[]},wednesday:{meals:[]},thursday:{meals:[]},friday:{meals:[]},saturday:{meals:[]},sunday:{meals:[]}},dailyTotals:{calories:2000,protein:150,carbs:200,fat:65},notes:\"\"}. Fill in ALL 28 days with real specific meals and accurate macros. Each meal must have time, name, foods array with item/amount/calories/protein/carbs/fat, and totalCalories/totalProtein/totalCarbs/totalFat.";
+                  const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:8000,system:"You are a sports nutritionist. Return ONLY valid JSON. No markdown. No backticks. No explanation. Just the JSON object.",messages:[{role:"user",content:prompt}]})});
+                  const data=await res.json();const raw=data.content?.find(b=>b.type==="text")?.text||"";
+                  setMealPlan(JSON.parse(raw.replace(/```json|```/g,"").trim()));setMealPlanStep("plan");
+                }catch(e){setMealPlanError("Could not generate plan. Please try again.");setMealPlanStep("questions");}
+              }} disabled={!mealProfile.goal||!mealProfile.dietType||!mealProfile.activityLevel} style={{width:"100%",padding:"16px",background:(!mealProfile.goal||!mealProfile.dietType||!mealProfile.activityLevel)?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Generate My Meal Plan</button>
+            </div>}
+            {mealPlanStep==="loading"&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",gap:20}}><div style={{width:48,height:48,border:"3px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><div style={{fontSize:15,fontWeight:700,color:t.text}}>Building your 4-week plan...</div></div>}
+            {mealPlanStep==="plan"&&mealPlan&&<div>
+              <div style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:14,padding:"14px 16px",marginBottom:16}}><div style={{fontSize:13,fontWeight:800,color:t.accentText,marginBottom:4}}>{mealProfile.goal} — {mealProfile.dietType}</div>{mealPlan.dailyTotals&&<div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>{[{l:"Cal",v:mealPlan.dailyTotals.calories,c:"#F5D070"},{l:"Protein",v:mealPlan.dailyTotals.protein+"g",c:"#ef4444"},{l:"Carbs",v:mealPlan.dailyTotals.carbs+"g",c:"#f97316"},{l:"Fat",v:mealPlan.dailyTotals.fat+"g",c:"#a78bfa"}].map(m=><div key={m.l} style={{padding:"4px 10px",borderRadius:8,background:t.card,fontSize:11}}><span style={{color:t.textMuted}}>{m.l}: </span><span style={{color:m.c,fontWeight:700}}>{m.v}</span></div>)}</div>}</div>
+              <div style={{display:"flex",gap:6,marginBottom:16}}>{["Week 1","Week 2","Week 3","Week 4"].map((w,i)=><button key={i} onClick={()=>setMealPlanWeek(i)} style={{flex:1,padding:"8px 4px",background:mealPlanWeek===i?t.accent:t.card,border:"1px solid "+(mealPlanWeek===i?t.accentSolid:t.cardBorder),borderRadius:10,color:mealPlanWeek===i?"#000":t.text,fontSize:11,fontWeight:700,cursor:"pointer"}}>{w}</button>)}</div>
+              {(()=>{const weekKey=["week1","week2","week3","week4"][mealPlanWeek];const weekData=mealPlan[weekKey]||{};return["monday","tuesday","wednesday","thursday","friday","saturday","sunday"].map(day=>{const dayData=weekData[day];if(!dayData?.meals)return null;return <div key={day} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px",marginBottom:10}}><div style={{fontSize:12,fontWeight:800,color:t.accentText,textTransform:"uppercase",letterSpacing:2,marginBottom:10}}>{day}</div>{dayData.meals.map((meal,mi)=>{const mealKey=weekKey+"-"+day+"-"+mi;const isChecked=checkedMeals[mealKey];return <div key={mi} style={{marginBottom:12,paddingBottom:12,borderBottom:mi<dayData.meals.length-1?"1px solid "+t.cardBorder:"none",opacity:isChecked?0.6:1}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}><div style={{flex:1}}><div style={{fontSize:11,color:t.textMuted,marginBottom:2}}>{meal.time}</div><div style={{fontSize:14,fontWeight:700,color:isChecked?t.accentText:t.text,textDecoration:isChecked?"line-through":"none"}}>{meal.name}</div></div><button onClick={()=>{setCheckedMeals(prev=>{const updated={...prev,[mealKey]:!prev[mealKey]};if(!prev[mealKey]&&meal.totalCalories){const key=getTodayKey();setNutrition(n=>({...n,[key]:{calories:(n[key]?.calories||0)+(meal.totalCalories||0),protein:(n[key]?.protein||0)+(meal.totalProtein||0),carbs:(n[key]?.carbs||0)+(meal.totalCarbs||0),fat:(n[key]?.fat||0)+(meal.totalFat||0),water:n[key]?.water||0,steps:n[key]?.steps||0}}));}return updated;});}} style={{width:32,height:32,borderRadius:"50%",border:"2px solid "+(isChecked?t.accentSolid:t.cardBorder),background:isChecked?t.accent:"transparent",color:isChecked?"#000":t.textMuted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginLeft:8}}>{isChecked?"✓":"○"}</button></div>{meal.foods?.map((food,fi)=><div key={fi} style={{fontSize:12,color:t.textMuted,paddingLeft:8,marginBottom:2}}>• {food.amount} {food.item} — {food.calories} cal, {food.protein}g P</div>)}</div>;})}</div>;});})()}
+              <div style={{display:"flex",gap:10,marginTop:8}}><button onClick={()=>setShowMealPlanner(false)} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer"}}>Done</button><button onClick={()=>setMealPlanStep("questions")} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,cursor:"pointer"}}>Redo</button></div>
+            </div>}
           </div>
-        ))}
-      </div>
+        </div>
+      </div>}
+
+      {/* PROFILE */}
+      {showProfile&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}}>
+        <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"16px 20px 0",flexShrink:0}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>MY PROFILE</div><button onClick={()=>setShowProfile(false)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
+            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
+              <div style={{position:"relative"}}><div style={{width:72,height:72,borderRadius:"50%",background:t.accentMuted,border:"2px solid "+t.accentSolid,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}>{avatarUrl?<img src={avatarUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="avatar" />:<span style={{fontSize:32}}>👤</span>}</div><label style={{position:"absolute",bottom:0,right:0,width:24,height:24,borderRadius:"50%",background:t.accent,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>{uploadingAvatar?"⌛":"📷"}<input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{if(e.target.files[0])uploadAvatar(e.target.files[0]);}} /></label></div>
+              <div style={{flex:1}}><div style={{fontSize:17,fontWeight:700,color:t.text}}>{profileData.name||(user?.email?.split("@")[0])||"Athlete"}</div><div style={{fontSize:12,color:t.textMuted,marginTop:2}}>{user?.email||"Not logged in"}</div><div style={{marginTop:8}}><div style={{height:6,background:t.cardBorder,borderRadius:3}}><div style={{height:6,width:Math.min(100,Math.round((Object.keys(history).length/20)*100))+"%",background:"linear-gradient(135deg,#D4AF37,#B8941F)",borderRadius:3,transition:"width 0.5s"}} /></div><div style={{fontSize:10,color:t.textMuted,marginTop:3}}>{Object.keys(history).length} workouts · goal: 20/month</div></div></div>
+            </div>
+            <div style={{display:"flex",gap:4,background:t.toggleBg,borderRadius:12,padding:4,marginBottom:0}}>{[["info","Info"],["gallery","Gallery"],["settings","Settings"]].map(([tab,label])=><button key={tab} onClick={()=>setProfileTab(tab)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:profileTab===tab?t.accent:"transparent",color:profileTab===tab?"#000":t.textMuted,fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>)}</div>
+          </div>
+          <div style={{overflowY:"auto",flex:1,padding:"16px 20px 40px"}}>
+            <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,marginBottom:16,overflow:"hidden"}}>
+              <div style={{padding:"10px 14px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",gap:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e"}} /><span style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:1,textTransform:"uppercase"}}>Coach Messages</span></div>
+              <div style={{maxHeight:160,overflowY:"auto",padding:"8px 14px"}}>{messages.map(msg=><div key={msg.id} style={{display:"flex",gap:8,marginBottom:10,justifyContent:msg.from==="coach"?"flex-start":"flex-end"}}>{msg.from==="coach"&&<div style={{width:28,height:28,borderRadius:"50%",background:t.accentMuted,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🏋️</div>}<div style={{maxWidth:"80%",padding:"8px 12px",borderRadius:msg.from==="coach"?"4px 14px 14px 14px":"14px 4px 14px 14px",background:msg.from==="coach"?t.card:t.accentMuted,border:"1px solid "+t.cardBorder}}><div style={{fontSize:13,color:t.text,lineHeight:1.5}}>{msg.text}</div><div style={{fontSize:10,color:t.textMuted,marginTop:4}}>{msg.time}</div></div></div>)}</div>
+              <div style={{padding:"8px 14px",borderTop:"1px solid "+t.cardBorder,display:"flex",gap:8}}><input value={newMessage} onChange={e=>setNewMessage(e.target.value)} placeholder="Message your coach..." onKeyDown={e=>{if(e.key==="Enter"&&newMessage.trim()){setMessages(prev=>[...prev,{id:Date.now(),from:"user",text:newMessage.trim(),time:"Just now"}]);setNewMessage("");}}} style={{flex:1,padding:"8px 12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:13,outline:"none"}} /><button onClick={()=>{if(newMessage.trim()){setMessages(prev=>[...prev,{id:Date.now(),from:"user",text:newMessage.trim(),time:"Just now"}]);setNewMessage("");}}} style={{padding:"8px 14px",background:t.accent,border:"none",borderRadius:10,color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>Send</button></div>
+            </div>
+            {profileTab==="info"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{[{key:"name",label:"Full Name",placeholder:"Your name",type:"text"},{key:"age",label:"Age",placeholder:"Your age",type:"number"},{key:"weight",label:"Weight (lbs)",placeholder:"Current weight",type:"number"},{key:"height",label:"Height",placeholder:"e.g. 5ft 11in",type:"text"}].map(field=><div key={field.key}><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:6,fontWeight:600}}>{field.label}</div><input type={field.type} placeholder={field.placeholder} value={profileData[field.key]||""} onChange={e=>setProfileData(p=>({...p,[field.key]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"}} /></div>)}<button onClick={()=>setShowProfile(false)} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",marginTop:8}}>SAVE PROFILE</button></div>}
+            {profileTab==="gallery"&&<div>{["Month 1","Month 2","Month 3","Month 4","Month 5","Month 6"].map(month=>{const key=month.replace(" ","_").toLowerCase();const photos=progressPhotos[key]||[];return <div key={month} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px",marginBottom:10}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:13,fontWeight:700,color:t.accentText}}>{month.toUpperCase()}</div><label style={{padding:"6px 12px",background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>{uploadingPhoto?"Uploading...":"+ Add Photo"}<input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{if(e.target.files[0])uploadProgressPhoto(e.target.files[0],key);}} /></label></div>{photos.length>0?<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>{photos.map((url,i)=><div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden"}}><img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="progress" /></div>)}</div>:<div style={{textAlign:"center",padding:"20px",color:t.textMuted,fontSize:12}}>No photos yet</div>}</div>;})}</div>}
+            {profileTab==="settings"&&<div style={{display:"flex",flexDirection:"column",gap:10}}><div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px"}}><div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Change Password</div><input type="password" placeholder="New password" id="newpw" style={{width:"100%",padding:"12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:8}} /><button onClick={async()=>{const pw=document.getElementById("newpw").value;if(!pw||pw.length<6)return;const{error}=await supabase.auth.updateUser({password:pw});if(!error){alert("Password updated!");document.getElementById("newpw").value="";}else alert("Error: "+error.message);}} style={{width:"100%",padding:"11px",background:t.accent,border:"none",borderRadius:10,color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>Update Password</button></div><button onClick={()=>{handleLogout();setShowProfile(false);}} style={{width:"100%",padding:"14px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:14,color:"#f87171",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:8}}>Sign Out</button></div>}
+          </div>
+        </div>
+      </div>}
+
+      {/* AUTH */}
+      {showAuth&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}} onClick={()=>setShowAuth(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"28px 24px 48px",border:"1px solid "+t.cardBorder,borderBottom:"none"}}>
+          <div style={{width:36,height:4,background:t.handle,borderRadius:2,margin:"0 auto 24px"}} />
+          <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:22,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:t.accentText,fontFamily:"Montserrat,sans-serif",fontWeight:600,marginTop:3}}>FORGE YOUR LEGACY</div></div>
+          <div style={{display:"flex",gap:0,marginBottom:24,background:t.toggleBg,borderRadius:12,padding:4}}>{["login","signup"].map(m=><button key={m} onClick={()=>{setAuthMode(m);setAuthError("");}} style={{flex:1,padding:"10px",borderRadius:9,border:"none",cursor:"pointer",background:authMode===m?t.accent:"transparent",color:authMode===m?"#fff":t.textMuted,fontSize:14,fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{m==="login"?"Login":"Sign Up"}</button>)}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}><input type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{width:"100%",padding:"14px",background:t.input,border:"1.5px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"}} /><input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} style={{width:"100%",padding:"14px",background:t.input,border:"1.5px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"}} /></div>
+          {authError&&<div style={{color:"#f87171",fontSize:12,marginTop:10,textAlign:"center"}}>{authError}</div>}
+          <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",padding:"16px",marginTop:20,background:authSubmitting?"rgba(212,175,55,0.3)":t.accent,border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:800,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{authSubmitting?<><span style={{display:"inline-block",width:16,height:16,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />{authMode==="login"?"Logging in...":"Creating account..."}</>:authMode==="login"?"LOGIN":"CREATE ACCOUNT"}</button>
+          <div style={{textAlign:"center",marginTop:16,fontSize:12,color:t.textMuted}}>{authMode==="login"?"No account? ":"Have an account? "}<span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:t.accentText,cursor:"pointer",fontWeight:600}}>{authMode==="login"?"Sign up free":"Login"}</span></div>
+        </div>
+      </div>}
+
+      {/* CONGRATS */}
+      {showCongrats&&(()=>{const q=getQuote();return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(16px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:"24px"}} onClick={()=>setShowCongrats(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:380,background:"linear-gradient(135deg,#13151f,#1e1b4b)",border:"1px solid rgba(99,102,241,0.4)",borderRadius:28,padding:"36px 28px",textAlign:"center"}}><div style={{fontSize:64,marginBottom:16,lineHeight:1}}>{q.emoji}</div><div style={{fontSize:26,fontWeight:900,color:"#f8fafc",marginBottom:8,letterSpacing:1,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>Workout Complete!</div><div style={{fontSize:13,color:"#6366f1",fontWeight:600,letterSpacing:2,textTransform:"uppercase",marginBottom:24}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div><div style={{background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:16,padding:"16px 20px",marginBottom:28}}><div style={{fontSize:15,color:"#e2e8f0",lineHeight:1.6,fontStyle:"italic"}}>"{q.msg}"</div></div><div style={{display:"flex",flexDirection:"column",gap:10}}><button onClick={()=>{setShowCongrats(false);setShowStats(true);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>📊 View My Stats</button><button onClick={()=>setShowCongrats(false)} style={{width:"100%",padding:"14px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:14,color:"#94a3b8",fontSize:15,fontWeight:600,cursor:"pointer"}}>Done</button></div></div></div>;})()}
+
+      {/* STATS MODAL */}
+      {showStats&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}} onClick={()=>setShowStats(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"24px 20px 44px",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"85vh",overflowY:"auto"}}><div style={{width:36,height:4,background:"#334155",borderRadius:2,margin:"0 auto 20px"}} /><div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>🏆 Workout Summary</div><div style={{fontSize:13,color:"#64748b",marginBottom:20}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>{[{label:"Total Volume",value:stats.totalVolume>0?stats.totalVolume.toLocaleString()+" lbs":"—",icon:"🏋️"},{label:"Total Reps",value:stats.totalReps,icon:"🔁"},{label:"Sets Done",value:stats.totalSets,icon:"✅"}].map(s=><div key={s.label} style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:14,padding:"12px 8px",textAlign:"center"}}><div style={{fontSize:20,marginBottom:4}}>{s.icon}</div><div style={{fontSize:15,fontWeight:700,color:"#a5b4fc"}}>{s.value}</div><div style={{fontSize:10,color:"#475569",marginTop:2}}>{s.label}</div></div>)}</div>{stats.exStats.map((ex,idx)=><div key={idx} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:10}}><div style={{fontSize:15,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>{ex.name}</div><div style={{display:"flex",gap:16,flexWrap:"wrap"}}><div><span style={{fontSize:11,color:"#475569"}}>Volume </span><span style={{fontSize:13,fontWeight:600,color:"#a5b4fc"}}>{ex.volume>0?ex.volume.toLocaleString()+" lbs":"—"}</span></div><div><span style={{fontSize:11,color:"#475569"}}>Reps </span><span style={{fontSize:13,fontWeight:600,color:"#a5b4fc"}}>{ex.reps}</span></div>{ex.bestSet&&ex.bestSet.weight>0&&<div><span style={{fontSize:11,color:"#475569"}}>Best </span><span style={{fontSize:13,fontWeight:600,color:"#34d399"}}>S{ex.bestSet.set}: {ex.bestSet.reps}r × {ex.bestSet.weight}lbs</span></div>}</div></div>)}<button onClick={()=>setShowStats(false)} style={{width:"100%",marginTop:20,padding:"14px",background:"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer"}}>Done 💪</button></div></div>}
+
+      {/* ADD EXERCISE */}
+      {showAdd&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}} onClick={()=>setShowAdd(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"24px 20px 40px",border:"1px solid "+t.cardBorder,borderBottom:"none"}}><div style={{width:36,height:4,background:"#334155",borderRadius:2,margin:"0 auto 20px"}} /><div style={{fontSize:18,fontWeight:700,marginBottom:16,color:"#f1f5f9"}}>Add Exercise · {FULL_DAYS[DAYS.indexOf(selectedDay)]}</div><div style={{display:"flex",gap:8,marginBottom:20,background:"rgba(255,255,255,0.04)",borderRadius:12,padding:4}}>{(canWorkoutGen?["manual","ai"]:["manual"]).map(tab=><button key={tab} onClick={()=>setAddTab(tab)} style={{flex:1,padding:"8px",borderRadius:9,border:"none",cursor:"pointer",background:addTab===tab?"linear-gradient(135deg,#4f46e5,#7c3aed)":"transparent",color:addTab===tab?"#fff":"#64748b",fontSize:13,fontWeight:600}}>{tab==="manual"?"✏️ Manual":"✨ Ask AI"}</button>)}</div>{addTab==="manual"?(<>{[{label:"Exercise Name",key:"name",placeholder:"e.g. Bench Press",type:"text"},{label:"Sets",key:"sets",placeholder:"e.g. 4",type:"number"},{label:"Target Reps",key:"reps",placeholder:"e.g. 8",type:"number"},{label:"Video ID (optional)",key:"video",placeholder:"YouTube video ID",type:"text"}].map(f=><div key={f.key} style={{marginBottom:14}}><label style={{fontSize:11,color:"#64748b",letterSpacing:1,textTransform:"uppercase",display:"block",marginBottom:6}}>{f.label}</label><input type={f.type} placeholder={f.placeholder} value={newEx[f.key]} onChange={e=>setNewEx(prev=>({...prev,[f.key]:e.target.value}))} style={inp} /></div>)}<button onClick={addManual} style={{width:"100%",padding:"14px",background:(!newEx.name||!newEx.sets||!newEx.reps)?"rgba(99,102,241,0.3)":"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:(newEx.name&&newEx.sets&&newEx.reps)?"pointer":"not-allowed",marginTop:8}}>Add Exercise</button></>):(<><div style={{fontSize:13,color:"#64748b",marginBottom:12}}>Describe what you want and AI fills in the details.</div><textarea placeholder='e.g. "Add 4 sets of push-ups and 3 sets of dips"' value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} rows={3} style={{...inp,resize:"none",fontFamily:"inherit"}} />{aiError&&<div style={{color:"#f87171",fontSize:12,marginTop:8}}>{aiError}</div>}<button onClick={addWithAI} disabled={aiLoading||!aiPrompt.trim()} style={{width:"100%",padding:"14px",marginTop:14,background:(!aiPrompt.trim()||aiLoading)?"rgba(99,102,241,0.3)":"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:(!aiPrompt.trim()||aiLoading)?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{aiLoading?<><span style={{display:"inline-block",width:16,height:16,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />Adding...</>:"✨ Add with AI"}</button></>)}</div></div>}
+
+      {/* WEEK PLANNER */}
+      {showPlanner&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",backdropFilter:"blur(10px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300}} onClick={()=>setShowPlanner(false)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"24px 20px 44px",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"90vh",overflowY:"auto"}}><div style={{width:36,height:4,background:"#334155",borderRadius:2,margin:"0 auto 20px"}} /><div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>🗓 Plan Your Week</div><div style={{fontSize:13,color:"#64748b",marginBottom:16}}>Describe your plan and AI schedules everything.</div>{["Push/pull/legs split","5-day upper/lower split","Build me a 5-day strength program"].map((ex,i)=><button key={i} onClick={()=>setPlannerPrompt(ex)} style={{display:"block",width:"100%",textAlign:"left",background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:10,padding:"8px 12px",color:"#94a3b8",fontSize:12,cursor:"pointer",marginBottom:6}}>{ex}</button>)}<textarea placeholder="Describe your weekly workout plan..." value={plannerPrompt} onChange={e=>{setPlannerPrompt(e.target.value);setPlannerPreview(null);setPlannerError("");}} rows={4} style={{...inp,resize:"none",fontFamily:"inherit",lineHeight:1.5,marginTop:8}} />{plannerError&&<div style={{color:"#f87171",fontSize:12,marginTop:8}}>{plannerError}</div>}{plannerPreview&&<div style={{marginTop:16}}><div style={{fontSize:11,color:"#34d399",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>✓ Preview — {DAYS.filter(d=>plannerPreview[d]?.length>0).length} active days</div>{DAYS.map(day=>{const exs=plannerPreview[day]||[];return <div key={day} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 0",borderBottom:"1px solid "+t.cardBorder}}><div style={{minWidth:36,fontSize:11,fontWeight:700,color:exs.length?"#a5b4fc":"#334155",textTransform:"uppercase",letterSpacing:1,paddingTop:2}}>{day}</div><div style={{flex:1}}>{exs.length===0?<span style={{fontSize:12,color:"#334155"}}>Rest</span>:exs.map((ex,i)=><div key={i} style={{fontSize:12,color:"#94a3b8",marginBottom:2}}><span style={{color:"#e2e8f0",fontWeight:600}}>{ex.name}</span><span style={{color:"#475569"}}> · {ex.sets}×{ex.reps}</span></div>)}</div></div>;})} <div style={{display:"flex",gap:8,marginTop:14,background:"rgba(255,255,255,0.04)",borderRadius:12,padding:4}}>{["replace","add"].map(m=><button key={m} onClick={()=>setPlannerMode(m)} style={{flex:1,padding:"8px",borderRadius:9,border:"none",cursor:"pointer",background:plannerMode===m?"linear-gradient(135deg,#4f46e5,#7c3aed)":"transparent",color:plannerMode===m?"#fff":"#64748b",fontSize:13,fontWeight:600}}>{m==="replace"?"🔄 Replace":"➕ Add to current"}</button>)}</div><button onClick={applyPlan} style={{width:"100%",padding:"14px",marginTop:10,background:"linear-gradient(135deg,#059669,#10b981)",border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer"}}>Apply Plan ✓</button></div>}{!plannerPreview&&<button onClick={generatePlan} disabled={plannerLoading||!plannerPrompt.trim()} style={{width:"100%",padding:"14px",marginTop:14,background:(!plannerPrompt.trim()||plannerLoading)?"rgba(99,102,241,0.3)":"linear-gradient(135deg,#4f46e5,#7c3aed)",border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:700,cursor:(!plannerPrompt.trim()||plannerLoading)?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{plannerLoading?<><span style={{display:"inline-block",width:16,height:16,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />Generating...</>:"✨ Generate Plan"}</button>}</div></div>}
+
     </div>
   );
 }
-
-// ---------------- Admin app ----------------
-function PlanBadge({ plan }) {
-  const p = plan || "free";
-  const label = p === "whitelabel" ? "White-label" : p.charAt(0).toUpperCase() + p.slice(1);
-  return <span style={{ fontSize: 11, fontWeight: 700, color: p === "free" ? C.muted : C.gold, border: "1px solid " + (p === "free" ? C.border : C.gold + "55"), borderRadius: 999, padding: "2px 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</span>;
-}
-function matchQ(p, q) {
-  if (!q) return true; q = q.toLowerCase();
-  return [p.email, p.full_name, p.phone, p.business_name].some((v) => (v || "").toLowerCase().indexOf(q) >= 0);
-}
-
-function AdminApp({ profile }) {
-  const [active, setActive] = useState("overview");
-  const [coaches, setCoaches] = useState([]); const [clients, setClients] = useState([]);
-  const [pricing, setPricing] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selCoach, setSelCoach] = useState(null);
-  const [coachQ, setCoachQ] = useState(""); const [clientQ, setClientQ] = useState("");
-  async function load() {
-    const { data: cp } = await sb.from("profiles").select("id,email,created_at,role,full_name,phone").eq("role", "coach");
-    const { data: settings } = await sb.from("coaches").select("*");
-    const merged = (cp || []).map((p) => ({ ...p, ...((settings || []).find((s) => s.id === p.id) || {}) }));
-    const { data: cl } = await sb.from("profiles").select("id,email,created_at,coach_id,full_name,phone").eq("role", "client");
-    const { data: ps } = await sb.from("platform_settings").select("*").eq("id", 1).maybeSingle();
-    setCoaches(merged); setClients(cl || []); setPricing(ps || null); setLoading(false);
-  }
-  useEffect(() => { load(); }, []);
-  const main = [{ id: "overview", label: "Overview" }, { id: "coaches", label: "Coaches" }, { id: "clients", label: "Clients" }, { id: "invites", label: "Invites" }, { id: "offers", label: "Offers" }];
-  const other = [{ id: "revenue", label: "Revenue", soon: true }, { id: "settings", label: "Settings" }];
-  const row = { padding: "13px 18px", borderBottom: "1px solid " + C.borderSoft, display: "flex", justifyContent: "space-between", color: C.text, fontSize: 13.5 };
-  let page = null;
-  if (loading) page = <div style={{ color: C.muted }}>Loading…</div>;
-  else if (active === "overview") page = (
-    <div><H1>Admin Console</H1><p style={{ color: C.muted, marginTop: 0 }}>Every coach and client across FitStud.</p>
-      <div style={{ display: "flex", gap: 14, marginTop: 18 }}><Stat label="Coaches signed up" value={coaches.length} accent={C.gold} /><Stat label="Total clients" value={clients.length} /></div>
-    </div>);
-  else if (active === "coaches") page = selCoach ? (
-    <div>
-      <button onClick={() => setSelCoach(null)} style={{ ...btnGhost, marginBottom: 14 }}>← All coaches</button>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <H1>{selCoach.business_name || selCoach.full_name || selCoach.email}</H1>
-        <PlanBadge plan={selCoach.plan} />
-      </div>
-      <p style={{ color: C.muted, marginTop: 0, fontSize: 13.5 }}>{selCoach.email}{selCoach.phone ? " · " + selCoach.phone : ""}</p>
-      {(() => {
-        const theirs = clients.filter((c) => c.coach_id === selCoach.id);
-        return (
-          <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, overflow: "hidden", marginTop: 12 }}>
-            <div style={{ padding: "12px 18px", color: C.faint, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid " + C.border }}>{theirs.length} client{theirs.length === 1 ? "" : "s"}</div>
-            {theirs.length === 0 && <div style={{ color: C.faint, padding: 24, textAlign: "center" }}>No clients yet.</div>}
-            {theirs.map((c) => <div key={c.id} style={row}><span style={{ color: C.text, fontWeight: 600 }}>{c.full_name || c.email}</span><span style={{ color: C.muted }}>{c.email}</span></div>)}
-          </div>
-        );
-      })()}
-    </div>
-  ) : (
-    <div><H1>Coaches</H1>
-      <input value={coachQ} onChange={(e) => setCoachQ(e.target.value)} placeholder="Search coaches by name, email, or phone" style={{ ...inputStyle, maxWidth: 420, marginTop: 14 }} />
-      <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, overflow: "hidden", marginTop: 14 }}>
-        {coaches.length === 0 && <div style={{ color: C.faint, padding: 24, textAlign: "center" }}>No coaches yet.</div>}
-        {coaches.filter((c) => matchQ(c, coachQ)).map((c) => {
-          const n = clients.filter((x) => x.coach_id === c.id).length;
-          return (
-            <div key={c.id} onClick={() => setSelCoach(c)} style={{ ...row, cursor: "pointer" }}>
-              <span><span style={{ color: C.text, fontWeight: 600 }}>{c.business_name || c.full_name || c.email}</span><span style={{ color: C.faint, fontSize: 12, marginLeft: 8 }}>{n} client{n === 1 ? "" : "s"} ›</span></span>
-              <PlanBadge plan={c.plan} />
-            </div>
-          );
-        })}
-      </div>
-    </div>);
-  else if (active === "clients") page = (
-    <div><H1>All Clients</H1>
-      <input value={clientQ} onChange={(e) => setClientQ(e.target.value)} placeholder="Search clients by name, email, or phone" style={{ ...inputStyle, maxWidth: 420, marginTop: 14 }} />
-      <div style={{ background: C.panel, border: "1px solid " + C.border, borderRadius: 16, overflow: "hidden", marginTop: 14 }}>
-        {clients.length === 0 && <div style={{ color: C.faint, padding: 24, textAlign: "center" }}>No clients yet.</div>}
-        {clients.filter((c) => matchQ(c, clientQ)).map((c) => {
-          const coach = coaches.find((co) => co.id === c.coach_id);
-          return (
-            <div key={c.id} style={row}>
-              <span><span style={{ color: C.text, fontWeight: 600 }}>{c.full_name || c.email}</span><span style={{ color: C.faint, fontSize: 12, marginLeft: 8 }}>{c.email}</span></span>
-              {c.coach_id
-                ? <span style={{ color: C.muted, fontSize: 12.5 }}>Coach: {coach ? (coach.business_name || coach.email) : "—"}</span>
-                : <span style={{ fontSize: 11, fontWeight: 700, color: C.red, border: "1px solid " + C.red + "55", borderRadius: 999, padding: "2px 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>Solo · no coach</span>}
-            </div>
-          );
-        })}
-      </div>
-    </div>);
-  else if (active === "invites") page = <AdminInvites profile={profile} />;
-  else if (active === "offers") page = <AdminOffers profile={profile} />;
-  else if (active === "revenue") page = <SoonPage title="Revenue" desc="Track coach subscriptions and MRR across the platform." />;
-  else if (active === "settings") page = <AdminSettings profile={profile} coaches={coaches} pricing={pricing} onReload={load} />;
-  return <AppShell profile={profile} brandName="FitStud HQ" main={main} other={other} active={active} setActive={(id) => { setSelCoach(null); setActive(id); }}>{page}</AppShell>;
-}
-
-function App() {
-  const [session, setSession] = useState(undefined);
-  const [profile, setProfile] = useState(null); const [perr, setPerr] = useState("");
-  useEffect(() => {
-    sb.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => { setSession(s); if (!s) setProfile(null); });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  useEffect(() => { if (!session) return; (async () => {
-    const code = readInvite();
-    const { data, error } = await sb.from("profiles").select("id,email,role,coach_id").eq("id", session.user.id).maybeSingle();
-    if (error) { setPerr(error.message); return; }
-    const prof = data || { id: session.user.id, email: session.user.email, role: "client" };
-    if (code && prof.role !== "coach" && prof.role !== "admin") {
-      const { data: r } = await sb.rpc("redeem_invite", { invite_code: code });
-      clearInvite();
-      if (r === "ok") { window.location.search = ""; return; }
-    }
-    setProfile(prof);
-  })(); }, [session]);
-  if (session === undefined) return <div style={{ minHeight: "100vh", background: C.bg }} />;
-  if (!session) return readInvite() ? <Signup code={readInvite()} /> : <Login />;
-  if (!profile) return <div style={{ minHeight: "100vh", background: C.bg, color: C.muted, fontFamily: FB, display: "flex", alignItems: "center", justifyContent: "center" }}>{perr || "Loading…"}</div>;
-  if (profile.role === "admin") return <AdminApp profile={profile} />;
-  if (profile.role === "coach") return <CoachApp profile={profile} />;
-  return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: FB, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 28 }}>
-      <Logo size={32} />
-      <h1 style={disp({ fontSize: 28, color: C.text, marginTop: 20 })}>This is a client account</h1>
-      <p style={{ color: C.muted, maxWidth: 420 }}>The coach console is for coaches and admins. Clients use the FitStud app.</p>
-      <button onClick={() => sb.auth.signOut()} style={{ ...btnGhost, marginTop: 16 }}>Log out</button>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-</script>
-</body>
-</html>
