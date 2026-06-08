@@ -299,9 +299,10 @@ export default function FitStud() {
   const getFirstDay=(m,y)=>new Date(y,m,1).getDay();
   const daysInMonth=getDaysInMonth(calMonth,calYear),firstDay=getFirstDay(calMonth,calYear);
   const calCells=[];for(let i=0;i<firstDay;i++)calCells.push(null);for(let d=1;d<=daysInMonth;d++)calCells.push(d);while(calCells.length%7!==0)calCells.push(null);
-  const buildStats=()=>{
+  const buildStats=(exList)=>{
+    const srcEx=exList||(typeof activeExercisesForDay!=="undefined"?activeExercisesForDay:exercises);
     let totalVolume=0,totalReps=0,totalSets=0;
-    const exStats=exercises.map(ex=>{let exVol=0,exReps=0,bestSet=null;Array.from({length:ex.sets},(_,i)=>{const s=getSet(ex.id,i);if(s.done){const r=parseInt(s.reps)||ex.reps,w=parseFloat(s.weight)||0;exReps+=r;exVol+=r*w;totalReps+=r;totalVolume+=r*w;totalSets++;if(!bestSet||r*w>bestSet.vol)bestSet={set:i+1,reps:r,weight:w,vol:r*w};}});return{name:ex.name,volume:exVol,reps:exReps,bestSet};});
+    const exStats=srcEx.map(ex=>{let exVol=0,exReps=0,bestSet=null;Array.from({length:ex.sets},(_,i)=>{const s=getSet(ex.id,i);if(s.done){const r=parseInt(s.reps)||ex.reps,w=parseFloat(s.weight)||0;exReps+=r;exVol+=r*w;totalReps+=r;totalVolume+=r*w;totalSets++;if(!bestSet||r*w>bestSet.vol)bestSet={set:i+1,reps:r,weight:w,vol:r*w};}});return{name:ex.name,volume:exVol,reps:exReps,bestSet};});
     return{totalVolume,totalReps,totalSets,exStats};
   };
   const QUOTES=[{msg:"You showed up. That is already more than most people did today.",emoji:"🔥"},{msg:"Every rep, every set — you are building a version of yourself that will not quit.",emoji:"💪"},{msg:"The pain you feel today is the strength you will feel tomorrow.",emoji:"⚡"},{msg:"You did not come this far to only come this far. Keep going.",emoji:"🚀"},{msg:"Champions are not born. They are built — exactly like you are doing right now.",emoji:"🏆"},{msg:"Discipline is choosing what you want most over what you want now.",emoji:"👑"},{msg:"Your future self is thanking you right now.",emoji:"✨"},{msg:"Greatness is not given. It is earned. Today you earned it.",emoji:"💎"}];
@@ -317,7 +318,6 @@ export default function FitStud() {
   const addWithAI=async()=>{if(!aiPrompt.trim())return;setAiLoading(true);setAiError("");try{const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:"Return ONLY a valid JSON array of exercise objects. Each: name(string),sets(number),reps(number),video(YouTube ID or empty).",messages:[{role:"user",content:aiPrompt}]})});const data=await res.json();const text=data.content?.find(b=>b.type==="text")?.text||"";JSON.parse(text.trim()).forEach(ex=>addExerciseToDay(selectedDay,{id:nextId++,name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}));setAiPrompt("");setShowAdd(false);}catch(e){setAiError("Could not parse. Try rephrasing.");}setAiLoading(false);};
   const generatePlan=async()=>{if(!plannerPrompt.trim())return;setPlannerLoading(true);setPlannerError("");setPlannerPreview(null);try{const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:2000,system:"Return ONLY valid JSON with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is array of exercises: name,sets,reps,video. Rest days=[].",messages:[{role:"user",content:plannerPrompt}]})});const data=await res.json();const text=data.content?.find(b=>b.type==="text")?.text||"";const parsed=JSON.parse(text.trim());if(!DAYS.some(d=>Array.isArray(parsed[d])))throw new Error("Invalid");setPlannerPreview(parsed);}catch(e){setPlannerError("Could not generate plan.");}setPlannerLoading(false);};
   const applyPlan=()=>{if(!plannerPreview)return;setWorkouts(prev=>{const next={...prev};DAYS.forEach(day=>{if(!Array.isArray(plannerPreview[day]))return;const newExs=plannerPreview[day].map(ex=>({id:nextId++,name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}));next[day]=plannerMode==="replace"?newExs:[...(prev[day]||[]),...newExs];});return next;});setPlannerPreview(null);setPlannerPrompt("");setShowPlanner(false);};
-  const stats=buildStats();
   // Coach gating: no coach = full access; with coach = only if coach enabled it
   const canMealGen=!coachProfile.coach_id||coachProfile.meal_gen;
   const canWorkoutGen=!coachProfile.coach_id||coachProfile.workout_gen;
@@ -344,6 +344,7 @@ export default function FitStud() {
   const activeWorkouts=assignedProgram?programToRoutine(assignedProgram.structure):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
   const allDone=activeExercisesForDay.length>0&&activeExercisesForDay.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
+  const stats=buildStats(activeExercisesForDay);
   const activeExercises=activeWorkouts[selectedDay]||[];
   if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:600}}>FORGE YOUR LEGACY</div><div style={{marginTop:16,width:24,height:24,border:"2px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
@@ -396,8 +397,8 @@ export default function FitStud() {
   );
 
   return(
-    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:80,margin:0,boxSizing:"border-box"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box} html,body,#root{background:#0B0B0B;min-height:100vh}`}</style>
+    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:80,margin:0,boxSizing:"border-box",overflowX:"hidden"}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box} html,body,#root{background:#0B0B0B;min-height:100vh;overscroll-behavior:none} input[type=number]{font-size:16px!important} .no-zoom{font-size:16px!important}`}</style>
 
       {/* HEADER */}
       <div style={{padding:"24px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header}}>
@@ -510,8 +511,8 @@ export default function FitStud() {
                         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.accentMuted,borderRadius:8,padding:"4px 2px",minHeight:40,border:"1px solid "+t.accentBorder}}>
                           {last?<><span style={{fontSize:11,fontWeight:700,color:t.textSub,lineHeight:1.2}}>{last.reps||"—"}</span><span style={{fontSize:9,color:t.accentText,lineHeight:1.2}}>{last.weight?last.weight+"lb":"bw"}</span></>:<span style={{fontSize:12,color:t.accentText,fontWeight:700}}>—</span>}
                         </div>
-                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:15,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
-                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:15,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
                         <button onClick={()=>toggleDone(ex.id,i)} style={{width:40,height:40,borderRadius:10,border:s.done?"none":"2px solid rgba(212,175,55,0.5)",background:s.done?t.accent:t.card,color:s.done?"#fff":"rgba(212,175,55,0.7)",fontSize:18,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                       </div>;
                     })}
