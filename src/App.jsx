@@ -181,8 +181,8 @@ export default function FitStud() {
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});}
-      // Load real Supabase messages
-      loadMessages(userId);
+      // Load real Supabase messages (inline — loadMessages defined below)
+      supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
       // Load coach-assigned workout program and meal plan
       try{
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
