@@ -245,8 +245,6 @@ export default function FitStud() {
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);};
 
   const exercises=(workouts||EMPTY_WORKOUTS)[selectedDay]||[];
-  // For rendering and logging: use coach program if assigned, else user's own
-  const activeExercisesForDay=assignedProgram?(activeWorkouts[selectedDay]||[]):exercises;
   useEffect(()=>{setWorkoutFinished(false);},[selectedDay]);
   const getSet=(exId,i)=>{
     const raw=setData[selectedDay+"-"+exId+"-"+i];
@@ -269,7 +267,6 @@ export default function FitStud() {
   };
 
   const doneCount=(exId,total)=>Array.from({length:total},(_,i)=>getSet(exId,i).done).filter(Boolean).length;
-  const allDone=activeExercisesForDay.length>0&&activeExercisesForDay.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
   const safeWorkouts=workouts||EMPTY_WORKOUTS;
   const addExerciseToDay=(day,ex)=>setWorkouts(prev=>({...prev,[day]:[...(prev[day]||[]),ex]}));
   const removeExercise=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].filter(e=>e.id!==exId)}));
@@ -345,6 +342,8 @@ export default function FitStud() {
 
   // Active routine: coach program takes precedence over user's own workouts
   const activeWorkouts=assignedProgram?programToRoutine(assignedProgram.structure):(workouts||EMPTY_WORKOUTS);
+  const activeExercisesForDay=activeWorkouts[selectedDay]||[];
+  const allDone=activeExercisesForDay.length>0&&activeExercisesForDay.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
   const activeExercises=activeWorkouts[selectedDay]||[];
   if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:600}}>FORGE YOUR LEGACY</div><div style={{marginTop:16,width:24,height:24,border:"2px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
