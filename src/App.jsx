@@ -121,8 +121,10 @@ export default function FitStud() {
   const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
   const [uploadingPhoto,setUploadingPhoto]=useState(false);
-  const [messages,setMessages]=useState(()=>load("fs_messages",[{id:1,from:"coach",text:"Welcome to FitStud! I am here to help you reach your goals. Feel free to message me anytime 💪",time:"Today"}]));
+  // Supabase messages (replaces localStorage messages)
+  const [coachMessages,setCoachMessages]=useState([]);
   const [newMessage,setNewMessage]=useState("");
+  const [messagesLoading,setMessagesLoading]=useState(false);
 
   // AUTO-SAVE
   useEffect(()=>{if(workouts)save("fs_workouts",workouts);},[workouts]);
@@ -136,7 +138,7 @@ export default function FitStud() {
   useEffect(()=>{localStorage.setItem("fs_checked_meals",JSON.stringify(checkedMeals));},[checkedMeals]);
   useEffect(()=>{save("fs_avatar",avatarUrl);},[avatarUrl]);
   useEffect(()=>{save("fs_progress_photos",progressPhotos);},[progressPhotos]);
-  useEffect(()=>{save("fs_messages",messages);},[messages]);
+  // messages now loaded from Supabase, not localStorage
 
   // FIX 1: AUTO-RESET SET DATA ON NEW DAY
   useEffect(()=>{
@@ -179,6 +181,8 @@ export default function FitStud() {
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});}
+      // Load real Supabase messages
+      loadMessages(userId);
       // Load coach-assigned workout program and meal plan
       try{
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
@@ -188,6 +192,27 @@ export default function FitStud() {
         if(mpA){const{data:mp}=await supabase.from("meal_plans").select("*").eq("id",mpA.meal_plan_id).maybeSingle();if(mp)setAssignedMeal(mp);}
       }catch(e){console.log("Assignments load error",e);}
     }catch(e){console.log("Load error",e);}
+  };
+
+  const loadMessages=async(userId)=>{
+    setMessagesLoading(true);
+    try{
+      const{data}=await supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true});
+      if(data)setCoachMessages(data);
+    }catch(e){console.log("Messages load error",e);}
+    setMessagesLoading(false);
+  };
+
+  const sendMessage=async(text)=>{
+    if(!text.trim()||!user||!coachProfile.coach_id)return;
+    const msg={coach_id:coachProfile.coach_id,client_id:user.id,sender:"client",body:text.trim(),created_at:new Date().toISOString()};
+    // Optimistic update
+    setCoachMessages(prev=>[...prev,{...msg,id:"tmp_"+Date.now()}]);
+    setNewMessage("");
+    try{
+      const{data,error}=await supabase.from("messages").insert(msg).select().single();
+      if(!error&&data)setCoachMessages(prev=>prev.map(m=>m.id==="tmp_"+Date.now()?data:m));
+    }catch(e){console.log("Send error",e);}
   };
 
   const saveToSupabase=useCallback(async(table,field,data)=>{
@@ -400,7 +425,7 @@ export default function FitStud() {
 
       {/* VIEW TOGGLE */}
       <div style={{display:"flex",margin:"12px 16px 0",background:t.toggleBg,borderRadius:12,padding:4}}>
-        {[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]].map(([v,label])=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:"pointer",background:view===v?t.accent:"transparent",color:view===v?"#fff":t.textMuted,fontSize:12,fontWeight:700,textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none"}}>{label}</button>)}
+        {(coachProfile.coach_id?[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"],["coach","💬 Coach"]]:[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]]).map(([v,label])=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:"pointer",background:view===v?t.accent:"transparent",color:view===v?"#fff":t.textMuted,fontSize:12,fontWeight:700,textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none",position:"relative"}}>{label}{v==="coach"&&coachMessages.length>0&&coachMessages[coachMessages.length-1]?.sender==="coach"&&<span style={{position:"absolute",top:4,right:4,width:6,height:6,borderRadius:"50%",background:"#ef4444"}} />}</button>)}
       </div>
 
       {/* WEEK VIEW */}
@@ -599,6 +624,54 @@ export default function FitStud() {
         </div>
       </div>}
 
+      {/* COACH MESSAGES VIEW */}
+      {view==="coach"&&coachProfile.coach_id&&(()=>{
+        const hasUnread=coachMessages.length>0&&coachMessages[coachMessages.length-1]?.sender==="coach";
+        return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 180px)"}}>
+          {/* Header */}
+          <div style={{padding:"16px 20px 12px",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(212,175,55,0.15)",border:"1px solid rgba(212,175,55,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🏋️</div>
+            <div>
+              <div style={{fontSize:16,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>YOUR COACH</div>
+              <div style={{fontSize:11,color:t.textMuted,marginTop:1}}>Messages & updates</div>
+            </div>
+          </div>
+
+          {/* Thread */}
+          <div style={{flex:1,overflowY:"auto",padding:"0 16px 12px"}}>
+            {messagesLoading&&<div style={{textAlign:"center",padding:"40px",color:t.textMuted,fontSize:13}}>Loading messages...</div>}
+            {!messagesLoading&&coachMessages.length===0&&<div style={{textAlign:"center",padding:"48px 20px"}}>
+              <div style={{fontSize:40,marginBottom:12}}>💬</div>
+              <div style={{fontSize:14,color:t.textMuted}}>No messages yet.</div>
+              <div style={{fontSize:12,color:t.textDim,marginTop:4}}>Your coach will reach out here.</div>
+            </div>}
+            {coachMessages.map((msg,i)=>{
+              const isCoach=msg.sender==="coach";
+              const time=new Date(msg.created_at).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+              return <div key={msg.id||i} style={{display:"flex",gap:8,marginBottom:12,justifyContent:isCoach?"flex-start":"flex-end"}}>
+                {isCoach&&<div style={{width:32,height:32,borderRadius:"50%",background:"rgba(212,175,55,0.15)",border:"1px solid rgba(212,175,55,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,alignSelf:"flex-end"}}>🏋️</div>}
+                <div style={{maxWidth:"75%"}}>
+                  <div style={{padding:"10px 14px",borderRadius:isCoach?"4px 16px 16px 16px":"16px 4px 16px 16px",background:isCoach?t.card:"rgba(212,175,55,0.15)",border:isCoach?"1px solid "+t.cardBorder:"1px solid rgba(212,175,55,0.3)"}}>
+                    <div style={{fontSize:14,color:t.text,lineHeight:1.5}}>{msg.body}</div>
+                  </div>
+                  <div style={{fontSize:10,color:t.textMuted,marginTop:3,textAlign:isCoach?"left":"right",paddingLeft:isCoach?4:0,paddingRight:isCoach?0:4}}>{time}</div>
+                </div>
+              </div>;
+            })}
+          </div>
+
+          {/* Input */}
+          <div style={{padding:"8px 16px 16px",borderTop:"1px solid "+t.cardBorder,display:"flex",gap:10,background:t.header}}>
+            <input value={newMessage} onChange={e=>setNewMessage(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage(newMessage);}}}
+              placeholder="Message your coach..."
+              style={{flex:1,padding:"12px 14px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:14,outline:"none"}} />
+            <button onClick={()=>sendMessage(newMessage)} disabled={!newMessage.trim()}
+              style={{padding:"12px 18px",background:newMessage.trim()?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.2)",border:"none",borderRadius:12,color:newMessage.trim()?"#000":"#555",fontSize:16,fontWeight:700,cursor:newMessage.trim()?"pointer":"not-allowed",transition:"all 0.15s"}}>→</button>
+          </div>
+        </div>;
+      })()}
+
       {/* VIDEO PLAYER */}
       {videoPlayer&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:400,padding:"20px 16px"}} onClick={()=>setVideoPlayer(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><div><div style={{fontSize:11,color:"#6366f1",letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>How-To Guide</div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{videoPlayer.title}</div></div><button onClick={()=>setVideoPlayer(null)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:36,height:36,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div><div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000"}}><iframe src={"https://www.youtube.com/embed/"+videoPlayer.videoId+"?autoplay=1&rel=0&modestbranding=1"} title={videoPlayer.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div></div></div>}
 
@@ -732,8 +805,24 @@ export default function FitStud() {
           <div style={{overflowY:"auto",flex:1,padding:"16px 20px 40px"}}>
             <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,marginBottom:16,overflow:"hidden"}}>
               <div style={{padding:"10px 14px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",gap:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e"}} /><span style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:1,textTransform:"uppercase"}}>Coach Messages</span></div>
-              <div style={{maxHeight:160,overflowY:"auto",padding:"8px 14px"}}>{messages.map(msg=><div key={msg.id} style={{display:"flex",gap:8,marginBottom:10,justifyContent:msg.from==="coach"?"flex-start":"flex-end"}}>{msg.from==="coach"&&<div style={{width:28,height:28,borderRadius:"50%",background:t.accentMuted,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🏋️</div>}<div style={{maxWidth:"80%",padding:"8px 12px",borderRadius:msg.from==="coach"?"4px 14px 14px 14px":"14px 4px 14px 14px",background:msg.from==="coach"?t.card:t.accentMuted,border:"1px solid "+t.cardBorder}}><div style={{fontSize:13,color:t.text,lineHeight:1.5}}>{msg.text}</div><div style={{fontSize:10,color:t.textMuted,marginTop:4}}>{msg.time}</div></div></div>)}</div>
-              <div style={{padding:"8px 14px",borderTop:"1px solid "+t.cardBorder,display:"flex",gap:8}}><input value={newMessage} onChange={e=>setNewMessage(e.target.value)} placeholder="Message your coach..." onKeyDown={e=>{if(e.key==="Enter"&&newMessage.trim()){setMessages(prev=>[...prev,{id:Date.now(),from:"user",text:newMessage.trim(),time:"Just now"}]);setNewMessage("");}}} style={{flex:1,padding:"8px 12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:13,outline:"none"}} /><button onClick={()=>{if(newMessage.trim()){setMessages(prev=>[...prev,{id:Date.now(),from:"user",text:newMessage.trim(),time:"Just now"}]);setNewMessage("");}}} style={{padding:"8px 14px",background:t.accent,border:"none",borderRadius:10,color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>Send</button></div>
+              <div style={{maxHeight:160,overflowY:"auto",padding:"8px 14px"}}>
+                {coachProfile.coach_id?coachMessages.slice(-10).map((msg,i)=>{
+                  const isCoach=msg.sender==="coach";
+                  return <div key={msg.id||i} style={{display:"flex",gap:8,marginBottom:10,justifyContent:isCoach?"flex-start":"flex-end"}}>
+                    {isCoach&&<div style={{width:28,height:28,borderRadius:"50%",background:t.accentMuted,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🏋️</div>}
+                    <div style={{maxWidth:"80%",padding:"8px 12px",borderRadius:isCoach?"4px 14px 14px 14px":"14px 4px 14px 14px",background:isCoach?t.card:t.accentMuted,border:"1px solid "+t.cardBorder}}>
+                      <div style={{fontSize:13,color:t.text,lineHeight:1.5}}>{msg.body}</div>
+                      <div style={{fontSize:10,color:t.textMuted,marginTop:4}}>{new Date(msg.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                    </div>
+                  </div>;
+                }):<div style={{padding:"20px",textAlign:"center",fontSize:12,color:t.textMuted}}>No coach assigned yet.</div>}
+              </div>
+              {coachProfile.coach_id&&<div style={{padding:"8px 14px",borderTop:"1px solid "+t.cardBorder,display:"flex",gap:8}}>
+                <input value={newMessage} onChange={e=>setNewMessage(e.target.value)} placeholder="Message your coach..."
+                  onKeyDown={e=>{if(e.key==="Enter"&&newMessage.trim()){sendMessage(newMessage);}}}
+                  style={{flex:1,padding:"8px 12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:13,outline:"none"}} />
+                <button onClick={()=>sendMessage(newMessage)} style={{padding:"8px 14px",background:t.accent,border:"none",borderRadius:10,color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>Send</button>
+              </div>}
             </div>
             {profileTab==="info"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{[{key:"name",label:"Full Name",placeholder:"Your name",type:"text"},{key:"age",label:"Age",placeholder:"Your age",type:"number"},{key:"weight",label:"Weight (lbs)",placeholder:"Current weight",type:"number"},{key:"height",label:"Height",placeholder:"e.g. 5ft 11in",type:"text"}].map(field=><div key={field.key}><div style={{fontSize:11,color:t.accentText,letterSpacing:1,textTransform:"uppercase",marginBottom:6,fontWeight:600}}>{field.label}</div><input type={field.type} placeholder={field.placeholder} value={profileData[field.key]||""} onChange={e=>setProfileData(p=>({...p,[field.key]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"}} /></div>)}<button onClick={()=>setShowProfile(false)} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",marginTop:8}}>SAVE PROFILE</button></div>}
             {profileTab==="gallery"&&<div>{["Month 1","Month 2","Month 3","Month 4","Month 5","Month 6"].map(month=>{const key=month.replace(" ","_").toLowerCase();const photos=progressPhotos[key]||[];return <div key={month} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px",marginBottom:10}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:13,fontWeight:700,color:t.accentText}}>{month.toUpperCase()}</div><label style={{padding:"6px 12px",background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>{uploadingPhoto?"Uploading...":"+ Add Photo"}<input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{if(e.target.files[0])uploadProgressPhoto(e.target.files[0],key);}} /></label></div>{photos.length>0?<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>{photos.map((url,i)=><div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden"}}><img src={url} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="progress" /></div>)}</div>:<div style={{textAlign:"center",padding:"20px",color:t.textMuted,fontSize:12}}>No photos yet</div>}</div>;})}</div>}
