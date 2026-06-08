@@ -220,6 +220,8 @@ export default function FitStud() {
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);};
 
   const exercises=(workouts||EMPTY_WORKOUTS)[selectedDay]||[];
+  // For rendering and logging: use coach program if assigned, else user's own
+  const activeExercisesForDay=assignedProgram?(activeWorkouts[selectedDay]||[]):exercises;
   useEffect(()=>{setWorkoutFinished(false);},[selectedDay]);
   const getSet=(exId,i)=>{
     const raw=setData[selectedDay+"-"+exId+"-"+i];
@@ -242,7 +244,7 @@ export default function FitStud() {
   };
 
   const doneCount=(exId,total)=>Array.from({length:total},(_,i)=>getSet(exId,i).done).filter(Boolean).length;
-  const allDone=exercises.length>0&&exercises.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
+  const allDone=activeExercisesForDay.length>0&&activeExercisesForDay.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
   const safeWorkouts=workouts||EMPTY_WORKOUTS;
   const addExerciseToDay=(day,ex)=>setWorkouts(prev=>({...prev,[day]:[...(prev[day]||[]),ex]}));
   const removeExercise=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].filter(e=>e.id!==exId)}));
@@ -297,6 +299,28 @@ export default function FitStud() {
   // Coach gating: no coach = full access; with coach = only if coach enabled it
   const canMealGen=!coachProfile.coach_id||coachProfile.meal_gen;
   const canWorkoutGen=!coachProfile.coach_id||coachProfile.workout_gen;
+
+  // Build a flat exercise lookup from EXERCISE_LIBRARY for video matching
+  const exerciseDb=EXERCISE_LIBRARY.flatMap(cat=>cat.subs.flatMap(sub=>sub.exercises));
+
+  // Convert coach program structure → native workout shape { Mon:[...], Tue:[...] }
+  const programToRoutine=(structure)=>{
+    const routine={};let uid=900000;
+    (structure||[]).forEach(day=>{
+      // Normalize day name: "Monday" → "Mon", "mon" → "Mon" etc
+      const key=day.name.length>3?day.name.slice(0,3):day.name;
+      const dayKey=key.charAt(0).toUpperCase()+key.slice(1).toLowerCase();
+      routine[dayKey]=(day.exercises||[]).map(ex=>{
+        const match=exerciseDb.find(e=>e.name.toLowerCase()===ex.name.toLowerCase());
+        return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:""};
+      });
+    });
+    return routine;
+  };
+
+  // Active routine: coach program takes precedence over user's own workouts
+  const activeWorkouts=assignedProgram?programToRoutine(assignedProgram.structure):(workouts||EMPTY_WORKOUTS);
+  const activeExercises=activeWorkouts[selectedDay]||[];
   if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:600}}>FORGE YOUR LEGACY</div><div style={{marginTop:16,width:24,height:24,border:"2px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
   if(showSetup)return(
@@ -416,21 +440,16 @@ export default function FitStud() {
           {workoutFinished&&<div style={{margin:"0 16px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(212,175,55,0.12),rgba(184,148,31,0.08))",border:"1px solid rgba(212,175,55,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:10}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10b981",flexShrink:0}} /><div><div style={{fontSize:14,fontWeight:800,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>WORKOUT SAVED</div><div style={{fontSize:12,color:"rgba(212,175,55,0.7)",marginTop:2}}>Great work! Your progress has been recorded.</div></div></div>}
           <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:14}}>
             {/* COACH ASSIGNED PROGRAM */}
-            {assignedProgram&&<div style={{background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,padding:"16px",marginBottom:4}}>
-              <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your Coach's Program</div>
-              <div style={{fontSize:17,fontWeight:800,color:t.text,marginBottom:12}}>{assignedProgram.name}</div>
-              {(assignedProgram.structure||[]).map((day,di)=><div key={di} style={{marginBottom:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#D4AF37",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{day.name}</div>
-                {(day.exercises||[]).map((ex,ei)=><div key={ei} style={{fontSize:13,color:t.text,padding:"4px 0",borderBottom:ei<day.exercises.length-1?"1px solid "+t.cardBorder:"none",display:"flex",justifyContent:"space-between"}}>
-                  <span>{ex.name}</span>
-                  <span style={{color:t.textMuted,fontSize:12}}>{ex.sets} × {ex.reps}</span>
-                </div>)}
-              </div>)}
-              {!canWorkoutGen&&<div style={{fontSize:12,color:t.textMuted,marginTop:8,textAlign:"center"}}>Follow your coach's program above</div>}
+            {assignedProgram&&<div style={{background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.25)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontSize:18}}>👟</div>
+              <div>
+                <div style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700}}>Coach's Program</div>
+                <div style={{fontSize:13,fontWeight:700,color:t.text}}>{assignedProgram.name}</div>
+              </div>
             </div>}
             {!assignedProgram&&!canWorkoutGen&&<div style={{textAlign:"center",padding:"32px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16}}><div style={{fontSize:28,marginBottom:8}}>🏋️</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your program soon.</div></div>}
-            {exercises.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
-            {exercises.map((ex,exIdx)=>{
+            {activeExercisesForDay.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
+            {activeExercisesForDay.map((ex,exIdx)=>{
               const done=doneCount(ex.id,ex.sets),finished=done===ex.sets;
               return(
                 <div key={ex.id} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:dragIndex===exIdx?0.4:1,transition:"all 0.15s",outline:dragOver===exIdx&&dragIndex!==exIdx?"3px solid "+t.accentSolid:"none",outlineOffset:2}}>
@@ -477,8 +496,8 @@ export default function FitStud() {
               );
             })}
           </div>
-          {exercises.length>0&&<div style={{padding:"20px 16px 8px"}}>
-            <button onClick={()=>{saveToHistory();saveToLibrary();setWorkoutFinished(true);setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
+          {activeExercisesForDay.length>0&&<div style={{padding:"20px 16px 8px"}}>
+            <button onClick={()=>{ const _exToSave=activeExercisesForDay; const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay; setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:_exToSave.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}})); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
             {!allDone&&<div style={{textAlign:"center",fontSize:11,color:t.textMuted,marginTop:8}}>You can finish anytime — your progress is saved</div>}
           </div>}
         </div>
