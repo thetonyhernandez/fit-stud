@@ -140,31 +140,6 @@ export default function FitStud() {
   useEffect(()=>{save("fs_progress_photos",progressPhotos);},[progressPhotos]);
   // messages now loaded from Supabase, not localStorage
 
-  // FIX 1: AUTO-RESET SET DATA ON NEW DAY
-  useEffect(()=>{
-    const todayKey=new Date().toISOString().slice(0,10);
-    const lastOpenedDay=localStorage.getItem("fs_last_opened_day");
-    if(lastOpenedDay&&lastOpenedDay!==todayKey){
-      setSetDataState({});
-      localStorage.removeItem("fs_setdata");
-      localStorage.removeItem("fs_last_opened_day");
-    }
-    localStorage.setItem("fs_last_opened_day",todayKey);
-  },[]);
-
-  // AUTH
-  useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>{
-      setUser(session?.user??null);setAuthLoading(false);
-      if(session?.user)loadFromSupabase(session.user.id);
-    });
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
-      setUser(session?.user??null);
-      if(session?.user)loadFromSupabase(session.user.id);
-    });
-    return()=>subscription.unsubscribe();
-  },[]);
-
   const loadFromSupabase=async(userId)=>{
     try{
       const[w,s,h,l,p]=await Promise.all([
@@ -214,6 +189,34 @@ export default function FitStud() {
       if(!error&&data)setCoachMessages(prev=>prev.map(m=>m.id==="tmp_"+Date.now()?data:m));
     }catch(e){console.log("Send error",e);}
   };
+
+  // FIX 1: AUTO-RESET SET DATA ON NEW DAY
+  useEffect(()=>{
+    const todayKey=new Date().toISOString().slice(0,10);
+    const lastOpenedDay=localStorage.getItem("fs_last_opened_day");
+    if(lastOpenedDay&&lastOpenedDay!==todayKey){
+      setSetDataState({});
+      localStorage.removeItem("fs_setdata");
+      localStorage.removeItem("fs_last_opened_day");
+    }
+    localStorage.setItem("fs_last_opened_day",todayKey);
+  },[]);
+
+  // AUTH
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setUser(session?.user??null);setAuthLoading(false);
+      if(session?.user)loadFromSupabase(session.user.id);
+    });
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
+      setUser(session?.user??null);
+      if(session?.user)loadFromSupabase(session.user.id);
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
+
+
+
 
   const saveToSupabase=useCallback(async(table,field,data)=>{
     if(!user)return;setSyncStatus("saving");
