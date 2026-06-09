@@ -839,15 +839,30 @@ export default function FitStud() {
       </div>}
 
       {/* AUTH */}
-      {showAuth&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}} onClick={()=>{if(user)setShowAuth(false);}}>
-        <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"28px 24px 48px",border:"1px solid "+t.cardBorder,borderBottom:"none"}}>
-          <div style={{width:36,height:4,background:t.handle,borderRadius:2,margin:"0 auto 24px"}} />
-          <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:22,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:t.accentText,fontFamily:"Montserrat,sans-serif",fontWeight:600,marginTop:3}}>FORGE YOUR LEGACY</div></div>
-          <div style={{display:"flex",gap:0,marginBottom:24,background:t.toggleBg,borderRadius:12,padding:4}}>{["login","signup"].map(m=><button key={m} onClick={()=>{setAuthMode(m);setAuthError("");}} style={{flex:1,padding:"10px",borderRadius:9,border:"none",cursor:"pointer",background:authMode===m?t.accent:"transparent",color:authMode===m?"#fff":t.textMuted,fontSize:14,fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{m==="login"?"Login":"Sign Up"}</button>)}</div>
-          <div style={{display:"flex",flexDirection:"column",gap:12}}><input type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{width:"100%",padding:"14px",background:t.input,border:"1.5px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"}} /><input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} style={{width:"100%",padding:"14px",background:t.input,border:"1.5px solid "+t.inputBorder,borderRadius:12,color:t.text,fontSize:15,outline:"none",boxSizing:"border-box"}} /></div>
-          {authError&&<div style={{color:"#f87171",fontSize:12,marginTop:10,textAlign:"center"}}>{authError}</div>}
-          <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",padding:"16px",marginTop:20,background:authSubmitting?"rgba(212,175,55,0.3)":t.accent,border:"none",borderRadius:14,color:"#fff",fontSize:16,fontWeight:800,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{authSubmitting?<><span style={{display:"inline-block",width:16,height:16,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />{authMode==="login"?"Logging in...":"Creating account..."}</>:authMode==="login"?"LOGIN":"CREATE ACCOUNT"}</button>
-          <div style={{textAlign:"center",marginTop:16,fontSize:12,color:t.textMuted}}>{authMode==="login"?"No account? ":"Have an account? "}<span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:t.accentText,cursor:"pointer",fontWeight:600}}>{authMode==="login"?"Sign up free":"Login"}</span></div>
+      {showAuth&&<div style={{position:"fixed",inset:0,background:"#0B0B0B",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:600,padding:"40px 28px"}}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        {/* Logo */}
+        <div style={{marginBottom:48,textAlign:"center"}}>
+          <div style={{fontSize:42,fontWeight:900,letterSpacing:5,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div>
+          <div style={{fontSize:11,letterSpacing:4,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginTop:6,textTransform:"uppercase"}}>FORGE YOUR LEGACY</div>
+        </div>
+        {/* Tabs */}
+        <div style={{display:"flex",width:"100%",maxWidth:360,marginBottom:28,background:"rgba(255,255,255,0.06)",borderRadius:14,padding:4}}>
+          {["login","signup"].map(m=><button key={m} onClick={()=>{setAuthMode(m);setAuthError("");}} style={{flex:1,padding:"12px",borderRadius:11,border:"none",cursor:"pointer",background:authMode===m?"linear-gradient(135deg,#D4AF37,#B8941F)":"transparent",color:authMode===m?"#000":"#6b7280",fontSize:14,fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{m==="login"?"Login":"Sign Up"}</button>)}
+        </div>
+        {/* Inputs */}
+        <div style={{display:"flex",flexDirection:"column",gap:14,width:"100%",maxWidth:360,marginBottom:8}}>
+          <input type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{width:"100%",padding:"16px 18px",background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box"}} />
+          <input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")authMode==="login"?handleLogin():handleSignUp();}} style={{width:"100%",padding:"16px 18px",background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box"}} />
+        </div>
+        {authError&&<div style={{color:"#f87171",fontSize:13,marginBottom:12,textAlign:"center",width:"100%",maxWidth:360}}>{authError}</div>}
+        {/* Button */}
+        <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",maxWidth:360,padding:"18px",marginTop:8,background:authSubmitting?"rgba(212,175,55,0.4)":"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:16,fontWeight:900,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:1,fontFamily:"Montserrat,sans-serif",boxShadow:"0 4px 24px rgba(212,175,55,0.3)"}}>
+          {authSubmitting?<><span style={{display:"inline-block",width:18,height:18,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />{authMode==="login"?"Logging in...":"Creating account..."}</>:authMode==="login"?"LOGIN →":"CREATE ACCOUNT →"}
+        </button>
+        <div style={{textAlign:"center",marginTop:20,fontSize:13,color:"#4b5563"}}>
+          {authMode==="login"?"No account? ":"Have an account? "}
+          <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#D4AF37",cursor:"pointer",fontWeight:700}}>{authMode==="login"?"Sign up free":"Login"}</span>
         </div>
       </div>}
 
