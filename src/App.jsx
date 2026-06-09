@@ -82,7 +82,7 @@ export default function FitStud() {
   const [libView,setLibView]=useState("categories");
   const [libCategory,setLibCategory]=useState(null);
   const [libExercise,setLibExercise]=useState(null);
-  const [showSetup,setShowSetup]=useState(()=>load("fs_workouts",null)===null);
+  const [showSetup,setShowSetup]=useState(false);
   const [setupLoading,setSetupLoading]=useState(false);
   const [setupError,setSetupError]=useState("");
   const [setupStep,setSetupStep]=useState("welcome");
@@ -150,13 +150,13 @@ export default function FitStud() {
         supabase.from("user_library").select("library").eq("user_id",userId).single(),
         supabase.from("profiles").select("coach_id,meal_gen,workout_gen").eq("id",userId).single(),
       ]);
-      if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}
+      if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}else if(!p.data?.coach_id){setShowSetup(true);}
       // Only restore setdata from cloud if it was saved TODAY — prevents old data showing up
       const todayKey=new Date().toISOString().slice(0,10);
       if(s.data?.setdata && s.data.setdata.__date===todayKey)setSetDataState(s.data.setdata);
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
-      if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});}
+      if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
       // Load real Supabase messages (inline — loadMessages defined below)
       supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
       // Load coach-assigned workout program and meal plan
@@ -211,7 +211,8 @@ export default function FitStud() {
       clearTimeout(authTimeout);
       setUser(session?.user??null);setAuthLoading(false);
       if(session?.user)loadFromSupabase(session.user.id);
-    }).catch(()=>{clearTimeout(authTimeout);setAuthLoading(false);});
+      else setShowAuth(true);
+    }).catch(()=>{clearTimeout(authTimeout);setAuthLoading(false);setShowAuth(true);});
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
       setUser(session?.user??null);
       if(session?.user)loadFromSupabase(session.user.id);
@@ -407,7 +408,7 @@ export default function FitStud() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;} html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;} #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;} input,textarea,select{font-size:16px!important;transform:translateZ(0);} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
 
       {/* HEADER */}
-      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header}}>
+      <div style={{padding:"52px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header,position:"relative",zIndex:10}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
             <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div>
@@ -838,7 +839,7 @@ export default function FitStud() {
       </div>}
 
       {/* AUTH */}
-      {showAuth&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}} onClick={()=>setShowAuth(false)}>
+      {showAuth&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}} onClick={()=>{if(user)setShowAuth(false);}}>
         <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"28px 24px 48px",border:"1px solid "+t.cardBorder,borderBottom:"none"}}>
           <div style={{width:36,height:4,background:t.handle,borderRadius:2,margin:"0 auto 24px"}} />
           <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:22,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:t.accentText,fontFamily:"Montserrat,sans-serif",fontWeight:600,marginTop:3}}>FORGE YOUR LEGACY</div></div>
