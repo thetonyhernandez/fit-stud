@@ -404,7 +404,7 @@ export default function FitStud() {
   );
 
   return(
-    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",margin:0,boxSizing:"border-box",overflowX:"hidden",WebkitOverflowScrolling:"touch"}}>
+    <div style={{height:"100dvh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,boxSizing:"border-box",overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;} html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;} #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;} input,textarea,select{font-size:16px!important;transform:translateZ(0);} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
 
       {/* HEADER */}
@@ -434,6 +434,9 @@ export default function FitStud() {
       <div style={{display:"flex",margin:"12px 16px 0",background:t.toggleBg,borderRadius:12,padding:4}}>
         {(coachProfile.coach_id?[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"],["coach","💬 Coach"]]:[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]]).map(([v,label])=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:"pointer",background:view===v?t.accent:"transparent",color:view===v?"#fff":t.textMuted,fontSize:12,fontWeight:700,textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none",position:"relative"}}>{label}{v==="coach"&&coachMessages.length>0&&coachMessages[coachMessages.length-1]?.sender==="coach"&&<span style={{position:"absolute",top:4,right:4,width:6,height:6,borderRadius:"50%",background:"#ef4444"}} />}</button>)}
       </div>
+
+      {/* SCROLLABLE CONTENT */}
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:"calc(80px + env(safe-area-inset-bottom));"}}>
 
       {/* WEEK VIEW */}
       {view==="week"&&(
@@ -518,8 +521,8 @@ export default function FitStud() {
                         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.accentMuted,borderRadius:8,padding:"4px 2px",minHeight:40,border:"1px solid "+t.accentBorder}}>
                           {last?<><span style={{fontSize:11,fontWeight:700,color:t.textSub,lineHeight:1.2}}>{last.reps||"—"}</span><span style={{fontSize:9,color:t.accentText,lineHeight:1.2}}>{last.weight?last.weight+"lb":"bw"}</span></>:<span style={{fontSize:12,color:t.accentText,fontWeight:700}}>—</span>}
                         </div>
-                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)} onFocus={e=>{setTimeout(()=>e.target.scrollIntoView({block:"center",behavior:"smooth"}),300);}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
-                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)} onFocus={e=>{setTimeout(()=>e.target.scrollIntoView({block:"center",behavior:"smooth"}),300);}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)}  style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)}  style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
                         <button onClick={()=>toggleDone(ex.id,i)} style={{width:40,height:40,borderRadius:10,border:s.done?"none":"2px solid rgba(212,175,55,0.5)",background:s.done?t.accent:t.card,color:s.done?"#fff":"rgba(212,175,55,0.7)",fontSize:18,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                       </div>;
                     })}
@@ -678,6 +681,8 @@ export default function FitStud() {
           </div>
         </div>;
       })()}
+
+      </div>{/* END SCROLLABLE CONTENT */}
 
       {/* VIDEO PLAYER */}
       {videoPlayer&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:400,padding:"20px 16px"}} onClick={()=>setVideoPlayer(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><div><div style={{fontSize:11,color:"#6366f1",letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>How-To Guide</div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{videoPlayer.title}</div></div><button onClick={()=>setVideoPlayer(null)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:36,height:36,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div><div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000"}}><iframe src={"https://www.youtube.com/embed/"+videoPlayer.videoId+"?autoplay=1&rel=0&modestbranding=1"} title={videoPlayer.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div></div></div>}
@@ -839,31 +844,36 @@ export default function FitStud() {
       </div>}
 
       {/* AUTH */}
-      {showAuth&&<div style={{position:"fixed",inset:0,background:"#0B0B0B",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:600,padding:"40px 28px"}}>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {showAuth&&<div style={{position:"fixed",inset:0,background:"linear-gradient(160deg,#0B0B0B 0%,#111008 60%,#1a1400 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:600,padding:"40px 28px"}}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        {/* Gold accent top bar */}
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
         {/* Logo */}
-        <div style={{marginBottom:48,textAlign:"center"}}>
-          <div style={{fontSize:42,fontWeight:900,letterSpacing:5,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div>
-          <div style={{fontSize:11,letterSpacing:4,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginTop:6,textTransform:"uppercase"}}>FORGE YOUR LEGACY</div>
+        <div style={{marginBottom:52,textAlign:"center",animation:"fadeUp 0.6s ease forwards"}}>
+          <div style={{fontSize:52,fontWeight:900,letterSpacing:6,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1,textShadow:"0 0 40px rgba(212,175,55,0.3)"}}>FITSTUD</div>
+          <div style={{fontSize:11,letterSpacing:5,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginTop:8,textTransform:"uppercase"}}>FORGE YOUR LEGACY</div>
+          <div style={{width:40,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)",margin:"12px auto 0"}} />
         </div>
         {/* Tabs */}
-        <div style={{display:"flex",width:"100%",maxWidth:360,marginBottom:28,background:"rgba(255,255,255,0.06)",borderRadius:14,padding:4}}>
-          {["login","signup"].map(m=><button key={m} onClick={()=>{setAuthMode(m);setAuthError("");}} style={{flex:1,padding:"12px",borderRadius:11,border:"none",cursor:"pointer",background:authMode===m?"linear-gradient(135deg,#D4AF37,#B8941F)":"transparent",color:authMode===m?"#000":"#6b7280",fontSize:14,fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>{m==="login"?"Login":"Sign Up"}</button>)}
+        <div style={{display:"flex",width:"100%",maxWidth:360,marginBottom:24,background:"rgba(212,175,55,0.08)",borderRadius:14,padding:4,border:"1px solid rgba(212,175,55,0.15)"}}>
+          {["login","signup"].map(m=><button key={m} onClick={()=>{setAuthMode(m);setAuthError("");}} style={{flex:1,padding:"12px",borderRadius:11,border:"none",cursor:"pointer",background:authMode===m?"linear-gradient(135deg,#D4AF37,#B8941F)":"transparent",color:authMode===m?"#000":"#6b7280",fontSize:14,fontWeight:800,textTransform:"uppercase",letterSpacing:1,fontFamily:"Montserrat,sans-serif"}}>{m==="login"?"Login":"Sign Up"}</button>)}
         </div>
         {/* Inputs */}
-        <div style={{display:"flex",flexDirection:"column",gap:14,width:"100%",maxWidth:360,marginBottom:8}}>
-          <input type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{width:"100%",padding:"16px 18px",background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box"}} />
-          <input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")authMode==="login"?handleLogin():handleSignUp();}} style={{width:"100%",padding:"16px 18px",background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box"}} />
+        <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:360,marginBottom:8}}>
+          <input type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{width:"100%",padding:"16px 18px",background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.2)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"Poppins,sans-serif"}} />
+          <input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){authMode==="login"?handleLogin():handleSignUp();}}} style={{width:"100%",padding:"16px 18px",background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.2)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"Poppins,sans-serif"}} />
         </div>
-        {authError&&<div style={{color:"#f87171",fontSize:13,marginBottom:12,textAlign:"center",width:"100%",maxWidth:360}}>{authError}</div>}
+        {authError&&<div style={{color:"#f87171",fontSize:13,marginBottom:10,textAlign:"center",width:"100%",maxWidth:360}}>{authError}</div>}
         {/* Button */}
-        <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",maxWidth:360,padding:"18px",marginTop:8,background:authSubmitting?"rgba(212,175,55,0.4)":"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:16,fontWeight:900,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:1,fontFamily:"Montserrat,sans-serif",boxShadow:"0 4px 24px rgba(212,175,55,0.3)"}}>
+        <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",maxWidth:360,padding:"18px",marginTop:8,background:authSubmitting?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:16,fontWeight:900,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:2,fontFamily:"Montserrat,sans-serif",boxShadow:"0 4px 28px rgba(212,175,55,0.35)"}}>
           {authSubmitting?<><span style={{display:"inline-block",width:18,height:18,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />{authMode==="login"?"Logging in...":"Creating account..."}</>:authMode==="login"?"LOGIN →":"CREATE ACCOUNT →"}
         </button>
-        <div style={{textAlign:"center",marginTop:20,fontSize:13,color:"#4b5563"}}>
+        <div style={{textAlign:"center",marginTop:24,fontSize:13,color:"#4b5563"}}>
           {authMode==="login"?"No account? ":"Have an account? "}
           <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#D4AF37",cursor:"pointer",fontWeight:700}}>{authMode==="login"?"Sign up free":"Login"}</span>
         </div>
+        {/* Bottom gold bar */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
       </div>}
 
       {/* CONGRATS */}
