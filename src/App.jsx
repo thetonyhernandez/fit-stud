@@ -204,10 +204,13 @@ export default function FitStud() {
 
   // AUTH
   useEffect(()=>{
+    // Timeout: if Supabase hangs for 5s, stop loading anyway
+    const authTimeout=setTimeout(()=>setAuthLoading(false),5000);
     supabase.auth.getSession().then(({data:{session}})=>{
+      clearTimeout(authTimeout);
       setUser(session?.user??null);setAuthLoading(false);
       if(session?.user)loadFromSupabase(session.user.id);
-    });
+    }).catch(()=>{clearTimeout(authTimeout);setAuthLoading(false);});
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
       setUser(session?.user??null);
       if(session?.user)loadFromSupabase(session.user.id);
@@ -348,7 +351,7 @@ export default function FitStud() {
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
   const allDone=activeExercisesForDay.length>0&&activeExercisesForDay.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
   const stats=buildStats(activeExercisesForDay);
-  if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif"}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:600}}>FORGE YOUR LEGACY</div><div style={{marginTop:16,width:24,height:24,border:"2px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
+  if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:28,fontWeight:900,letterSpacing:4,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>FITSTUD</div><div style={{fontSize:10,letterSpacing:4,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,textTransform:"uppercase"}}>FORGE YOUR LEGACY</div><div style={{marginTop:24,width:40,height:40,border:"3px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><div style={{marginTop:16,fontSize:12,color:"rgba(212,175,55,0.5)"}}>Loading...</div><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
   if(showSetup)return(
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)",color:"#e2e8f0",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",textAlign:"center"}}>
