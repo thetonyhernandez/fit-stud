@@ -404,7 +404,7 @@ export default function FitStud() {
   );
 
   return(
-    <div style={{height:"100dvh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,boxSizing:"border-box",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+    <div style={{height:"100svh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,boxSizing:"border-box",overflow:"hidden",display:"flex",flexDirection:"column",position:"relative"}}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;} html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;} #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;} input,textarea,select{font-size:16px!important;transform:translateZ(0);} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
 
       {/* HEADER */}
@@ -436,7 +436,7 @@ export default function FitStud() {
       </div>
 
       {/* SCROLLABLE CONTENT */}
-      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:"calc(80px + env(safe-area-inset-bottom));"}}>
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",WebkitOverflowScrolling:"touch",paddingBottom:"calc(80px + env(safe-area-inset-bottom))",overscrollBehavior:"contain",position:"relative"}}>
 
       {/* WEEK VIEW */}
       {view==="week"&&(
