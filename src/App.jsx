@@ -398,16 +398,7 @@ export default function FitStud() {
 
   return(
     <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",margin:0,boxSizing:"border-box",overflowX:"hidden",WebkitOverflowScrolling:"touch"}}>
-      <style>{`
-  @keyframes spin{to{transform:rotate(360deg)}}
-  *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;}
-  #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;}
-  input,textarea,select{font-size:16px!important;transform:translateZ(0);}
-  input[type=number]{-moz-appearance:textfield;}
-  input[type=number]::-webkit-outer-spin-button,
-  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;} html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;} #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;} input,textarea,select{font-size:16px!important;transform:translateZ(0);} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
 
       {/* HEADER */}
       <div style={{padding:"24px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header}}>
