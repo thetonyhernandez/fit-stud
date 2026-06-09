@@ -397,8 +397,17 @@ export default function FitStud() {
   );
 
   return(
-    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:80,margin:0,boxSizing:"border-box",overflowX:"hidden"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box} html,body,#root{background:#0B0B0B;min-height:100vh;overscroll-behavior:none} input[type=number]{font-size:16px!important} .no-zoom{font-size:16px!important}`}</style>
+    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,paddingBottom:"calc(80px + env(safe-area-inset-bottom))",margin:0,boxSizing:"border-box",overflowX:"hidden",WebkitOverflowScrolling:"touch"}}>
+      <style>{`
+  @keyframes spin{to{transform:rotate(360deg)}}
+  *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;}
+  #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;}
+  input,textarea,select{font-size:16px!important;transform:translateZ(0);}
+  input[type=number]{-moz-appearance:textfield;}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+`}</style>
 
       {/* HEADER */}
       <div style={{padding:"24px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header}}>
@@ -511,8 +520,8 @@ export default function FitStud() {
                         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.accentMuted,borderRadius:8,padding:"4px 2px",minHeight:40,border:"1px solid "+t.accentBorder}}>
                           {last?<><span style={{fontSize:11,fontWeight:700,color:t.textSub,lineHeight:1.2}}>{last.reps||"—"}</span><span style={{fontSize:9,color:t.accentText,lineHeight:1.2}}>{last.weight?last.weight+"lb":"bw"}</span></>:<span style={{fontSize:12,color:t.accentText,fontWeight:700}}>—</span>}
                         </div>
-                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
-                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="numeric" placeholder="0" value={s.reps===0||s.reps==="0"||!s.reps?"":s.reps} onChange={e=>updateSet(ex.id,i,"reps",e.target.value)} onFocus={e=>{setTimeout(()=>e.target.scrollIntoView({block:"center",behavior:"smooth"}),300);}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="decimal" placeholder="0" value={s.weight} onChange={e=>updateSet(ex.id,i,"weight",e.target.value)} onFocus={e=>{setTimeout(()=>e.target.scrollIntoView({block:"center",behavior:"smooth"}),300);}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
                         <button onClick={()=>toggleDone(ex.id,i)} style={{width:40,height:40,borderRadius:10,border:s.done?"none":"2px solid rgba(212,175,55,0.5)",background:s.done?t.accent:t.card,color:s.done?"#fff":"rgba(212,175,55,0.7)",fontSize:18,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                       </div>;
                     })}
