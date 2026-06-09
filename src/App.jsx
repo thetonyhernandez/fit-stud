@@ -405,7 +405,7 @@ export default function FitStud() {
 
   return(
     <div style={{height:"100dvh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;margin:0;padding:0;} html,body,#root{height:100%;background:#0B0B0B;} input,textarea,select{font-size:16px!important;} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;margin:0;padding:0;} html{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;} body{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;top:0;left:0;} #root{height:100%;overflow:hidden;} input,textarea,select{font-size:16px!important;} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
 
       {/* HEADER */}
       <div style={{flexShrink:0,padding:"12px 20px 12px",paddingTop:"calc(env(safe-area-inset-top, 44px) + 8px)",borderBottom:"1px solid "+t.headerBorder,background:t.header,zIndex:10}}>
