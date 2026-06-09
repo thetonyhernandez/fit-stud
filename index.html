@@ -2,20 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0B0B0B" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FitStud" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Apple touch icons -->
     <link rel="apple-touch-icon" href="/logo.png" />
     <link rel="icon" type="image/png" href="/logo.png" />
-    <title>FitStud</title>
+
+    <title>FitStud — Forge Your Legacy</title>
+
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body { background: #0B0B0B; }
+      html, body {
+        background: #0B0B0B;
+        height: 100%;
+        overflow-x: hidden;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+      }
+      #root {
+        background: #0B0B0B;
+        min-height: 100%;
+      }
+      /* Critical: prevent iOS zoom on input focus */
+      input, textarea, select {
+        font-size: 16px !important;
+      }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/App.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
