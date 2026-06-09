@@ -220,24 +220,6 @@ export default function FitStud() {
     return()=>subscription.unsubscribe();
   },[]);
 
-  // Set scroll area top based on header + toggle height
-  useEffect(()=>{
-    const update=()=>{
-      const h=document.getElementById("app-header");
-      const t2=document.querySelector("[data-view-toggle]");
-      if(h&&t2){
-        const top=h.getBoundingClientRect().bottom;
-        document.documentElement.style.setProperty("--scroll-top",top+"px");
-        const sa=document.getElementById("scroll-area");
-        if(sa)sa.style.top=top+"px";
-      }
-    };
-    // Run after render
-    requestAnimationFrame(update);
-    window.addEventListener("resize",update);
-    return()=>window.removeEventListener("resize",update);
-  },[]);
-
 
 
 
@@ -422,11 +404,11 @@ export default function FitStud() {
   );
 
   return(
-    <div style={{height:"100svh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,boxSizing:"border-box",overflow:"hidden",display:"flex",flexDirection:"column",position:"relative"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{font-family:'Poppins',system-ui,sans-serif;margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;} html,body{background:#0B0B0B;height:100%;overscroll-behavior:none;overflow-x:hidden;} #root{background:#0B0B0B;min-height:100%;overscroll-behavior:none;} input,textarea,select{font-size:16px!important;transform:translateZ(0);} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
+    <div style={{height:"100dvh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;margin:0;padding:0;} html,body,#root{height:100%;background:#0B0B0B;} input,textarea,select{font-size:16px!important;} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
 
       {/* HEADER */}
-      <div id="app-header" style={{padding:"52px 20px 16px",borderBottom:"1px solid "+t.headerBorder,background:t.header,position:"relative",zIndex:10}}>
+      <div style={{flexShrink:0,padding:"12px 20px 12px",paddingTop:"calc(env(safe-area-inset-top, 44px) + 8px)",borderBottom:"1px solid "+t.headerBorder,background:t.header,zIndex:10}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
             <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div>
@@ -449,12 +431,12 @@ export default function FitStud() {
       </div>
 
       {/* VIEW TOGGLE */}
-      <div data-view-toggle style={{display:"flex",margin:"12px 16px 0",background:t.toggleBg,borderRadius:12,padding:4}}>
-        {(coachProfile.coach_id?[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"],["coach","💬 Coach"]]:[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]]).map(([v,label])=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"7px 2px",borderRadius:9,border:"none",cursor:"pointer",background:view===v?t.accent:"transparent",color:view===v?"#fff":t.textMuted,fontSize:10,fontWeight:700,textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none",position:"relative",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}{v==="coach"&&coachMessages.length>0&&coachMessages[coachMessages.length-1]?.sender==="coach"&&<span style={{position:"absolute",top:4,right:4,width:6,height:6,borderRadius:"50%",background:"#ef4444"}} />}</button>)}
+      <div style={{flexShrink:0,display:"flex",margin:"8px 12px 8px",background:t.toggleBg,borderRadius:12,padding:3}}>
+        {(coachProfile.coach_id?[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"],["coach","💬 Coach"]]:[["week","📅 Week"],["month","🗓 Month"],["dashboard","📊 Stats"],["nutrition","🥗 Nutrition"]]).map(([v,label])=><button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"9px",borderRadius:9,border:"none",cursor:"pointer",background:view===v?t.accent:"transparent",color:view===v?"#fff":t.textMuted,fontSize:12,fontWeight:700,textShadow:view===v?"0 1px 3px rgba(0,0,0,0.8)":"none",position:"relative"}}>{label}{v==="coach"&&coachMessages.length>0&&coachMessages[coachMessages.length-1]?.sender==="coach"&&<span style={{position:"absolute",top:4,right:4,width:6,height:6,borderRadius:"50%",background:"#ef4444"}} />}</button>)}
       </div>
 
       {/* SCROLLABLE CONTENT */}
-      <div id="scroll-area" style={{position:"fixed",left:0,right:0,bottom:0,overflowY:"scroll",overflowX:"hidden",WebkitOverflowScrolling:"touch",paddingBottom:"calc(80px + env(safe-area-inset-bottom))",overscrollBehavior:"none",top:"var(--scroll-top, 190px)"}}>
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",WebkitOverflowScrolling:"touch",paddingBottom:"calc(80px + env(safe-area-inset-bottom))",overscrollBehavior:"contain",position:"relative"}}>
 
       {/* WEEK VIEW */}
       {view==="week"&&(
