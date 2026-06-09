@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://txddetoycdwoatruhojs.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4ZGRldG95Y2R3b2F0cnVob2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwOTIxNTAsImV4cCI6MjA5NTY2ODE1MH0.Od-MYlkLSPh8S7LYwzchgJig2r0iOzbPyNrMyDpIcMw";
@@ -863,4 +864,10 @@ export default function FitStud() {
 
     </div>
   );
+}
+
+const root = document.getElementById("root");
+if (root && !root._reactRoot) {
+  root._reactRoot = true;
+  createRoot(root).render(<FitStud />);
 }
