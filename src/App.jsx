@@ -441,7 +441,7 @@ export default function FitStud() {
       {/* WEEK VIEW */}
       {view==="week"&&(
         <div>
-          <div onTouchStart={e=>setTouchSwipeStart(e.touches[0].clientX)} onTouchEnd={e=>{if(touchSwipeStart===null)return;const diff=touchSwipeStart-e.changedTouches[0].clientX;if(Math.abs(diff)>40)setWeekOffset(weekOffset+(diff>0?1:-1));setTouchSwipeStart(null);}} ref={el=>{if(el){const sel=el.querySelector("[data-selected='true']");if(sel)sel.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});}}} style={{display:"flex",gap:8,padding:"16px 12px 8px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+          <div onTouchStart={e=>setTouchSwipeStart(e.touches[0].clientX)} onTouchEnd={e=>{if(touchSwipeStart===null)return;const diff=touchSwipeStart-e.changedTouches[0].clientX;if(Math.abs(diff)>40)setWeekOffset(weekOffset+(diff>0?1:-1));setTouchSwipeStart(null);}} style={{display:"flex",gap:8,padding:"16px 12px 8px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
             {Array.from({length:7},(_,i)=>{
               const base=new Date(),slotDate=new Date(base);slotDate.setDate(base.getDate()+(weekOffset*7)+i);
               const dateNum=slotDate.getDate(),dateMonth=slotDate.getMonth(),dateYear=slotDate.getFullYear(),dayName=DAYS[slotDate.getDay()];
