@@ -121,6 +121,8 @@ export default function FitStud() {
   const [showProfile,setShowProfile]=useState(false);
   const [profileTab,setProfileTab]=useState("info");
   const [profileData,setProfileData]=useState(()=>load("fs_profile",{name:"",age:"",weight:"",height:"",goal:""}));
+  const [measurements,setMeasurements]=useState(()=>load("fs_measurements",[]));
+  const [weighInput,setWeighInput]=useState("");
   const [coachProfile,setCoachProfile]=useState({coach_id:null,meal_gen:true,workout_gen:true});
   const [assignedProgram,setAssignedProgram]=useState(null);
   const [assignedMeal,setAssignedMeal]=useState(null);
@@ -141,6 +143,7 @@ export default function FitStud() {
   useEffect(()=>{save("fs_library",library);},[library]);
   useEffect(()=>{save("fs_nutrition",nutrition);},[nutrition]);
   useEffect(()=>{save("fs_profile",profileData);},[profileData]);
+  useEffect(()=>{save("fs_measurements",measurements);},[measurements]);
   useEffect(()=>{if(mealPlan)save("fs_mealplan",mealPlan);},[mealPlan]);
   useEffect(()=>{localStorage.setItem("fs_checked_meals",JSON.stringify(checkedMeals));},[checkedMeals]);
   useEffect(()=>{save("fs_avatar",avatarUrl);},[avatarUrl]);
@@ -162,6 +165,7 @@ export default function FitStud() {
       if(s.data?.setdata && s.data.setdata.__date===todayKey)setSetDataState(s.data.setdata);
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
+      try{const{data:meas}=await supabase.from("user_measurements").select("measurements").eq("user_id",userId).maybeSingle();if(meas?.measurements)setMeasurements(meas.measurements);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
       // Load real Supabase messages (inline — loadMessages defined below)
       supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
@@ -243,6 +247,7 @@ export default function FitStud() {
   useEffect(()=>{if(user)saveToSupabase("user_setdata","setdata",setData);},[setData,user]);
   useEffect(()=>{if(user)saveToSupabase("user_history","history",history);},[history,user]);
   useEffect(()=>{if(user)saveToSupabase("user_library","library",library);},[library,user]);
+  useEffect(()=>{if(user&&measurements.length)saveToSupabase("user_measurements","measurements",measurements);},[measurements,user]);
 
   const uploadAvatar=async(file)=>{
     if(!user||!file)return;setUploadingAvatar(true);
@@ -303,6 +308,7 @@ export default function FitStud() {
   const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
   const getTodayNutrition=()=>nutrition[getTodayKey()]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0};
   const updateNutrition=(field,val)=>{const key=getTodayKey();setNutrition(prev=>({...prev,[key]:{...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}),[field]:parseFloat(val)||0}}));};
+  const logWeight=(weightVal,dateStr)=>{const w=parseFloat(weightVal);if(!w||w<=0)return;const d=dateStr||new Date().toISOString().slice(0,10);setMeasurements(prev=>{const others=(prev||[]).filter(m=>m.date!==d);return [...others,{date:d,weight:w}].sort((a,b)=>a.date<b.date?-1:1);});};
   const isTimeBased=(name)=>["sled","battle rope","farmer carry","farmer carries","cardio","run","sprint","plank","carry","carries","bike","rower","jump rope"].some(k=>name.toLowerCase().includes(k));
   const getLastRecord=(exName,setIndex)=>{
     const keys=Object.keys(history).sort((a,b)=>b.localeCompare(a));
@@ -609,6 +615,38 @@ export default function FitStud() {
         const maxVol=Math.max(...last7vol.map(d=>d.vol),1);
         return <div style={{padding:"16px"}}>
           <div style={{fontSize:16,fontWeight:700,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif"}}>Your Progress</div>
+          <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontSize:13,fontWeight:700,color:t.text}}>⚖️ Body Weight</div>
+              {measurements.length>0&&(()=>{const f=measurements[0].weight,l=measurements[measurements.length-1].weight,diff=Math.round((l-f)*10)/10;return <div style={{fontSize:12,fontWeight:700,color:diff<0?"#22c55e":diff>0?t.accentText:t.textMuted}}>{diff<0?"▼ "+Math.abs(diff)+" lbs lost":diff>0?"▲ "+diff+" lbs":"— no change"}</div>;})()}
+            </div>
+            {measurements.length>0?(()=>{
+              const pts=measurements.slice(-30);
+              const ws=pts.map(m=>m.weight);
+              const mn=Math.min(...ws),mx=Math.max(...ws),rng=(mx-mn)||1;
+              const W=300,H=90,P=6;
+              const X=i=>P+(pts.length<=1?(W-2*P)/2:(W-2*P)*i/(pts.length-1));
+              const Y=v=>P+(H-2*P)*(1-(v-mn)/rng);
+              const line=pts.map((m,i)=>X(i)+","+Y(m.weight)).join(" ");
+              const area="M "+X(0)+" "+(H-P)+" "+pts.map((m,i)=>"L "+X(i)+" "+Y(m.weight)).join(" ")+" L "+X(pts.length-1)+" "+(H-P)+" Z";
+              return <div>
+                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:28,fontWeight:800,color:t.accentText}}>{pts[pts.length-1].weight}</span>
+                  <span style={{fontSize:13,color:t.textMuted}}>lbs · latest</span>
+                </div>
+                <svg viewBox={"0 0 "+W+" "+H} style={{width:"100%",height:"auto",display:"block"}}>
+                  <path d={area} fill={t.accentSolid} opacity="0.15" />
+                  {pts.length>1&&<polyline points={line} fill="none" stroke={t.accentSolid} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+                  {pts.map((m,i)=><circle key={i} cx={X(i)} cy={Y(m.weight)} r={i===pts.length-1?4:2.5} fill={i===pts.length-1?t.accentSolid:t.modal} stroke={t.accentSolid} strokeWidth="1.5" />)}
+                </svg>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:t.textMuted,marginTop:4}}><span>{pts[0].date.slice(5)}</span><span>{pts[pts.length-1].date.slice(5)}</span></div>
+              </div>;
+            })():<div style={{fontSize:12,color:t.textMuted,padding:"8px 0 14px"}}>Log your weight below to start tracking your progress.</div>}
+            <div style={{display:"flex",gap:8,marginTop:12}}>
+              <input type="number" inputMode="decimal" placeholder="Today's weight (lbs)" value={weighInput} onChange={e=>setWeighInput(e.target.value)} style={{flex:1,padding:"12px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,outline:"none",boxSizing:"border-box"}} />
+              <button onClick={()=>{logWeight(weighInput);setWeighInput("");}} disabled={!weighInput} style={{padding:"12px 18px",background:weighInput?"linear-gradient(135deg,#D4AF37,#B8941F)":"rgba(212,175,55,0.2)",border:"none",borderRadius:10,color:weighInput?"#000":"#555",fontSize:14,fontWeight:700,cursor:weighInput?"pointer":"not-allowed"}}>Log</button>
+            </div>
+          </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
             {[{icon:"🔥",value:streak,label:"Day Streak"},{icon:"💪",value:totalWorkouts,label:"Workouts Done"},{icon:"🏋️",value:allTimeVolume>0?Math.round(allTimeVolume/1000)+"k lbs":"—",label:"Total Volume"},{icon:"🔁",value:allTimeReps||"—",label:"Total Reps"}].map(s=><div key={s.label} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"14px",display:"flex",alignItems:"center",gap:12}}><div style={{fontSize:28}}>{s.icon}</div><div><div style={{fontSize:22,fontWeight:800,color:"#a5b4fc"}}>{s.value}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{s.label}</div></div></div>)}
           </div>
