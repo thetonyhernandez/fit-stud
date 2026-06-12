@@ -283,6 +283,7 @@ export default function FitStud() {
   useEffect(()=>{if(user)saveToSupabase("user_history","history",history);},[history,user]);
   useEffect(()=>{if(user)saveToSupabase("user_library","library",library);},[library,user]);
   useEffect(()=>{if(user&&measurements.length)saveToSupabase("user_measurements","measurements",measurements);},[measurements,user]);
+  useEffect(()=>{if(!user)return;const nw=new Date(),todayAbbr=DAYS[nw.getDay()],tk=dayKeyOf(nw);if(setData.__date!==tk)return;const exs=activeWorkouts[todayAbbr]||[];if(!exs.length)return;const getS=(exId,i)=>setData[todayAbbr+"-"+exId+"-"+i]||{};const hasData=exs.some(ex=>Array.from({length:ex.sets},(_,i)=>getS(ex.id,i)).some(x=>x.done||x.reps||x.weight));if(!hasData)return;const key=tk+"-"+todayAbbr;const id=setTimeout(()=>{setHistory(prev=>{if(prev[key]&&prev[key].finished)return prev;return{...prev,[key]:{day:todayAbbr,fullDay:FULL_DAYS[DAYS.indexOf(todayAbbr)],date:MONTHS[nw.getMonth()]+" "+nw.getDate()+", "+nw.getFullYear(),exercises:exs.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getS(ex.id,i))})),completedAt:prev[key]?.completedAt||new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),autosaved:true}};});},1500);return ()=>clearTimeout(id);},[setData,user]);
 
   const uploadAvatar=async(file)=>{
     if(!user||!file)return;setUploadingAvatar(true);
@@ -337,7 +338,7 @@ export default function FitStud() {
   const moveToDay=(ex,targetDay)=>{setWorkouts(prev=>({...prev,[selectedDay]:(prev[selectedDay]||[]).filter(e=>e.id!==ex.id),[targetDay]:[...(prev[targetDay]||[]),ex]}));setMoveModal(null);};
   const saveToHistory=()=>{
     const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay;
-    setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}}));
+    setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),finished:true}}));
   };
   const saveToLibrary=()=>{const entry={id:Date.now(),name:FULL_DAYS[DAYS.indexOf(selectedDay)]+" · "+MONTHS[todayMonth]+" "+todayDate,day:selectedDay,date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}))};setLibrary(prev=>[entry,...prev]);};
   const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
@@ -346,7 +347,7 @@ export default function FitStud() {
   const logWeight=(weightVal,dateStr)=>{const w=parseFloat(weightVal);if(!w||w<=0)return;const d=dateStr||new Date().toISOString().slice(0,10);setMeasurements(prev=>{const others=(prev||[]).filter(m=>m.date!==d);return [...others,{date:d,weight:w}].sort((a,b)=>a.date<b.date?-1:1);});};
   const isTimeBased=(name)=>["sled","battle rope","farmer carry","farmer carries","cardio","run","sprint","plank","carry","carries","bike","rower","jump rope"].some(k=>name.toLowerCase().includes(k));
   const getLastRecord=(exName,setIndex)=>{
-    const keys=Object.keys(history).sort((a,b)=>b.localeCompare(a));
+    const tkk=dayKeyOf(new Date());const keys=Object.keys(history).filter(k=>!k.startsWith(tkk)).sort((a,b)=>b.localeCompare(a));
     for(const key of keys){const rec=history[key];const histEx=rec.exercises?.find(e=>e.name===exName);if(histEx&&histEx.sets[setIndex]){const hs=histEx.sets[setIndex];if(hs.reps||hs.weight)return{reps:hs.reps||"",weight:hs.weight||""};}}
     return null;
   };
@@ -401,6 +402,11 @@ export default function FitStud() {
   // Active routine: coach program takes precedence over user's own workouts
   const activeWorkouts=assignedProgram?programToRoutine(assignedProgram.structure):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
+  const todayKeyStr=dayKeyOf(new Date());
+  const isPastSelected=selectedDateKey<todayKeyStr;
+  const selectedHistKey=selectedDateKey+"-"+selectedDay;
+  const pastRecord=isPastSelected?history[selectedHistKey]:null;
+  const nextDateKeyForWeekday=abbr=>{const idx=DAYS.indexOf(abbr);const tt=new Date();for(let k=0;k<7;k++){const d=new Date(tt.getFullYear(),tt.getMonth(),tt.getDate()+k);if(d.getDay()===idx)return dayKeyOf(d);}return dayKeyOf(tt);};
   const allDone=activeExercisesForDay.length>0&&activeExercisesForDay.every(ex=>doneCount(ex.id,ex.sets)===ex.sets);
   const stats=buildStats(activeExercisesForDay);
   if(authLoading)return(<div style={{minHeight:"100vh",background:"#0B0B0B",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}><div style={{fontSize:28,fontWeight:900,letterSpacing:4,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif",textTransform:"uppercase"}}>FITSTUD</div><div style={{fontSize:10,letterSpacing:4,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,textTransform:"uppercase"}}>FORGE YOUR LEGACY</div><div style={{marginTop:24,width:40,height:40,border:"3px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><div style={{marginTop:16,fontSize:12,color:"rgba(212,175,55,0.5)"}}>Loading...</div><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
@@ -518,12 +524,12 @@ export default function FitStud() {
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
               <button onClick={()=>setShowHistory(true)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"8px 12px",color:t.textSub,fontSize:12,fontWeight:600,cursor:"pointer"}}>📖</button>
-              <button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?t.accentLight:t.card,border:"1px solid "+(editMode?t.accentBorder:t.cardBorder),borderRadius:12,padding:"8px 12px",color:editMode?"#fbbf24":"#94a3b8",fontSize:12,fontWeight:600,cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>
-              <button onClick={()=>setShowAdd(true)} style={{background:t.accent,border:"none",borderRadius:12,padding:"8px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Add</button>
+              {!isPastSelected&&<button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?t.accentLight:t.card,border:"1px solid "+(editMode?t.accentBorder:t.cardBorder),borderRadius:12,padding:"8px 12px",color:editMode?"#fbbf24":"#94a3b8",fontSize:12,fontWeight:600,cursor:"pointer"}}>{editMode?"✓ Done":"✏️ Edit"}</button>}
+              {!isPastSelected&&<button onClick={()=>setShowAdd(true)} style={{background:t.accent,border:"none",borderRadius:12,padding:"8px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Add</button>}
             </div>
           </div>
           {workoutFinished&&<div style={{margin:"0 16px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(212,175,55,0.12),rgba(184,148,31,0.08))",border:"1px solid rgba(212,175,55,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:10}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10b981",flexShrink:0}} /><div><div style={{fontSize:14,fontWeight:800,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>WORKOUT SAVED</div><div style={{fontSize:12,color:"rgba(212,175,55,0.7)",marginTop:2}}>Great work! Your progress has been recorded.</div></div></div>}
-          <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:14}}>{isPastSelected&&<div style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:12,padding:"10px 14px",fontSize:12,color:t.accentText,fontWeight:600}}>Viewing a past day · read only</div>}{isPastSelected&&(pastRecord?pastRecord.exercises.map((ex,ei)=><div key={"pr"+ei} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:20,padding:"16px"}}><div style={{fontSize:16,fontWeight:700,color:t.text,marginBottom:10}}>{ex.name}</div>{ex.sets.map((sv,si)=><div key={si} style={{display:"flex",gap:14,alignItems:"center",fontSize:13,color:t.textSub,marginBottom:6}}><span style={{color:t.textMuted,minWidth:30,fontWeight:700}}>{"S"+(si+1)}</span><span>{(sv.reps||ex.reps)+" reps"}</span>{sv.weight?<span style={{color:t.accentText}}>{sv.weight+" lb"}</span>:null}{sv.done?<span style={{color:"#22c55e"}}>✓</span>:<span style={{color:t.textMuted}}>—</span>}</div>)}</div>):<div style={{textAlign:"center",padding:"40px 20px",color:t.textMuted,fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🗓️</div>No workout logged this day.</div>)}
             {/* COACH ASSIGNED PROGRAM */}
             {assignedProgram&&<div style={{background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.25)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
               <div style={{fontSize:18}}>👟</div>
@@ -533,8 +539,8 @@ export default function FitStud() {
               </div>
             </div>}
             {!assignedProgram&&!canWorkoutGen&&<div style={{textAlign:"center",padding:"32px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16}}><div style={{fontSize:28,marginBottom:8}}>🏋️</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your program soon.</div></div>}
-            {activeExercisesForDay.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
-            {activeExercisesForDay.map((ex,exIdx)=>{
+            {!isPastSelected&&activeExercisesForDay.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
+            {!isPastSelected&&activeExercisesForDay.map((ex,exIdx)=>{
               const done=doneCount(ex.id,ex.sets),finished=done===ex.sets;
               return(
                 <div key={ex.id} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:dragIndex===exIdx?0.4:1,transition:"all 0.15s",outline:dragOver===exIdx&&dragIndex!==exIdx?"3px solid "+t.accentSolid:"none",outlineOffset:2}}>
@@ -581,8 +587,8 @@ export default function FitStud() {
               );
             })}
           </div>
-          {activeExercisesForDay.length>0&&<div style={{padding:"20px 16px 8px"}}>
-            <button onClick={()=>{ const _exToSave=activeExercisesForDay; const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay; setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:_exToSave.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}})); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
+          {!isPastSelected&&activeExercisesForDay.length>0&&<div style={{padding:"20px 16px 8px"}}>
+            <button onClick={()=>{ const _exToSave=activeExercisesForDay; const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay; setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:_exToSave.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),finished:true}})); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
             {!allDone&&<div style={{textAlign:"center",fontSize:11,color:t.textMuted,marginTop:8}}>You can finish anytime — your progress is saved</div>}
           </div>}
         </div>
@@ -707,7 +713,7 @@ export default function FitStud() {
             const isToday=date===todayDate&&calMonth===todayMonth&&calYear===todayYear;
             const histKey=calYear+"-"+String(calMonth+1).padStart(2,"0")+"-"+String(date).padStart(2,"0")+"-"+dayName;
             const wasCompleted=!!history[histKey];
-            return <button key={idx} onClick={()=>{setSelectedDay(dayName);setWeekOffset(0);setView("week");}} style={{aspectRatio:"1",borderRadius:12,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,border:isToday?"1.5px solid "+t.accentSolid:wasCompleted?"1.5px solid #22c55e":"1px solid "+t.cardBorder,background:wasCompleted?"rgba(34,197,94,0.12)":isToday?t.accentMuted:t.card}}>
+            return <button key={idx} onClick={()=>{setSelectedDay(dayName);setSelectedDateKey(calYear+"-"+String(calMonth+1).padStart(2,"0")+"-"+String(date).padStart(2,"0"));setView("week");}} style={{aspectRatio:"1",borderRadius:12,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,border:isToday?"1.5px solid "+t.accentSolid:wasCompleted?"1.5px solid #22c55e":"1px solid "+t.cardBorder,background:wasCompleted?"rgba(34,197,94,0.12)":isToday?t.accentMuted:t.card}}>
               <span style={{fontSize:14,fontWeight:isToday||wasCompleted?700:400,color:wasCompleted?"#22c55e":isToday?t.accentText:t.text,lineHeight:1}}>{date}</span>
               {wasCompleted&&<div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e"}} />}
               {isToday&&!wasCompleted&&<div style={{width:5,height:5,borderRadius:"50%",background:t.accentSolid}} />}
@@ -784,7 +790,7 @@ export default function FitStud() {
               {libExercise.video?<><div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000",marginBottom:8}}><iframe src={"https://www.youtube.com/embed/"+libExercise.video+"?rel=0&modestbranding=1"} title={libExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div><a href={"https://www.youtube.com/watch?v="+libExercise.video} target="_blank" rel="noopener noreferrer" style={{display:"block",textAlign:"center",fontSize:12,color:t.textMuted,marginBottom:16,textDecoration:"none"}}>Video not playing? Watch on YouTube ↗</a></>:<div style={{width:"100%",height:120,borderRadius:16,background:t.card,border:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,flexDirection:"column",gap:6}}><div style={{fontSize:28}}>🎬</div><div style={{fontSize:12,color:t.textMuted}}>Video coming soon</div></div>}
               {(()=>{const g=findFormGuide(libExercise.name);return g?<div style={{marginBottom:14}}><FormGuideBlock guide={g} t={t} /></div>:<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:11,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>How to perform</div><div style={{fontSize:14,color:t.text,lineHeight:1.7}}>{libExercise.desc}</div></div>;})()}
               <div style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:700}}>Add to day</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{DAYS.map(day=><button key={day} onClick={()=>{addExerciseToDay(day,{id:nextId++,name:libExercise.name,sets:libExercise.sets,reps:libExercise.reps,video:libExercise.video||""});setShowLibrary(false);setLibView("categories");setSelectedDay(day);setView("week");}} style={{padding:"10px",background:day===selectedDay?t.accent:t.card,border:"1px solid "+(day===selectedDay?t.accentSolid:t.cardBorder),borderRadius:10,color:day===selectedDay?"#000":t.text,fontSize:13,fontWeight:day===selectedDay?700:500,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{FULL_DAYS[DAYS.indexOf(day)].slice(0,3)}</span>{day===selectedDay&&<span style={{fontSize:10,fontWeight:700}}>NOW</span>}</button>)}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{DAYS.map(day=><button key={day} onClick={()=>{addExerciseToDay(day,{id:nextId++,name:libExercise.name,sets:libExercise.sets,reps:libExercise.reps,video:libExercise.video||""});setShowLibrary(false);setLibView("categories");setSelectedDay(day);setSelectedDateKey(nextDateKeyForWeekday(day));setView("week");}} style={{padding:"10px",background:day===selectedDay?t.accent:t.card,border:"1px solid "+(day===selectedDay?t.accentSolid:t.cardBorder),borderRadius:10,color:day===selectedDay?"#000":t.text,fontSize:13,fontWeight:day===selectedDay?700:500,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{FULL_DAYS[DAYS.indexOf(day)].slice(0,3)}</span>{day===selectedDay&&<span style={{fontSize:10,fontWeight:700}}>NOW</span>}</button>)}</div>
             </div>}
           </div>
         </div>
