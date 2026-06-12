@@ -86,6 +86,11 @@ export default function FitStud() {
   const [calMonth,setCalMonth]=useState(todayMonth);
   const [calYear,setCalYear]=useState(todayYear);
   const [selectedDay,setSelectedDay]=useState(today);
+  const dayKeyOf=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const [selectedDateKey,setSelectedDateKey]=useState(()=>dayKeyOf(new Date()));
+  const dayReelRef=useRef(null),selDayRef=useRef(null),reelMounted=useRef(false);
+  useEffect(()=>{const c=dayReelRef.current,el=selDayRef.current;if(!c||!el)return;const left=el.offsetLeft-(c.clientWidth-el.clientWidth)/2;c.scrollTo({left,behavior:reelMounted.current?"smooth":"auto"});reelMounted.current=true;},[selectedDateKey]);
+  const shiftSel=delta=>{const p=selectedDateKey.split("-").map(Number);const nd=new Date(p[0],p[1]-1,p[2]+delta);const tw=new Date();const diff=Math.round((new Date(nd.getFullYear(),nd.getMonth(),nd.getDate())-new Date(tw.getFullYear(),tw.getMonth(),tw.getDate()))/86400000);if(Math.abs(diff)>28)return;setSelectedDateKey(dayKeyOf(nd));setSelectedDay(DAYS[nd.getDay()]);};
   const [workouts,setWorkouts]=useState(()=>load("fs_workouts",null));
   const [setData,setSetDataState]=useState(()=>load("fs_setdata",{}));
   const [showAdd,setShowAdd]=useState(false);
@@ -450,7 +455,7 @@ export default function FitStud() {
 
   return(
     <div style={{height:"100dvh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;margin:0;padding:0;} html{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;} body{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;top:0;left:0;} #root{height:100%;overflow:hidden;} input,textarea,select{font-size:16px!important;} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;margin:0;padding:0;} html{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;} body{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;top:0;left:0;} #root{height:100%;overflow:hidden;} input,textarea,select{font-size:16px!important;} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}#fs-dayreel::-webkit-scrollbar{display:none;}`}</style>
 
       {/* HEADER */}
       <div style={{flexShrink:0,padding:"12px 20px 12px",paddingTop:"calc(env(safe-area-inset-top, 44px) + 8px)",borderBottom:"1px solid "+t.headerBorder,background:t.header,zIndex:10}}>
@@ -486,14 +491,14 @@ export default function FitStud() {
       {/* WEEK VIEW */}
       {view==="week"&&(
         <div>
-          <div onTouchStart={e=>setTouchSwipeStart(e.touches[0].clientX)} onTouchEnd={e=>{if(touchSwipeStart===null)return;const diff=touchSwipeStart-e.changedTouches[0].clientX;if(Math.abs(diff)>40)setWeekOffset(weekOffset+(diff>0?1:-1));setTouchSwipeStart(null);}} style={{display:"flex",gap:8,padding:"16px 12px 8px",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-            {Array.from({length:7},(_,i)=>{
-              const base=new Date(),slotDate=new Date(base);slotDate.setDate(base.getDate()+(weekOffset*7)+i);
+          <div id="fs-dayreel" ref={dayReelRef} style={{display:"flex",gap:8,padding:"16px 16px 8px",overflowX:"auto",scrollbarWidth:"none",msOverflowStyle:"none",WebkitOverflowScrolling:"touch",scrollSnapType:"x proximity",scrollPaddingLeft:16,scrollPaddingRight:16}}>
+            {Array.from({length:57},(_,idx)=>{
+              const offset=idx-28,base=new Date(),slotDate=new Date(base.getFullYear(),base.getMonth(),base.getDate()+offset);
               const dateNum=slotDate.getDate(),dateMonth=slotDate.getMonth(),dateYear=slotDate.getFullYear(),dayName=DAYS[slotDate.getDay()];
-              const realToday=new Date(),isToday=dateNum===realToday.getDate()&&dateMonth===realToday.getMonth()&&dateYear===realToday.getFullYear();
+              const dKey=dayKeyOf(slotDate),isToday=offset===0;
               const histKey=dateYear+"-"+String(dateMonth+1).padStart(2,"0")+"-"+String(dateNum).padStart(2,"0")+"-"+dayName;
-              const isCompleted=!!history[histKey],isSelDay=dayName===selectedDay,hasWorkout=(safeWorkouts[dayName]||[]).length>0;
-              return <button key={i} data-selected={isSelDay?"true":"false"} onClick={()=>{setSelectedDay(dayName);setShowStats(false);}} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 8px",borderRadius:16,minWidth:56,cursor:"pointer",border:isToday?"1.5px solid "+t.accentSolid:isCompleted?"1.5px solid #22c55e":isSelDay?"1.5px solid "+t.accentBorder:"1.5px solid "+t.cardBorder,background:isToday?t.accentMuted:isCompleted?"rgba(34,197,94,0.12)":t.card,boxShadow:isSelDay?"0 0 0 2px "+t.accentSolid:"none"}}>
+              const isCompleted=!!history[histKey],isSelDay=dKey===selectedDateKey,hasWorkout=(safeWorkouts[dayName]||[]).length>0;
+              return <button key={dKey} ref={isSelDay?selDayRef:null} data-selected={isSelDay?"true":"false"} onClick={()=>{setSelectedDay(dayName);setSelectedDateKey(dKey);setShowStats(false);}} style={{flex:"0 0 auto",scrollSnapAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 8px",borderRadius:16,minWidth:56,cursor:"pointer",border:isToday?"1.5px solid "+t.accentSolid:isCompleted?"1.5px solid #22c55e":isSelDay?"1.5px solid "+t.accentBorder:"1.5px solid "+t.cardBorder,background:isToday?t.accentMuted:isCompleted?"rgba(34,197,94,0.12)":t.card,boxShadow:isSelDay?"0 0 0 2px "+t.accentSolid:"none"}}>
                 <span style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",fontWeight:700,color:isToday?t.accentText:isCompleted?"#22c55e":isSelDay?t.accentText:t.textMuted}}>{dayName}</span>
                 <span style={{fontSize:18,fontWeight:800,lineHeight:1,color:t.text}}>{dateNum}</span>
                 <span style={{width:6,height:6,borderRadius:"50%",background:isCompleted?"#22c55e":isToday?t.accentSolid:hasWorkout?t.accentBorder:"transparent"}} />
@@ -501,9 +506,9 @@ export default function FitStud() {
             })}
           </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,padding:"2px 16px 8px"}}>
-            <button onClick={()=>setWeekOffset(p=>p-1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>‹</button>
-            <span style={{fontSize:11,color:t.textMuted,letterSpacing:1}}>{weekOffset===0?"THIS WEEK":weekOffset>0?"+"+weekOffset+" WEEK"+(Math.abs(weekOffset)>1?"S":""):Math.abs(weekOffset)+" WEEK"+(Math.abs(weekOffset)>1?"S":"")+" AGO"}</span>
-            <button onClick={()=>setWeekOffset(p=>p+1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>›</button>
+            <button onClick={()=>shiftSel(-1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>‹</button>
+            <span style={{fontSize:11,color:t.textMuted,letterSpacing:1}}>{(()=>{const p=selectedDateKey.split("-").map(Number);const sd=new Date(p[0],p[1]-1,p[2]),tw=new Date(),t0=new Date(tw.getFullYear(),tw.getMonth(),tw.getDate());const diff=Math.round((sd-t0)/86400000);return diff===0?"TODAY":diff===1?"TOMORROW":diff===-1?"YESTERDAY":FULL_DAYS[sd.getDay()].slice(0,3).toUpperCase()+" · "+MONTHS[sd.getMonth()]+" "+p[2];})()}</span>
+            <button onClick={()=>shiftSel(1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>›</button>
           </div>
           <div style={{padding:"0 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
