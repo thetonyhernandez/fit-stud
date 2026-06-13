@@ -18,6 +18,7 @@ const DEFAULT_WORKOUTS = {
 };
 const load=(key,fallback)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch{return fallback;}};
 const save=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val));}catch{}};
+const keyName=s=>(s||"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
 const EMPTY_WORKOUTS={Sun:[],Mon:[],Tue:[],Wed:[],Thu:[],Fri:[],Sat:[]};
 const EXERCISE_LIBRARY=[
   {category:"Push",icon:"💪",subs:[
@@ -63,6 +64,7 @@ const FORM_GUIDE={
   pull_up:{match:["pull up","pull ups","pullup","pullups","pull ups assisted pull ups","pullups assisted pullups"],setup:"Hang from the bar with a grip slightly wider than your shoulders, arms straight, shoulders set down.",steps:["Pull your shoulder blades down to start.","Drive your elbows down and pull your chest toward the bar.","Get your chin over the bar.","Lower under control to a full hang."],tight:"Lats and core, with no swinging.",breathing:"Breathe out as you pull up, in as you lower.",avoid:"Kipping or swinging, doing half reps, shrugging up into your shoulders."},
   barbell_row:{match:["barbell row","barbell rows"],setup:"Hinge at the hips with a flat back, torso around 45 degrees, the bar hanging at arms length, grip just outside your knees.",steps:["Brace your core and keep your back flat.","Pull the bar toward your lower ribs.","Squeeze your shoulder blades together.","Lower under control to a full stretch."],tight:"Core braced, back flat, lats driving the pull.",breathing:"Breathe out as you row, in as you lower.",avoid:"Standing up with the weight, jerking the bar, rounding your back."}
 };
+const matchFormGuide=name=>{const n=keyName(name);if(!n)return null;const keys=Object.keys(FORM_GUIDE);for(const k of keys){if(FORM_GUIDE[k].match.some(a=>a===n))return FORM_GUIDE[k];}let best=null,bl=0;for(const k of keys){for(const a of FORM_GUIDE[k].match){if((n.includes(a)||a.includes(n))&&a.length>bl){best=FORM_GUIDE[k];bl=a.length;}}}return best;};
 function FormGuideBlock({guide,t}){
   if(!guide)return null;
   const Label=({children})=><div style={{fontSize:10,color:t.accentText,letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:5}}>{children}</div>;
@@ -77,6 +79,45 @@ function FormGuideBlock({guide,t}){
     <div style={{fontSize:13,color:t.textSub,lineHeight:1.6,marginBottom:14}}>{guide.breathing}</div>
     <Label>Common Mistakes</Label>
     <div style={{fontSize:13,color:t.textSub,lineHeight:1.6}}>{guide.avoid}</div>
+  </div>;
+}
+function MuscleTag({label,primary,t}){
+  return <span style={{display:"inline-block",fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,marginRight:6,marginBottom:6,background:primary?t.accentLight:t.card,border:"1px solid "+(primary?t.accentBorder:t.cardBorder),color:primary?t.accentText:t.textSub,textTransform:"capitalize"}}>{label}</span>;
+}
+function ExerciseDemo({title,videoId,desc,demo,t}){
+  const [tips,setTips]=useState(null);
+  const [tipsLoading,setTipsLoading]=useState(false);
+  const guide=matchFormGuide(title);
+  const Label=({children})=><div style={{fontSize:10,color:t.accentText,letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>{children}</div>;
+  const getTips=async()=>{
+    setTipsLoading(true);
+    try{
+      const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:300,system:"You are a concise strength coach. Give exactly 3 short, punchy form cues, max 12 words each. Return ONLY a JSON array of 3 strings. No markdown, no backticks.",messages:[{role:"user",content:"Form cues for the exercise: "+title}]})});
+      const data=await res.json();const raw=data.content?.find(b=>b.type==="text")?.text||"";
+      const arr=JSON.parse(raw.replace(/```json|```/g,"").trim());
+      if(Array.isArray(arr))setTips(arr.slice(0,3));else setTips(["Keep good form and control every rep."]);
+    }catch(e){setTips(["Could not load tips right now — follow the demo above."]);}
+    setTipsLoading(false);
+  };
+  return <div>
+    {demo&&demo.gif
+      ? <div style={{width:"100%",borderRadius:16,overflow:"hidden",background:"#fff",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center"}}><img src={demo.gif} alt={title} style={{width:"100%",maxHeight:340,objectFit:"contain",display:"block"}} /></div>
+      : videoId
+        ? <div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000",marginBottom:12}}><iframe src={"https://www.youtube.com/embed/"+videoId+"?rel=0&modestbranding=1"} title={title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div>
+        : <div style={{width:"100%",height:120,borderRadius:16,background:t.card,border:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,flexDirection:"column",gap:6}}><div style={{fontSize:28}}>🎬</div><div style={{fontSize:12,color:t.textMuted}}>Demo coming soon</div></div>}
+    {demo&&(demo.target||(demo.secondary&&demo.secondary.length))?<div style={{marginBottom:14}}><Label>Muscles Worked</Label><div>{demo.target&&<MuscleTag label={demo.target} primary={true} t={t} />}{(demo.secondary||[]).map((m,i)=><MuscleTag key={i} label={m} primary={false} t={t} />)}</div></div>:null}
+    {guide
+      ? <FormGuideBlock guide={guide} t={t} />
+      : (demo&&demo.instructions&&demo.instructions.length>0)
+        ? <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",textAlign:"left"}}><Label>How To Perform</Label>{demo.instructions.slice(0,6).map((s,i)=><div key={i} style={{display:"flex",gap:9,marginBottom:7}}><div style={{flex:"0 0 auto",width:19,height:19,borderRadius:"50%",background:t.accentLight,border:"1px solid "+t.accentBorder,color:t.accentText,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1}}>{i+1}</div><div style={{fontSize:13,color:t.text,lineHeight:1.5}}>{s}</div></div>)}</div>
+        : desc
+          ? <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",textAlign:"left"}}><Label>How To Perform</Label><div style={{fontSize:14,color:t.text,lineHeight:1.7}}>{desc}</div></div>
+          : null}
+    <div style={{marginTop:12}}>
+      {!tips&&<button onClick={getTips} disabled={tipsLoading} style={{width:"100%",padding:"12px",background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:12,color:t.accentText,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{tipsLoading?<><span style={{display:"inline-block",width:14,height:14,border:"2px solid "+t.accentBorder,borderTopColor:t.accentText,borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />Getting tips...</>:"✨ AI Form Tips"}</button>}
+      {tips&&<div style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:14,padding:"14px 16px",textAlign:"left"}}><Label>✨ Coach Tips</Label>{tips.map((tip,i)=><div key={i} style={{fontSize:13,color:t.text,lineHeight:1.6,marginBottom:6,display:"flex",gap:8}}><span style={{color:t.accentText,fontWeight:700}}>•</span><span>{tip}</span></div>)}</div>}
+    </div>
+    {demo&&demo.gif&&videoId&&<a href={"https://www.youtube.com/watch?v="+videoId} target="_blank" rel="noopener noreferrer" style={{display:"block",textAlign:"center",fontSize:12,color:t.textMuted,marginTop:12,textDecoration:"none"}}>Prefer a video? Watch on YouTube ↗</a>}
   </div>;
 }
 let nextId=200;
@@ -165,10 +206,10 @@ export default function FitStud() {
   const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
   const [uploadingPhoto,setUploadingPhoto]=useState(false);
-  // Supabase messages (replaces localStorage messages)
   const [coachMessages,setCoachMessages]=useState([]);
   const [newMessage,setNewMessage]=useState("");
   const [messagesLoading,setMessagesLoading]=useState(false);
+  const [exLib,setExLib]=useState(()=>load("fs_exlib_v1",null));
 
   // AUTO-SAVE
   useEffect(()=>{if(workouts)save("fs_workouts",workouts);},[workouts]);
@@ -183,7 +224,22 @@ export default function FitStud() {
   useEffect(()=>{localStorage.setItem("fs_checked_meals",JSON.stringify(checkedMeals));},[checkedMeals]);
   useEffect(()=>{save("fs_avatar",avatarUrl);},[avatarUrl]);
   useEffect(()=>{save("fs_progress_photos",progressPhotos);},[progressPhotos]);
-  // messages now loaded from Supabase, not localStorage
+
+  // Load exercise demo library (GIFs + muscles + instructions) once, cache locally
+  useEffect(()=>{
+    if(exLib)return;
+    (async()=>{
+      try{
+        const{data}=await supabase.from("exercise_library").select("name,target,secondary_muscles,local_gif_url,instructions");
+        if(data){
+          const map={};
+          data.forEach(r=>{const k=keyName(r.name);if(k&&r.local_gif_url)map[k]={gif:r.local_gif_url,target:r.target||"",secondary:Array.isArray(r.secondary_muscles)?r.secondary_muscles.slice(0,4):[],instructions:Array.isArray(r.instructions)?r.instructions.slice(0,6):[]};});
+          setExLib(map);save("fs_exlib_v1",map);
+        }
+      }catch(e){console.log("Exercise library load error",e);}
+    })();
+  },[]);
+  const findExDemo=name=>{if(!exLib)return null;const n=keyName(name);if(!n)return null;if(exLib[n])return exLib[n];let best=null,bl=0;for(const k in exLib){if(k.length>=4&&(k.includes(n)||n.includes(k))&&k.length>bl){best=exLib[k];bl=k.length;}}return best;};
 
   const loadFromSupabase=async(userId)=>{
     try{
@@ -195,16 +251,13 @@ export default function FitStud() {
         supabase.from("profiles").select("coach_id,meal_gen,workout_gen").eq("id",userId).single(),
       ]);
       if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}else if(!p.data?.coach_id){setShowSetup(true);}
-      // Only restore setdata from cloud if it was saved TODAY — prevents old data showing up
       const todayKey=new Date().toISOString().slice(0,10);
       if(s.data?.setdata && s.data.setdata.__date===todayKey)setSetDataState(s.data.setdata);
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
       try{const{data:meas}=await supabase.from("user_measurements").select("measurements").eq("user_id",userId).maybeSingle();if(meas?.measurements)setMeasurements(meas.measurements);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
-      // Load real Supabase messages (inline — loadMessages defined below)
       supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
-      // Load coach-assigned workout program and meal plan
       try{
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
         const wpA=(asg||[]).find(a=>a.kind==="workout");
@@ -227,7 +280,6 @@ export default function FitStud() {
   const sendMessage=async(text)=>{
     if(!text.trim()||!user||!coachProfile.coach_id)return;
     const msg={coach_id:coachProfile.coach_id,client_id:user.id,sender:"client",body:text.trim(),created_at:new Date().toISOString()};
-    // Optimistic update
     setCoachMessages(prev=>[...prev,{...msg,id:"tmp_"+Date.now()}]);
     setNewMessage("");
     try{
@@ -236,7 +288,6 @@ export default function FitStud() {
     }catch(e){console.log("Send error",e);}
   };
 
-  // FIX 1: AUTO-RESET SET DATA ON NEW DAY
   useEffect(()=>{
     const todayKey=new Date().toISOString().slice(0,10);
     const lastOpenedDay=localStorage.getItem("fs_last_opened_day");
@@ -248,9 +299,7 @@ export default function FitStud() {
     localStorage.setItem("fs_last_opened_day",todayKey);
   },[]);
 
-  // AUTH
   useEffect(()=>{
-    // Timeout: if Supabase hangs for 5s, stop loading anyway
     const authTimeout=setTimeout(()=>setAuthLoading(false),5000);
     supabase.auth.getSession().then(({data:{session}})=>{
       clearTimeout(authTimeout);
@@ -264,9 +313,6 @@ export default function FitStud() {
     });
     return()=>subscription.unsubscribe();
   },[]);
-
-
-
 
   const saveToSupabase=useCallback(async(table,field,data)=>{
     if(!user)return;setSyncStatus("saving");
@@ -304,7 +350,6 @@ export default function FitStud() {
   const getSet=(exId,i)=>{
     const raw=setData[selectedDay+"-"+exId+"-"+i];
     if(!raw)return{reps:"",weight:"",done:false};
-    // If this entry was saved on a different date, treat as empty (fresh day)
     const todayKey=new Date().toISOString().slice(0,10);
     if(raw.__entryDate&&raw.__entryDate!==todayKey)return{reps:"",weight:"",done:false};
     return raw;
@@ -312,7 +357,6 @@ export default function FitStud() {
   const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const todayKey=new Date().toISOString().slice(0,10);setSetDataState(prev=>({...prev,__date:todayKey,[key]:{...getSet(exId,i),__entryDate:todayKey,[field]:val}}));};
   const toggleDone=(exId,i)=>updateSet(exId,i,"done",!getSet(exId,i).done);
 
-  // FIX 2: RESET EXERCISE
   const resetExercise=(exId)=>{
     setSetDataState(prev=>{
       const next={...prev};
@@ -374,21 +418,17 @@ export default function FitStud() {
   const addWithAI=async()=>{if(!aiPrompt.trim())return;setAiLoading(true);setAiError("");try{const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:"Return ONLY a valid JSON array of exercise objects. Each: name(string),sets(number),reps(number),video(YouTube ID or empty).",messages:[{role:"user",content:aiPrompt}]})});const data=await res.json();const text=data.content?.find(b=>b.type==="text")?.text||"";JSON.parse(text.trim()).forEach(ex=>addExerciseToDay(selectedDay,{id:nextId++,name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}));setAiPrompt("");setShowAdd(false);}catch(e){setAiError("Could not parse. Try rephrasing.");}setAiLoading(false);};
   const generatePlan=async()=>{if(!plannerPrompt.trim())return;setPlannerLoading(true);setPlannerError("");setPlannerPreview(null);try{const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:2000,system:"Return ONLY valid JSON with keys Sun,Mon,Tue,Wed,Thu,Fri,Sat. Each value is array of exercises: name,sets,reps,video. Rest days=[].",messages:[{role:"user",content:plannerPrompt}]})});const data=await res.json();const text=data.content?.find(b=>b.type==="text")?.text||"";const parsed=JSON.parse(text.trim());if(!DAYS.some(d=>Array.isArray(parsed[d])))throw new Error("Invalid");setPlannerPreview(parsed);}catch(e){setPlannerError("Could not generate plan.");}setPlannerLoading(false);};
   const applyPlan=()=>{if(!plannerPreview)return;setWorkouts(prev=>{const next={...prev};DAYS.forEach(day=>{if(!Array.isArray(plannerPreview[day]))return;const newExs=plannerPreview[day].map(ex=>({id:nextId++,name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}));next[day]=plannerMode==="replace"?newExs:[...(prev[day]||[]),...newExs];});return next;});setPlannerPreview(null);setPlannerPrompt("");setShowPlanner(false);};
-  // Coach gating: no coach = full access; with coach = only if coach enabled it
   const canMealGen=!coachProfile.coach_id||coachProfile.meal_gen;
   const canWorkoutGen=!coachProfile.coach_id||coachProfile.workout_gen;
 
-  // Build a flat exercise lookup from EXERCISE_LIBRARY for video matching
   const exerciseDb=EXERCISE_LIBRARY.flatMap(cat=>cat.subs.flatMap(sub=>sub.exercises));
   const normName=s=>(s||"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
   const findLibMatch=name=>{const n=normName(name);if(!n)return null;let m=exerciseDb.find(e=>normName(e.name)===n);if(!m)m=exerciseDb.find(e=>{const en=normName(e.name);return en&&(en.includes(n)||n.includes(en));});return m||null;};
   const findFormGuide=name=>{const n=normName(name);if(!n)return null;const keys=Object.keys(FORM_GUIDE);for(const k of keys){if(FORM_GUIDE[k].match.some(a=>a===n))return FORM_GUIDE[k];}let best=null,bl=0;for(const k of keys){for(const a of FORM_GUIDE[k].match){if((n.includes(a)||a.includes(n))&&a.length>bl){best=FORM_GUIDE[k];bl=a.length;}}}return best;};
 
-  // Convert coach program structure → native workout shape { Mon:[...], Tue:[...] }
   const programToRoutine=(structure)=>{
     const routine={};let uid=900000;
     (structure||[]).forEach(day=>{
-      // Normalize day name: "Monday" → "Mon", "mon" → "Mon" etc
       const key=day.name.length>3?day.name.slice(0,3):day.name;
       const dayKey=key.charAt(0).toUpperCase()+key.slice(1).toLowerCase();
       routine[dayKey]=(day.exercises||[]).map(ex=>{
@@ -399,7 +439,6 @@ export default function FitStud() {
     return routine;
   };
 
-  // Active routine: coach program takes precedence over user's own workouts
   const activeWorkouts=assignedProgram?programToRoutine(assignedProgram.structure):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
   const todayKeyStr=dayKeyOf(new Date());
@@ -458,7 +497,6 @@ export default function FitStud() {
       </div>
     </div>
   );
-
   return(
     <div style={{height:"100dvh",background:t.bg,fontFamily:"Poppins,system-ui,sans-serif",color:t.text,margin:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;margin:0;padding:0;} html{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;} body{height:100%;background:#0B0B0B;overflow:hidden;position:fixed;width:100%;top:0;left:0;} #root{height:100%;overflow:hidden;} input,textarea,select{font-size:16px!important;} input[type=number]{-moz-appearance:textfield;-webkit-appearance:none;}#fs-dayreel::-webkit-scrollbar{display:none;}`}</style>
@@ -530,7 +568,6 @@ export default function FitStud() {
           </div>
           {workoutFinished&&<div style={{margin:"0 16px 12px",padding:"12px 16px",background:"linear-gradient(135deg,rgba(212,175,55,0.12),rgba(184,148,31,0.08))",border:"1px solid rgba(212,175,55,0.3)",borderRadius:14,display:"flex",alignItems:"center",gap:10}}><div style={{width:8,height:8,borderRadius:"50%",background:"#10b981",flexShrink:0}} /><div><div style={{fontSize:14,fontWeight:800,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>WORKOUT SAVED</div><div style={{fontSize:12,color:"rgba(212,175,55,0.7)",marginTop:2}}>Great work! Your progress has been recorded.</div></div></div>}
           <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:14}}>{isPastSelected&&<div style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:12,padding:"10px 14px",fontSize:12,color:t.accentText,fontWeight:600}}>Viewing a past day · read only</div>}{isPastSelected&&!pastRecord&&<div style={{textAlign:"center",padding:"40px 20px",color:t.textMuted,fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🗓️</div>No workout logged this day.</div>}
-            {/* COACH ASSIGNED PROGRAM */}
             {assignedProgram&&<div style={{background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.25)",borderRadius:12,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
               <div style={{fontSize:18}}>👟</div>
               <div>
@@ -559,8 +596,7 @@ export default function FitStud() {
                       <div style={{fontSize:12,color:theme==="light"?"#000":"#fff",marginTop:3,textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{setCount} sets · target {ex.reps} reps · {done}/{setCount} done</div>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
-                      {(()=>{const lib=findLibMatch(ex.name);const vid=ex.video||(lib&&lib.video)||"";return <button onClick={()=>{if(vid){setVideoPlayer({videoId:vid,title:ex.name,desc:lib&&lib.desc?lib.desc:""});}else{window.open("https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" exercise how to"),"_blank","noopener");}}} style={{background:t.accentLight,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"4px 8px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>▶ Watch</button>;})()}
-                      {/* FIX 3: RESET BUTTON */}
+                      {(()=>{const lib=findLibMatch(ex.name);const vid=ex.video||(lib&&lib.video)||"";return <button onClick={()=>{setVideoPlayer({videoId:vid,title:ex.name,desc:lib&&lib.desc?lib.desc:""});}} style={{background:t.accentLight,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"4px 8px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>▶ Demo</button>;})()}
                       {!ro&&<button onClick={e=>{e.stopPropagation();resetExercise(ex.id);}} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"4px 8px",color:"#f87171",fontSize:10,fontWeight:600,cursor:"pointer"}}>↺ Reset</button>}
                       {!ro&&!editMode&&<button onClick={()=>removeExercise(ex.id)} style={{background:t.card,border:"none",borderRadius:8,padding:"4px 8px",color:t.textMuted,fontSize:13,cursor:"pointer"}}>✕</button>}
                     </div>
@@ -594,7 +630,6 @@ export default function FitStud() {
           </div>}
         </div>
       )}
-
       {/* NUTRITION */}
       {view==="nutrition"&&(()=>{
         const todayN=getTodayNutrition();
@@ -602,7 +637,6 @@ export default function FitStud() {
         const goals={calories:2000,protein:150,carbs:200,fat:65,water:8,steps:10000};
         return <div style={{padding:"16px"}}>
           <div style={{fontSize:16,fontWeight:800,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>NUTRITION</div>
-          {/* COACH ASSIGNED MEAL PLAN */}
           {assignedMeal&&<div style={{background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your Coach's Meal Plan</div>
             <div style={{fontSize:17,fontWeight:800,color:t.text,marginBottom:10}}>{assignedMeal.name}</div>
@@ -727,7 +761,6 @@ export default function FitStud() {
       {view==="coach"&&coachProfile.coach_id&&(()=>{
         const hasUnread=coachMessages.length>0&&coachMessages[coachMessages.length-1]?.sender==="coach";
         return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 180px)"}}>
-          {/* Header */}
           <div style={{padding:"16px 20px 12px",display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(212,175,55,0.15)",border:"1px solid rgba(212,175,55,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🏋️</div>
             <div>
@@ -735,8 +768,6 @@ export default function FitStud() {
               <div style={{fontSize:11,color:t.textMuted,marginTop:1}}>Messages & updates</div>
             </div>
           </div>
-
-          {/* Thread */}
           <div style={{flex:1,overflowY:"auto",padding:"0 16px 12px"}}>
             {messagesLoading&&<div style={{textAlign:"center",padding:"40px",color:t.textMuted,fontSize:13}}>Loading messages...</div>}
             {!messagesLoading&&coachMessages.length===0&&<div style={{textAlign:"center",padding:"48px 20px"}}>
@@ -758,8 +789,6 @@ export default function FitStud() {
               </div>;
             })}
           </div>
-
-          {/* Input */}
           <div style={{padding:"8px 16px 16px",borderTop:"1px solid "+t.cardBorder,display:"flex",gap:10,background:t.header}}>
             <input value={newMessage} onChange={e=>setNewMessage(e.target.value)}
               onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage(newMessage);}}}
@@ -772,9 +801,8 @@ export default function FitStud() {
       })()}
 
       </div>{/* END SCROLLABLE CONTENT */}
-
-      {/* VIDEO PLAYER */}
-      {videoPlayer&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:400,padding:"20px 16px"}} onClick={()=>setVideoPlayer(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto"}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><div><div style={{fontSize:11,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>How-To Guide</div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{videoPlayer.title}</div></div><button onClick={()=>setVideoPlayer(null)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:36,height:36,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div><div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000"}}><iframe src={"https://www.youtube.com/embed/"+videoPlayer.videoId+"?autoplay=1&rel=0&modestbranding=1"} title={videoPlayer.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div><a href={"https://www.youtube.com/watch?v="+videoPlayer.videoId} target="_blank" rel="noopener noreferrer" style={{display:"block",textAlign:"center",fontSize:12,color:"#94a3b8",margin:"10px 0 2px",textDecoration:"none"}}>Video not playing? Watch on YouTube ↗</a>{(()=>{const g=findFormGuide(videoPlayer.title);return g?<div style={{marginTop:12}}><FormGuideBlock guide={g} t={t} /></div>:(videoPlayer.desc?<div style={{fontSize:13,color:"#cbd5e1",marginTop:12,lineHeight:1.6,background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"12px 14px"}}>{videoPlayer.desc}</div>:null);})()}</div></div>}
+      {/* VIDEO / DEMO PLAYER */}
+      {videoPlayer&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:400,padding:"20px 16px"}} onClick={()=>setVideoPlayer(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto"}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><div><div style={{fontSize:11,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>How-To Guide</div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{videoPlayer.title}</div></div><button onClick={()=>setVideoPlayer(null)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:36,height:36,color:"#94a3b8",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div><ExerciseDemo title={videoPlayer.title} videoId={videoPlayer.videoId} desc={videoPlayer.desc} demo={findExDemo(videoPlayer.title)} t={t} /></div></div>}
 
       {/* EXERCISE LIBRARY */}
       {showLibrary&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(12px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:500}} onClick={()=>{setShowLibrary(false);setLibView("categories");setLibCategory(null);setLibExercise(null);}}>
@@ -788,9 +816,8 @@ export default function FitStud() {
             {libView==="categories"&&<div style={{display:"flex",flexDirection:"column",gap:10,marginTop:4}}>{EXERCISE_LIBRARY.map(cat=><button key={cat.category} onClick={()=>{setLibCategory(cat);setLibView("subcats");}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,cursor:"pointer",width:"100%",textAlign:"left"}}><div style={{display:"flex",alignItems:"center",gap:14}}><div style={{width:44,height:44,borderRadius:12,background:t.accentMuted,border:"1px solid "+t.accentBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{cat.icon}</div><div><div style={{fontSize:15,fontWeight:700,color:t.text}}>{cat.category}</div><div style={{fontSize:12,color:t.textMuted,marginTop:2}}>{cat.subs.reduce((a,s)=>a+s.exercises.length,0)} exercises</div></div></div><div style={{fontSize:18,color:t.accentText}}>›</div></button>)}</div>}
             {libView==="subcats"&&libCategory&&<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>{libCategory.subs.map(sub=><div key={sub.name} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,overflow:"hidden"}}><div style={{padding:"10px 14px",borderBottom:"1px solid "+t.cardBorder}}><div style={{fontSize:11,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase"}}>{sub.name}</div></div>{sub.exercises.map((ex,i)=><button key={ex.name} onClick={()=>{setLibExercise(ex);setLibView("exercise");}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"transparent",border:"none",borderBottom:i<sub.exercises.length-1?"1px solid "+t.cardBorder:"none",cursor:"pointer",width:"100%",textAlign:"left"}}><div><div style={{fontSize:14,color:t.text,fontWeight:500}}>{ex.name}</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>{ex.sets} sets × {ex.reps} reps</div></div><div style={{fontSize:16,color:t.accentText}}>›</div></button>)}</div>)}</div>}
             {libView==="exercise"&&libExercise&&<div style={{marginTop:4}}>
-              {libExercise.video?<><div style={{position:"relative",width:"100%",paddingBottom:"56.25%",borderRadius:16,overflow:"hidden",background:"#000",marginBottom:8}}><iframe src={"https://www.youtube.com/embed/"+libExercise.video+"?rel=0&modestbranding=1"} title={libExercise.name} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} /></div><a href={"https://www.youtube.com/watch?v="+libExercise.video} target="_blank" rel="noopener noreferrer" style={{display:"block",textAlign:"center",fontSize:12,color:t.textMuted,marginBottom:16,textDecoration:"none"}}>Video not playing? Watch on YouTube ↗</a></>:<div style={{width:"100%",height:120,borderRadius:16,background:t.card,border:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,flexDirection:"column",gap:6}}><div style={{fontSize:28}}>🎬</div><div style={{fontSize:12,color:t.textMuted}}>Video coming soon</div></div>}
-              {(()=>{const g=findFormGuide(libExercise.name);return g?<div style={{marginBottom:14}}><FormGuideBlock guide={g} t={t} /></div>:<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:11,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontWeight:700}}>How to perform</div><div style={{fontSize:14,color:t.text,lineHeight:1.7}}>{libExercise.desc}</div></div>;})()}
-              <div style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:700}}>Add to day</div>
+              <ExerciseDemo title={libExercise.name} videoId={libExercise.video} desc={libExercise.desc} demo={findExDemo(libExercise.name)} t={t} />
+              <div style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",margin:"16px 0 10px",fontWeight:700}}>Add to day</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{DAYS.map(day=><button key={day} onClick={()=>{addExerciseToDay(day,{id:nextId++,name:libExercise.name,sets:libExercise.sets,reps:libExercise.reps,video:libExercise.video||""});setShowLibrary(false);setLibView("categories");setSelectedDay(day);setSelectedDateKey(nextDateKeyForWeekday(day));setView("week");}} style={{padding:"10px",background:day===selectedDay?t.accent:t.card,border:"1px solid "+(day===selectedDay?t.accentSolid:t.cardBorder),borderRadius:10,color:day===selectedDay?"#000":t.text,fontSize:13,fontWeight:day===selectedDay?700:500,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{FULL_DAYS[DAYS.indexOf(day)].slice(0,3)}</span>{day===selectedDay&&<span style={{fontSize:10,fontWeight:700}}>NOW</span>}</button>)}</div>
             </div>}
           </div>
@@ -807,7 +834,6 @@ export default function FitStud() {
           {historyDetail?(<><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}><button onClick={()=>setHistoryDetail(null)} style={{background:"rgba(255,255,255,0.06)",border:"none",borderRadius:8,padding:"6px 10px",color:"#94a3b8",fontSize:13,cursor:"pointer"}}>← Back</button><div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{history[historyDetail].fullDay}</div><div style={{fontSize:12,color:"#64748b"}}>{history[historyDetail].date} · {history[historyDetail].completedAt}</div></div></div>{history[historyDetail].exercises.map((ex,ei)=><div key={ei} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:10}}><div style={{fontSize:15,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>{ex.name}</div>{ex.sets.map((s,si)=><div key={si} style={{display:"flex",gap:12,fontSize:12,color:"#64748b",marginBottom:4}}><span style={{color:"#475569",minWidth:32}}>S{si+1}</span><span>{s.reps||ex.reps} reps</span>{s.weight&&<span style={{color:"#a5b4fc"}}>{s.weight} lbs</span>}{s.done&&<span style={{color:"#34d399"}}>✓</span>}</div>)}</div>)}</>):(<><div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>📖 Workout History</div><div style={{fontSize:13,color:"#64748b",marginBottom:20}}>All completed workouts</div>{Object.keys(history).length===0?<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:13}}><div style={{fontSize:32,marginBottom:10}}>🗂️</div>No history yet.</div>:Object.entries(history).sort((a,b)=>b[0].localeCompare(a[0])).map(([key,rec])=><button key={key} onClick={()=>setHistoryDetail(key)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",marginBottom:8,textAlign:"left"}}><div><div style={{fontSize:14,fontWeight:700,color:"#f1f5f9"}}>{rec.fullDay}</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{rec.date} · {rec.completedAt}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{rec.exercises.length} exercises</div></div><div style={{fontSize:20,color:"#334155"}}>›</div></button>)}</>)}
         </div>
       </div>}
-
       {/* MEAL SCANNER */}
       {showScanner&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}}>
         <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"88vh",display:"flex",flexDirection:"column"}}>
@@ -891,7 +917,6 @@ export default function FitStud() {
           </div>
         </div>
       </div>}
-
       {/* PROFILE */}
       {showProfile&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}}>
         <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
@@ -935,25 +960,20 @@ export default function FitStud() {
       {/* AUTH */}
       {showAuth&&<div style={{position:"fixed",inset:0,background:"linear-gradient(160deg,#0B0B0B 0%,#111008 60%,#1a1400 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:600,padding:"40px 28px"}}>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}`}</style>
-        {/* Gold accent top bar */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
-        {/* Logo */}
         <div style={{marginBottom:52,textAlign:"center",animation:"fadeUp 0.6s ease forwards"}}>
           <div style={{fontSize:52,fontWeight:900,letterSpacing:6,color:"#FFFFFF",fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1,textShadow:"0 0 40px rgba(212,175,55,0.3)"}}>FITSTUD</div>
           <div style={{fontSize:11,letterSpacing:5,color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginTop:8,textTransform:"uppercase"}}>FORGE YOUR LEGACY</div>
           <div style={{width:40,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)",margin:"12px auto 0"}} />
         </div>
-        {/* Tabs */}
         <div style={{display:"flex",width:"100%",maxWidth:360,marginBottom:24,background:"rgba(212,175,55,0.08)",borderRadius:14,padding:4,border:"1px solid rgba(212,175,55,0.15)"}}>
           {["login","signup"].map(m=><button key={m} onClick={()=>{setAuthMode(m);setAuthError("");}} style={{flex:1,padding:"12px",borderRadius:11,border:"none",cursor:"pointer",background:authMode===m?"linear-gradient(135deg,#D4AF37,#B8941F)":"transparent",color:authMode===m?"#000":"#6b7280",fontSize:14,fontWeight:800,textTransform:"uppercase",letterSpacing:1,fontFamily:"Montserrat,sans-serif"}}>{m==="login"?"Login":"Sign Up"}</button>)}
         </div>
-        {/* Inputs */}
         <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:360,marginBottom:8}}>
           <input type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{width:"100%",padding:"16px 18px",background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.2)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"Poppins,sans-serif"}} />
           <input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){authMode==="login"?handleLogin():handleSignUp();}}} style={{width:"100%",padding:"16px 18px",background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.2)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"Poppins,sans-serif"}} />
         </div>
         {authError&&<div style={{color:"#f87171",fontSize:13,marginBottom:10,textAlign:"center",width:"100%",maxWidth:360}}>{authError}</div>}
-        {/* Button */}
         <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",maxWidth:360,padding:"18px",marginTop:8,background:authSubmitting?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:16,fontWeight:900,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:2,fontFamily:"Montserrat,sans-serif",boxShadow:"0 4px 28px rgba(212,175,55,0.35)"}}>
           {authSubmitting?<><span style={{display:"inline-block",width:18,height:18,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />{authMode==="login"?"Logging in...":"Creating account..."}</>:authMode==="login"?"LOGIN →":"CREATE ACCOUNT →"}
         </button>
@@ -961,7 +981,6 @@ export default function FitStud() {
           {authMode==="login"?"No account? ":"Have an account? "}
           <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#D4AF37",cursor:"pointer",fontWeight:700}}>{authMode==="login"?"Sign up free":"Login"}</span>
         </div>
-        {/* Bottom gold bar */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
       </div>}
 
