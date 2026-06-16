@@ -19,6 +19,60 @@ const DEFAULT_WORKOUTS = {
 const load=(key,fallback)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch{return fallback;}};
 const save=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val));}catch{}};
 const keyName=s=>(s||"").toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
+// --- Exercise name aliases -------------------------------------------------
+// Maps casual workout names (left) to the exact exercise_library name (right)
+// so the correct purchased GIF shows instead of falling back to YouTube.
+// Matching is done after keyName() normalisation, so capitalisation,
+// punctuation, plurals and symbols do not matter.
+const EX_ALIAS_RAW={
+  // Rows & pulls
+  "Barbell Row":"Barbell Bent Over Row","Barbell Rows":"Barbell Bent Over Row",
+  "Dumbbell Row":"Dumbbell Bent Over Row","Dumbbell Rows":"Dumbbell Bent Over Row","Bent-Over Dumbbell Row":"Dumbbell Bent Over Row",
+  "Cable Rows":"Cable Seated Row","Seated Cable Row":"Cable Seated Row","Seated Cable Rows":"Cable Seated Row",
+  "Lat Pulldown":"Cable Pulldown (pro Lat Bar)","Lat Pulldowns":"Cable Pulldown (pro Lat Bar)","Cable Lat Pulldowns":"Cable Pulldown (pro Lat Bar)",
+  "Face Pull":"Cable Rear Delt Row (with Rope)","Cable Face Pulls":"Cable Rear Delt Row (with Rope)",
+  // Chest & shoulders
+  "Flat Bench Press":"Barbell Bench Press",
+  "Incline Dumbbell Press":"Dumbbell Incline Bench Press",
+  "Chest Fly":"Dumbbell Fly","Chest Fly / Cable Fly":"Cable Standing Fly",
+  "Dumbbell Shoulder Press":"Dumbbell Seated Shoulder Press",
+  "Arnold Press":"Dumbbell Arnold Press",
+  "Lateral Raises":"Dumbbell Lateral Raise",
+  "Rear Delt Fly":"Dumbbell Reverse Fly","Rear Delt Fly Machine":"Dumbbell Reverse Fly","Pec Deck Rear Delt Fly":"Lever Seated Reverse Fly",
+  // Arms
+  "Dumbbell Curl":"Dumbbell Biceps Curl",
+  "EZ Bar Curl":"Ez Barbell Curl","EZ Bar Curls":"Ez Barbell Curl",
+  "Hammer Curl":"Dumbbell Hammer Curl","Hammer Curls":"Dumbbell Hammer Curl",
+  "Preacher Curl":"Barbell Preacher Curl","Preacher Curls":"Barbell Preacher Curl",
+  "Skull Crushers":"Barbell Lying Triceps Extension Skull Crusher",
+  "Overhead Tricep Extension":"Cable Rope High Pulley Overhead Tricep Extension","Overhead Tricep Extensions":"Cable Rope High Pulley Overhead Tricep Extension",
+  "Tricep Rope Pushdown":"Cable Pushdown (with Rope Attachment)","Tricep Rope Pushdowns":"Cable Pushdown (with Rope Attachment)",
+  "Dips":"Chest Dip",
+  // Legs & glutes
+  "Deadlift":"Barbell Deadlift","Deadlifts":"Barbell Deadlift",
+  "Romanian Deadlift":"Barbell Romanian Deadlift","Romanian Deadlifts":"Barbell Romanian Deadlift",
+  "Barbell Squat":"Barbell Full Squat",
+  "Goblet Squat":"Dumbbell Goblet Squat","Goblet Squats":"Dumbbell Goblet Squat",
+  "Bulgarian Split Squat":"Dumbbell Single Leg Split Squat","Bulgarian Split Squats":"Dumbbell Single Leg Split Squat",
+  "Leg Press":"Sled 45° Leg Press",
+  "Leg Extension":"Lever Leg Extension","Leg Extensions":"Lever Leg Extension",
+  "Seated Hamstring Curl":"Lever Seated Leg Curl",
+  "Standing Calf Raise":"Dumbbell Standing Calf Raise","Standing Calf Raises":"Dumbbell Standing Calf Raise",
+  "Glute Bridge":"Barbell Glute Bridge",
+  "Step-Up":"Dumbbell Step-up",
+  "Hip Abductor Machine":"Lever Seated Hip Abduction","Hip Adductor Machine":"Lever Seated Hip Adduction",
+  // Bodyweight, core & conditioning
+  "Pull-Ups":"Pull-up",
+  "Bicycle Crunch":"Air Bike",
+  "Farmer Carry":"Farmers Walk","Farmer Carries":"Farmers Walk",
+  "Battle Ropes":"Battling Ropes","Battle Ropes / Row Machine":"Battling Ropes",
+  "Cable Glute Kickback":"Cable Kickback",
+  "Cable Woodchopper":"Cable Twist","Cable Woodchoppers":"Cable Twist",
+};
+const EX_ALIAS=(()=>{const m={};for(const k in EX_ALIAS_RAW){m[keyName(k)]=keyName(EX_ALIAS_RAW[k]);}return m;})();
+// Exercises with no accurate GIF in the library — force the video/"coming soon"
+// fallback instead of letting loose matching show a misleading demo.
+const EX_NODEMO=new Set(["Box Jump","Hip Thrust","Hip Thrusts","Plank","Side Plank"].map(keyName));
 const EMPTY_WORKOUTS={Sun:[],Mon:[],Tue:[],Wed:[],Thu:[],Fri:[],Sat:[]};
 const EXERCISE_LIBRARY=[
   {category:"Push",icon:"💪",subs:[
@@ -239,7 +293,7 @@ export default function FitStud() {
       }catch(e){console.log("Exercise library load error",e);}
     })();
   },[]);
-  const findExDemo=name=>{if(!exLib)return null;const n=keyName(name);if(!n)return null;if(exLib[n])return exLib[n];let best=null,bl=0;for(const k in exLib){if(k.length>=4&&(k.includes(n)||n.includes(k))&&k.length>bl){best=exLib[k];bl=k.length;}}return best;};
+  const findExDemo=name=>{if(!exLib)return null;const n=keyName(name);if(!n)return null;if(EX_NODEMO.has(n))return null;const a=EX_ALIAS[n];if(a&&exLib[a])return exLib[a];if(exLib[n])return exLib[n];let best=null,bl=0;for(const k in exLib){if(k.length>=4&&(k.includes(n)||n.includes(k))&&k.length>bl){best=exLib[k];bl=k.length;}}return best;};
 
   const loadFromSupabase=async(userId)=>{
     try{
