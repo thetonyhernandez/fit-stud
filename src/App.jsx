@@ -252,7 +252,7 @@ export default function FitStud() {
       ]);
       if(w.data?.workouts){setWorkouts(w.data.workouts);setShowSetup(false);}else if(!p.data?.coach_id){setShowSetup(true);}
       const todayKey=new Date().toISOString().slice(0,10);
-      if(s.data?.setdata && s.data.setdata.__date===todayKey)setSetDataState(s.data.setdata);
+      if(s.data?.setdata && (s.data.setdata.__date===todayKey||s.data.setdata.__date===dayKeyOf(new Date())))setSetDataState(s.data.setdata);
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
       try{const{data:meas}=await supabase.from("user_measurements").select("measurements").eq("user_id",userId).maybeSingle();if(meas?.measurements)setMeasurements(meas.measurements);}catch(e){}
@@ -289,14 +289,7 @@ export default function FitStud() {
   };
 
   useEffect(()=>{
-    const todayKey=new Date().toISOString().slice(0,10);
-    const lastOpenedDay=localStorage.getItem("fs_last_opened_day");
-    if(lastOpenedDay&&lastOpenedDay!==todayKey){
-      setSetDataState({});
-      localStorage.removeItem("fs_setdata");
-      localStorage.removeItem("fs_last_opened_day");
-    }
-    localStorage.setItem("fs_last_opened_day",todayKey);
+    localStorage.setItem("fs_last_opened_day",dayKeyOf(new Date()));
   },[]);
 
   useEffect(()=>{
@@ -329,7 +322,7 @@ export default function FitStud() {
   useEffect(()=>{if(user)saveToSupabase("user_history","history",history);},[history,user]);
   useEffect(()=>{if(user)saveToSupabase("user_library","library",library);},[library,user]);
   useEffect(()=>{if(user&&measurements.length)saveToSupabase("user_measurements","measurements",measurements);},[measurements,user]);
-  useEffect(()=>{if(!user)return;const nw=new Date(),todayAbbr=DAYS[nw.getDay()],tk=dayKeyOf(nw);if(setData.__date!==tk)return;const exs=activeWorkouts[todayAbbr]||[];if(!exs.length)return;const getS=(exId,i)=>setData[todayAbbr+"-"+exId+"-"+i]||{};const hasData=exs.some(ex=>Array.from({length:ex.sets},(_,i)=>getS(ex.id,i)).some(x=>x.done||x.reps||x.weight));if(!hasData)return;const key=tk+"-"+todayAbbr;const id=setTimeout(()=>{setHistory(prev=>{if(prev[key]&&prev[key].finished)return prev;return{...prev,[key]:{day:todayAbbr,fullDay:FULL_DAYS[DAYS.indexOf(todayAbbr)],date:MONTHS[nw.getMonth()]+" "+nw.getDate()+", "+nw.getFullYear(),exercises:exs.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getS(ex.id,i))})),completedAt:prev[key]?.completedAt||new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),autosaved:true}};});},1500);return ()=>clearTimeout(id);},[setData,user]);
+  useEffect(()=>{if(!user)return;const nw=new Date(),todayAbbr=DAYS[nw.getDay()],tk=dayKeyOf(nw),utcK=new Date().toISOString().slice(0,10);if(setData.__date!==tk&&setData.__date!==utcK)return;const exs=activeWorkouts[todayAbbr]||[];if(!exs.length)return;const getS=(exId,i)=>setData[todayAbbr+"-"+exId+"-"+i]||{};const hasData=exs.some(ex=>Array.from({length:ex.sets},(_,i)=>getS(ex.id,i)).some(x=>x.done||x.reps||x.weight));if(!hasData)return;const key=tk+"-"+todayAbbr;const id=setTimeout(()=>{setHistory(prev=>{if(prev[key]&&prev[key].finished)return prev;return{...prev,[key]:{day:todayAbbr,fullDay:FULL_DAYS[DAYS.indexOf(todayAbbr)],date:MONTHS[nw.getMonth()]+" "+nw.getDate()+", "+nw.getFullYear(),exercises:exs.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getS(ex.id,i))})),completedAt:prev[key]?.completedAt||new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),autosaved:true}};});},1500);return ()=>clearTimeout(id);},[setData,user]);
 
   const uploadAvatar=async(file)=>{
     if(!user||!file)return;setUploadingAvatar(true);
@@ -350,11 +343,11 @@ export default function FitStud() {
   const getSet=(exId,i)=>{
     const raw=setData[selectedDay+"-"+exId+"-"+i];
     if(!raw)return{reps:"",weight:"",done:false};
-    const todayKey=new Date().toISOString().slice(0,10);
-    if(raw.__entryDate&&raw.__entryDate!==todayKey)return{reps:"",weight:"",done:false};
+    const localK=dayKeyOf(new Date()),utcK=new Date().toISOString().slice(0,10);
+    if(raw.__entryDate&&raw.__entryDate!==localK&&raw.__entryDate!==utcK)return{reps:"",weight:"",done:false};
     return raw;
   };
-  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const todayKey=new Date().toISOString().slice(0,10);setSetDataState(prev=>({...prev,__date:todayKey,[key]:{...getSet(exId,i),__entryDate:todayKey,[field]:val}}));};
+  const updateSet=(exId,i,field,val)=>{const key=selectedDay+"-"+exId+"-"+i;const todayKey=dayKeyOf(new Date());setSetDataState(prev=>({...prev,__date:todayKey,[key]:{...getSet(exId,i),__entryDate:todayKey,[field]:val}}));};
   const toggleDone=(exId,i)=>updateSet(exId,i,"done",!getSet(exId,i).done);
 
   const resetExercise=(exId)=>{
@@ -368,9 +361,9 @@ export default function FitStud() {
   const doneCount=(exId,total)=>Array.from({length:total},(_,i)=>getSet(exId,i).done).filter(Boolean).length;
   const safeWorkouts=workouts||EMPTY_WORKOUTS;
   const addExerciseToDay=(day,ex)=>setWorkouts(prev=>({...prev,[day]:[...(prev[day]||[]),ex]}));
-  const removeExercise=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].filter(e=>e.id!==exId)}));
-  const addSet=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].map(ex=>ex.id===exId?{...ex,sets:ex.sets+1}:ex)}));
-  const removeSet=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].map(ex=>ex.id===exId&&ex.sets>1?{...ex,sets:ex.sets-1}:ex)}));
+  const removeExercise=(exId)=>setWorkouts(prev=>({...prev,[selectedDay]:(prev[selectedDay]||[]).filter(e=>e.id!==exId)}));
+  const addSet=(exId)=>{if(assignedProgram){const ex=(activeWorkouts[selectedDay]||[]).find(e=>e.id===exId);if(!ex)return;const k=selectedDay+":"+ex.name;setWorkouts(prev=>({...(prev||{}),_setov:{...((prev&&prev._setov)||{}),[k]:ex.sets+1}}));}else setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].map(ex=>ex.id===exId?{...ex,sets:ex.sets+1}:ex)}));};
+  const removeSet=(exId)=>{if(assignedProgram){const ex=(activeWorkouts[selectedDay]||[]).find(e=>e.id===exId);if(!ex||ex.sets<=1)return;const k=selectedDay+":"+ex.name;setWorkouts(prev=>({...(prev||{}),_setov:{...((prev&&prev._setov)||{}),[k]:ex.sets-1}}));}else setWorkouts(prev=>({...prev,[selectedDay]:prev[selectedDay].map(ex=>ex.id===exId&&ex.sets>1?{...ex,sets:ex.sets-1}:ex)}));};
   const handleDragEnd=()=>{
     const di=dragIndexRef.current;
     setDragOver(prev=>{
@@ -405,8 +398,8 @@ export default function FitStud() {
     const exStats=srcEx.map(ex=>{let exVol=0,exReps=0,bestSet=null;Array.from({length:ex.sets},(_,i)=>{const s=getSet(ex.id,i);if(s.done){const r=parseInt(s.reps)||ex.reps,w=parseFloat(s.weight)||0;exReps+=r;exVol+=r*w;totalReps+=r;totalVolume+=r*w;totalSets++;if(!bestSet||r*w>bestSet.vol)bestSet={set:i+1,reps:r,weight:w,vol:r*w};}});return{name:ex.name,volume:exVol,reps:exReps,bestSet};});
     return{totalVolume,totalReps,totalSets,exStats};
   };
-  const QUOTES=[{msg:"You showed up. That is already more than most people did today.",emoji:"🔥"},{msg:"Every rep, every set — you are building a version of yourself that will not quit.",emoji:"💪"},{msg:"The pain you feel today is the strength you will feel tomorrow.",emoji:"⚡"},{msg:"You did not come this far to only come this far. Keep going.",emoji:"🚀"},{msg:"Champions are not born. They are built — exactly like you are doing right now.",emoji:"🏆"},{msg:"Discipline is choosing what you want most over what you want now.",emoji:"👑"},{msg:"Your future self is thanking you right now.",emoji:"✨"},{msg:"Greatness is not given. It is earned. Today you earned it.",emoji:"💎"}];
-  const getQuote=()=>QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  const QUOTES=[{msg:"You showed up. That is already more than most people did today.",emoji:"🔥"},{msg:"Every rep, every set — you are building a version of yourself that will not quit.",emoji:"💪"},{msg:"The pain you feel today is the strength you will feel tomorrow.",emoji:"⚡"},{msg:"You did not come this far to only come this far. Keep going.",emoji:"🚀"},{msg:"Champions are not born. They are built — exactly like you are doing right now.",emoji:"🏆"},{msg:"Discipline is choosing what you want most over what you want now.",emoji:"👑"},{msg:"Your future self is thanking you right now.",emoji:"✨"},{msg:"Greatness is not given. It is earned. Today you earned it.",emoji:"💎"},{msg:"Small steps every day add up to miles you never thought you could run.",emoji:"🏃"},{msg:"The body achieves what the mind believes.",emoji:"🧠"},{msg:"Strong is not a size. It is a mindset, and yours is growing.",emoji:"💪"},{msg:"You are one workout closer to the person you want to become.",emoji:"🌟"},{msg:"Consistency beats intensity, and you just stayed consistent.",emoji:"📈"},{msg:"Sweat is just your strength leaving the gym with you.",emoji:"💧"},{msg:"The hardest lift is getting started, and you already did it.",emoji:"🏋️"},{msg:"Progress is progress, no matter how small. You moved forward today.",emoji:"🌱"},{msg:"Your only competition is who you were yesterday.",emoji:"🪞"},{msg:"Train hard, recover well, repeat. That is how legends are made.",emoji:"♻️"},{msg:"You do not have to be extreme, just consistent.",emoji:"🎯"},{msg:"Comfort builds nothing. Today you chose to grow.",emoji:"🌿"},{msg:"The work you put in quietly becomes the results you show loudly.",emoji:"🔊"},{msg:"Believe in the work. The results are already on their way.",emoji:"🌅"},{msg:"One percent better today is a giant leap over a year.",emoji:"📊"},{msg:"You earned your rest. Recovery is part of the work.",emoji:"😌"},{msg:"Showing up on the hard days is what separates you from the rest.",emoji:"🛡️"},{msg:"Your effort today is a promise you kept to yourself.",emoji:"🤝"},{msg:"Stay patient. Strength is built one honest rep at a time.",emoji:"⏳"},{msg:"Every champion was once a beginner who refused to give up.",emoji:"🥇"},{msg:"The grind is quiet, but the results speak for themselves.",emoji:"🤫"},{msg:"You are proof that effort never goes to waste.",emoji:"💯"},{msg:"Motivation gets you started. Discipline got you here today.",emoji:"🔑"},{msg:"Fall in love with the process and the results will follow.",emoji:"❤️"},{msg:"Today you chose strong. Tomorrow you will be glad you did.",emoji:"🌄"},{msg:"Your goals do not care how you feel, and you showed up anyway.",emoji:"🎖️"},{msg:"Hard work beats talent when talent does not work hard.",emoji:"🛠️"},{msg:"You are building habits that will carry you for life.",emoji:"🧱"},{msg:"Rest is not quitting. It is how strength takes root.",emoji:"🌳"},{msg:"The best project you will ever work on is you.",emoji:"🏗️"},{msg:"Quiet consistency outlasts loud bursts of effort every time.",emoji:"🌊"},{msg:"You did not feel like it, and you did it anyway. That is power.",emoji:"⚡"},{msg:"Strength is earned in the moments you want to stop but do not.",emoji:"🧗"},{msg:"Each session is a deposit in the bank of your future self.",emoji:"🏦"},{msg:"Be proud. Most people only talk about it. You did it.",emoji:"👏"},{msg:"The reps you do today are the confidence you carry tomorrow.",emoji:"😎"},{msg:"You are not tired, you are getting stronger.",emoji:"🔋"},{msg:"Greatness is just consistency in work clothes.",emoji:"👷"},{msg:"Honor your body by showing up for it. You just did.",emoji:"🙏"},{msg:"The version of you that you are chasing is getting closer.",emoji:"🏁"},{msg:"Keep stacking good days. They become a great life.",emoji:"🧩"},{msg:"Strength does not come from what you can do. It comes from doing what you thought you could not.",emoji:"🦾"}];
+  const getQuote=()=>{const d=new Date();const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/86400000);return QUOTES[(d.getFullYear()*366+doy)%QUOTES.length];};
   const THEMES={
     gold:{bg:"radial-gradient(135% 85% at 50% -8%, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.025) 24%, rgba(0,0,0,0) 46%), linear-gradient(180deg, #1A1714 0%, #0B0B0B 42%, #050505 100%)",card:"rgba(212,175,55,0.06)",cardBorder:"rgba(212,175,55,0.15)",cardActive:"rgba(212,175,55,0.12)",cardActiveBorder:"rgba(212,175,55,0.5)",accent:"linear-gradient(135deg,#D4AF37,#B8941F)",accentSolid:"#D4AF37",accentLight:"rgba(212,175,55,0.15)",accentBorder:"rgba(212,175,55,0.4)",accentText:"#D4AF37",accentMuted:"rgba(212,175,55,0.1)",text:"#FFFFFF",textSub:"#a1a1aa",textMuted:"#71717a",textDim:"#3f3f46",header:"rgba(0,0,0,0.6)",headerBorder:"rgba(212,175,55,0.15)",input:"rgba(212,175,55,0.06)",inputBorder:"rgba(212,175,55,0.2)",modal:"#111111",handle:"#3f3f46",toggleBg:"rgba(255,255,255,0.04)"},
     dark:{bg:"linear-gradient(135deg,#0a0a0f 0%,#111827 50%,#0d1117 100%)",card:"rgba(255,255,255,0.03)",cardBorder:"rgba(255,255,255,0.07)",cardActive:"rgba(229,57,53,0.08)",cardActiveBorder:"rgba(229,57,53,0.3)",accent:"linear-gradient(135deg,#E53935,#b71c1c)",accentSolid:"#E53935",accentLight:"rgba(229,57,53,0.15)",accentBorder:"rgba(229,57,53,0.3)",accentText:"#ef9a9a",accentMuted:"rgba(229,57,53,0.1)",text:"#f8fafc",textSub:"#94a3b8",textMuted:"#475569",textDim:"#334155",header:"rgba(255,255,255,0.02)",headerBorder:"rgba(255,255,255,0.06)",input:"rgba(255,255,255,0.07)",inputBorder:"rgba(255,255,255,0.12)",modal:"#13151f",handle:"#334155",toggleBg:"rgba(255,255,255,0.04)"},
@@ -439,7 +432,9 @@ export default function FitStud() {
     return routine;
   };
 
-  const activeWorkouts=assignedProgram?programToRoutine(assignedProgram.structure):(workouts||EMPTY_WORKOUTS);
+  const coachRoutine=assignedProgram?programToRoutine(assignedProgram.structure):null;
+  const setOv=(workouts&&workouts._setov)||{};
+  const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
   const todayKeyStr=dayKeyOf(new Date());
   const isPastSelected=selectedDateKey<todayKeyStr;
