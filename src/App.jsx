@@ -243,6 +243,10 @@ export default function FitStud() {
   const [scanResult,setScanResult]=useState(null);
   const [scanLoading,setScanLoading]=useState(false);
   const [scanError,setScanError]=useState("");
+  const [scanMode,setScanMode]=useState("food");
+  const [barcodeActive,setBarcodeActive]=useState(false);
+  const barcodeRef=useRef(null);
+  const barcodeBusyRef=useRef(false);
   const [mealPlan,setMealPlan]=useState(()=>load("fs_mealplan",null));
   const [mealPlanError,setMealPlanError]=useState("");
   const [touchSwipeStart,setTouchSwipeStart]=useState(null);
@@ -388,6 +392,63 @@ export default function FitStud() {
     try{const ext=file.name.split(".").pop();const path=user.id+"/"+monthKey+"_"+Date.now()+"."+ext;const{error}=await supabase.storage.from("progress-photos").upload(path,file);if(!error){const{data}=supabase.storage.from("progress-photos").getPublicUrl(path);setProgressPhotos(prev=>({...prev,[monthKey]:[...(prev[monthKey]||[]),data.publicUrl]}));}}catch(e){}
     setUploadingPhoto(false);
   };
+  const ensureBarcodeLib=()=>new Promise((resolve,reject)=>{
+    if(window.Html5Qrcode)return resolve();
+    let sc=document.getElementById("fs-h5q");
+    if(sc){sc.addEventListener("load",()=>resolve());sc.addEventListener("error",()=>reject(new Error("load")));return;}
+    sc=document.createElement("script");sc.id="fs-h5q";sc.src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+    sc.onload=()=>resolve();sc.onerror=()=>reject(new Error("load"));document.body.appendChild(sc);
+  });
+  const stopBarcodeScan=async()=>{const h=barcodeRef.current;if(h){try{await h.stop();}catch(e){}try{h.clear();}catch(e){}barcodeRef.current=null;}setBarcodeActive(false);};
+  const lookupBarcode=async(code)=>{
+    setScanLoading(true);setScanError("");
+    try{
+      const r=await fetch("https://world.openfoodfacts.org/api/v2/product/"+encodeURIComponent(code)+".json?fields=product_name,brands,nutriments,serving_size");
+      const j=await r.json();
+      if(j.status!==1||!j.product){setScanError("Product not found in the food database. Try the Label mode instead.");setScanLoading(false);return;}
+      const n=j.product.nutriments||{};const per=n["energy-kcal_serving"]!=null?"serving":"100g";
+      const pick=(a,b)=>Math.round(n[a]!=null?n[a]:(n[b]!=null?n[b]:0));
+      const kcal=pick("energy-kcal_serving","energy-kcal_100g"),protein=pick("proteins_serving","proteins_100g"),carbs=pick("carbohydrates_serving","carbohydrates_100g"),fat=pick("fat_serving","fat_100g"),fiber=pick("fiber_serving","fiber_100g"),sugar=pick("sugars_serving","sugars_100g");
+      const nm=j.product.product_name||"Scanned product";
+      const serving=j.product.serving_size||(per==="100g"?"per 100g":"per serving");
+      setScanResult({meal_name:nm,description:(j.product.brands?j.product.brands+" \u00b7 ":"")+serving,foods:[{name:nm,amount:serving,calories:kcal,protein,carbs,fat,fiber,sugar}],totals:{calories:kcal,protein,carbs,fat,fiber,sugar},serving_size:serving,confidence_note:per==="100g"?"Values shown per 100g \u2014 adjust if your portion differs.":"Values shown per serving from the product label.",barcode:code});
+    }catch(e){setScanError("Could not reach the food database. Check your connection and try again.");}
+    setScanLoading(false);
+  };
+  const handleBarcode=async(code)=>{if(barcodeBusyRef.current)return;barcodeBusyRef.current=true;await stopBarcodeScan();await lookupBarcode(code);};
+  const startBarcodeScan=async()=>{
+    setScanError("");barcodeBusyRef.current=false;
+    try{
+      await ensureBarcodeLib();
+      if(!window.Html5Qrcode){setScanError("Scanner did not load. Check your connection and try again.");return;}
+      if(!document.getElementById("fs-barcode-reader"))return;
+      await stopBarcodeScan();
+      const h=new window.Html5Qrcode("fs-barcode-reader");barcodeRef.current=h;
+      let fmts=null;try{const F=window.Html5QrcodeSupportedFormats;if(F)fmts=[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39];}catch(e){}
+      const cfg={fps:10,qrbox:{width:260,height:160}};if(fmts)cfg.formatsToSupport=fmts;
+      await h.start({facingMode:"environment"},cfg,(decoded)=>{handleBarcode(decoded);},()=>{});
+      setBarcodeActive(true);
+    }catch(e){setBarcodeActive(false);setScanError("Could not start the camera. Allow camera access, or use the Label mode instead.");}
+  };
+  const analyzePhoto=(file,mode)=>{
+    if(!file)return;
+    setScanLoading(true);setScanError("");
+    const reader=new FileReader();
+    reader.onloadend=async()=>{
+      try{
+        const base64=reader.result.split(",")[1],mType=file.type||"image/jpeg";
+        const sys=mode==="label"?"You read Nutrition Facts labels. Read the values EXACTLY as printed. Return ONLY raw JSON with no markdown, no backticks, no explanation.":"You are an expert nutritionist AI similar to MyFitnessPal. Analyze food photos with extreme accuracy. Always return ONLY raw JSON with no markdown, no backticks, no explanation.";
+        const txt=mode==="label"?"Read this nutrition facts label. Use the per-serving values exactly as printed. Return this exact JSON: {meal_name: string, description: string, foods: [{name: string, amount: string, calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}], totals: {calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}, serving_size: string, confidence: string}. Set serving_size to the serving printed on the label. Populate every field with a number, never null.":"Analyze this food image carefully. If you see a nutrition label, read it exactly. If you see food without a label, estimate based on portion size and food type. Be as accurate as MyFitnessPal. Return this exact JSON: {meal_name: string, description: string, foods: [{name: string, amount: string, calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}], totals: {calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}, serving_size: string, confidence: string}. For nutrition labels read the exact values. For whole foods estimate based on standard USDA portions. Always populate every field with a number, never null.";
+        const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,system:sys,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mType,data:base64}},{type:"text",text:txt}]}]})});
+        if(!res.ok){setScanError("API error: "+res.status);setScanLoading(false);return;}
+        const data=await res.json();const raw=data.content?.find(b=>b.type==="text")?.text||"";
+        setScanResult({...JSON.parse(raw.replace(/```json|```/g,"").trim()),imageUrl:reader.result});
+      }catch(err){setScanError("Could not analyze. Try a clearer photo.");}
+      setScanLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+  useEffect(()=>{if(!showScanner||scanMode!=="barcode")stopBarcodeScan();},[showScanner,scanMode]);
   const handleSignUp=async()=>{if(!authEmail||!authPassword)return;setAuthSubmitting(true);setAuthError("");const{error}=await supabase.auth.signUp({email:authEmail,password:authPassword});if(error)setAuthError(error.message);else{setShowAuth(false);setAuthEmail("");setAuthPassword("");}setAuthSubmitting(false);};
   const handleLogin=async()=>{if(!authEmail||!authPassword)return;setAuthSubmitting(true);setAuthError("");const{error}=await supabase.auth.signInWithPassword({email:authEmail,password:authPassword});if(error)setAuthError(error.message);else{setShowAuth(false);setAuthEmail("");setAuthPassword("");}setAuthSubmitting(false);};
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);};
@@ -704,7 +765,7 @@ export default function FitStud() {
           {!assignedMeal&&!canMealGen&&<div style={{textAlign:"center",padding:"28px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16,marginBottom:16}}><div style={{fontSize:28,marginBottom:8}}>🥗</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your meal plan soon.</div></div>}
           <div style={{display:"flex",gap:10,marginBottom:16}}>
             {canMealGen?<button onClick={()=>{setShowMealPlanner(true);setMealPlanStep("questions");setMealPlanError("");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Generate My Meal Plan</button>:<div style={{flex:1,padding:"14px",background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:14,textAlign:"center",fontSize:13,color:"#D4AF37",fontWeight:600}}>📋 Follow your coach's plan</div>}
-            <button onClick={()=>{setShowScanner(true);setScanResult(null);setScanError("");}} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>📷 Scan Meal</button>
+            <button onClick={()=>{setShowScanner(true);setScanResult(null);setScanError("");setScanMode("food");}} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>📷 Scan Meal</button>
           </div>
           <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"Montserrat,sans-serif"}}>Today's Intake</div>
@@ -889,35 +950,28 @@ export default function FitStud() {
           <div style={{padding:"16px 20px 12px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}><div><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>SCAN YOUR MEAL</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>AI estimates calories and macros</div></div><button onClick={()=>setShowScanner(false)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
           <div style={{overflowY:"auto",flex:1,padding:"20px"}}>
             {!scanResult&&!scanLoading&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-              <div style={{textAlign:"center",padding:"32px 20px",background:t.card,border:"2px dashed "+t.accentBorder,borderRadius:16}}>
-                <div style={{fontSize:48,marginBottom:12}}>📷</div>
-                <div style={{fontSize:14,color:t.text,fontWeight:600,marginBottom:8}}>Snap or upload your meal</div>
-                <div style={{fontSize:12,color:t.textMuted,marginBottom:20}}>AI estimates calories, protein, carbs and fat</div>
+              <div style={{display:"flex",gap:6,background:t.toggleBg,borderRadius:12,padding:4}}>
+                {[["food","\ud83c\udf7d Food"],["barcode","\u2590\u2590 Barcode"],["label","\ud83c\udff7 Label"]].map(([m,lbl])=><button key={m} onClick={()=>{setScanError("");setScanMode(m);if(m==="barcode")ensureBarcodeLib().catch(()=>{});}} style={{flex:1,padding:"9px 4px",borderRadius:9,border:"none",cursor:"pointer",background:scanMode===m?t.accent:"transparent",color:scanMode===m?"#000":t.textMuted,fontSize:12,fontWeight:700}}>{lbl}</button>)}
+              </div>
+              {scanMode!=="barcode"&&<div style={{textAlign:"center",padding:"32px 20px",background:t.card,border:"2px dashed "+t.accentBorder,borderRadius:16}}>
+                <div style={{fontSize:48,marginBottom:12}}>{scanMode==="label"?"\ud83c\udff7":"\ud83d\udcf7"}</div>
+                <div style={{fontSize:14,color:t.text,fontWeight:600,marginBottom:8}}>{scanMode==="label"?"Snap a nutrition facts label":"Snap or upload your meal"}</div>
+                <div style={{fontSize:12,color:t.textMuted,marginBottom:20}}>{scanMode==="label"?"AI reads the exact values printed on the label":"AI estimates calories, protein, carbs and fat"}</div>
                 <div style={{display:"flex",gap:10,justifyContent:"center"}}>
                   {[{capture:"environment",label:"Take Photo",primary:true},{capture:"",label:"From Gallery",primary:false}].map((btn,idx)=><label key={idx} style={{display:"inline-block",padding:"12px 20px",background:btn.primary?"linear-gradient(135deg,#D4AF37,#B8941F)":t.card,border:btn.primary?"none":"1px solid "+t.cardBorder,borderRadius:12,color:btn.primary?"#000":t.text,fontSize:14,fontWeight:btn.primary?800:700,cursor:"pointer"}}>
                     {btn.label}
-                    <input type="file" accept="image/*" capture={btn.capture||undefined} style={{display:"none"}} onChange={e=>{
-                      const file=e.target.files?.[0];if(!file)return;
-                      setScanLoading(true);setScanError("");
-                      const reader=new FileReader();
-                      reader.onloadend=async()=>{
-                        try{
-                          const base64=reader.result.split(",")[1],mType=file.type||"image/jpeg";
-                          const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,system:"You are an expert nutritionist AI similar to MyFitnessPal. Analyze food photos with extreme accuracy. Always return ONLY raw JSON with no markdown, no backticks, no explanation.",messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mType,data:base64}},{type:"text",text:"Analyze this food image carefully. If you see a nutrition label, read it exactly. If you see food without a label, estimate based on portion size and food type. Be as accurate as MyFitnessPal. Return this exact JSON: {meal_name: string, description: string, foods: [{name: string, amount: string, calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}], totals: {calories: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number}, serving_size: string, confidence: string}. For nutrition labels read the exact values. For whole foods estimate based on standard USDA portions. Always populate every field with a number, never null."}]}]})});
-                          if(!res.ok){setScanError("API error: "+res.status);setScanLoading(false);return;}
-                          const data=await res.json();const raw=data.content?.find(b=>b.type==="text")?.text||"";
-                          setScanResult({...JSON.parse(raw.replace(/```json|```/g,"").trim()),imageUrl:reader.result});
-                        }catch(err){setScanError("Could not analyze. Try a clearer photo.");}
-                        setScanLoading(false);
-                      };
-                      reader.readAsDataURL(file);
-                    }} />
+                    <input type="file" accept="image/*" capture={btn.capture||undefined} style={{display:"none"}} onChange={e=>{const file=e.target.files?.[0];analyzePhoto(file,scanMode==="label"?"label":"food");}} />
                   </label>)}
                 </div>
-              </div>
+              </div>}
+              {scanMode==="barcode"&&<div style={{textAlign:"center",padding:"20px",background:t.card,border:"2px dashed "+t.accentBorder,borderRadius:16}}>
+                <div id="fs-barcode-reader" style={{width:"100%",minHeight:barcodeActive?240:0,borderRadius:12,overflow:"hidden",marginBottom:barcodeActive?12:0}} />
+                {!barcodeActive&&<div><div style={{fontSize:48,marginBottom:12}}>{"\ud83d\udce6"}</div><div style={{fontSize:14,color:t.text,fontWeight:600,marginBottom:8}}>Scan a product barcode</div><div style={{fontSize:12,color:t.textMuted,marginBottom:20}}>Point your camera at the barcode and hold steady</div><button onClick={startBarcodeScan} style={{padding:"12px 22px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer"}}>Start Camera</button></div>}
+                {barcodeActive&&<button onClick={stopBarcodeScan} style={{padding:"10px 20px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,fontWeight:700,cursor:"pointer"}}>Cancel</button>}
+              </div>}
               {scanError&&<div style={{color:"#f87171",fontSize:13,textAlign:"center",padding:"8px 12px",background:"rgba(248,113,113,0.1)",borderRadius:10}}>{scanError}</div>}
             </div>}
-            {scanLoading&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",gap:20}}><div style={{width:48,height:48,border:"3px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><div style={{fontSize:15,fontWeight:700,color:t.text}}>Analyzing your meal...</div></div>}
+            {scanLoading&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",gap:20}}><div style={{width:48,height:48,border:"3px solid rgba(212,175,55,0.3)",borderTopColor:"#D4AF37",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><div style={{fontSize:15,fontWeight:700,color:t.text}}>{scanMode==="barcode"?"Looking up product...":"Analyzing your meal..."}</div></div>}
             {scanResult&&!scanLoading&&<div>
               {scanResult.imageUrl&&<div style={{width:"100%",borderRadius:16,overflow:"hidden",marginBottom:16,maxHeight:200}}><img src={scanResult.imageUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="meal" /></div>}
               <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",marginBottom:12}}><div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:4}}>{scanResult.meal_name}</div><div style={{fontSize:12,color:t.textMuted,marginBottom:12}}>{scanResult.description}</div>{scanResult.foods?.map((food,i)=><div key={i} style={{fontSize:12,color:t.textMuted,marginBottom:6,paddingLeft:8}}><div style={{fontWeight:600,color:t.text}}>• {food.amount} {food.name}</div><div style={{paddingLeft:12,marginTop:2}}>{food.calories} cal · {food.protein||0}g protein · {food.carbs||0}g carbs · {food.fat||0}g fat{food.fiber?` · ${food.fiber}g fiber`:""}</div></div>)}</div>
