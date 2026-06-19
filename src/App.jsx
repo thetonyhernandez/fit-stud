@@ -539,10 +539,15 @@ export default function FitStud() {
 
   const programToRoutine=(structure)=>{
     const routine={};let uid=900000;
-    (structure||[]).forEach(day=>{
-      const key=day.name.length>3?day.name.slice(0,3):day.name;
-      const dayKey=key.charAt(0).toUpperCase()+key.slice(1).toLowerCase();
-      routine[dayKey]=(day.exercises||[]).map(ex=>{
+    const WD={sun:"Sun",sunday:"Sun",mon:"Mon",monday:"Mon",tue:"Tue",tues:"Tue",tuesday:"Tue",wed:"Wed",weds:"Wed",wednesday:"Wed",thu:"Thu",thur:"Thu",thurs:"Thu",thursday:"Thu",fri:"Fri",friday:"Fri",sat:"Sat",saturday:"Sat"};
+    const SPREAD={1:["Mon"],2:["Mon","Thu"],3:["Mon","Wed","Fri"],4:["Mon","Tue","Thu","Fri"],5:["Mon","Tue","Wed","Thu","Fri"],6:["Mon","Tue","Wed","Thu","Fri","Sat"],7:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]};
+    const days=(structure||[]);
+    const spread=SPREAD[Math.min(days.length,7)]||["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    days.forEach((day,idx)=>{
+      const nameKey=String(day.name||"").trim().toLowerCase();
+      const firstWord=nameKey.split(/[^a-z]+/)[0];
+      const mapped=WD[nameKey]||WD[firstWord]||spread[idx]||spread[idx%spread.length]||"Mon";
+      routine[mapped]=(day.exercises||[]).map(ex=>{
         const match=exerciseDb.find(e=>e.name.toLowerCase()===ex.name.toLowerCase());
         return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:""};
       });
@@ -690,6 +695,7 @@ export default function FitStud() {
             </div>}
             {!assignedProgram&&!canWorkoutGen&&<div style={{textAlign:"center",padding:"32px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16}}><div style={{fontSize:28,marginBottom:8}}>🏋️</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your program soon.</div></div>}
             {!isPastSelected&&activeExercisesForDay.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
+            {!isPastSelected&&activeExercisesForDay.length===0&&assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:t.textMuted,fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>😴</div><div style={{fontWeight:700,color:t.text,marginBottom:4}}>Rest day</div>No workout today in your coach's program. Tap another day to see your training.</div>}
             {(isPastSelected?(pastRecord?pastRecord.exercises:[]):activeExercisesForDay).map((ex,exIdx)=>{
               const ro=isPastSelected;const setCount=ro?(Array.isArray(ex.sets)?ex.sets.length:0):ex.sets;const getSV=i=>ro?(ex.sets[i]||{}):getSet(ex.id,i);
               const done=ro?(Array.isArray(ex.sets)?ex.sets.filter(x=>x.done).length:0):doneCount(ex.id,ex.sets),finished=setCount>0&&done===setCount;
