@@ -252,6 +252,8 @@ export default function FitStud() {
   const [touchSwipeStart,setTouchSwipeStart]=useState(null);
   const [nutrition,setNutrition]=useState(()=>load("fs_nutrition",{}));
   const [nutritionPeriod,setNutritionPeriod]=useState("daily");
+  const [showAddFood,setShowAddFood]=useState(false);
+  const [manualFood,setManualFood]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
   const [showProfile,setShowProfile]=useState(false);
   const [profileTab,setProfileTab]=useState("info");
   const [profileData,setProfileData]=useState(()=>load("fs_profile",{name:"",age:"",weight:"",height:"",goal:""}));
@@ -496,6 +498,7 @@ export default function FitStud() {
   const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
   const getTodayNutrition=()=>nutrition[getTodayKey()]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0};
   const updateNutrition=(field,val)=>{const key=getTodayKey();setNutrition(prev=>({...prev,[key]:{...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}),[field]:parseFloat(val)||0}}));};
+  const addManualFood=()=>{const c=parseFloat(manualFood.calories)||0,p=parseFloat(manualFood.protein)||0,cb=parseFloat(manualFood.carbs)||0,f=parseFloat(manualFood.fat)||0;if(!c&&!p&&!cb&&!f)return;const key=getTodayKey();setNutrition(n=>({...n,[key]:{calories:Math.round((n[key]?.calories||0)+c),protein:Math.round((n[key]?.protein||0)+p),carbs:Math.round((n[key]?.carbs||0)+cb),fat:Math.round((n[key]?.fat||0)+f),water:n[key]?.water||0,steps:n[key]?.steps||0}}));setManualFood({name:"",calories:"",protein:"",carbs:"",fat:""});setShowAddFood(false);};
   const logWeight=(weightVal,dateStr)=>{const w=parseFloat(weightVal);if(!w||w<=0)return;const d=dateStr||new Date().toISOString().slice(0,10);setMeasurements(prev=>{const others=(prev||[]).filter(m=>m.date!==d);return [...others,{date:d,weight:w}].sort((a,b)=>a.date<b.date?-1:1);});};
   const isTimeBased=(name)=>["sled","battle rope","farmer carry","farmer carries","cardio","run","sprint","plank","carry","carries","bike","rower","jump rope"].some(k=>name.toLowerCase().includes(k));
   const getLastRecord=(exName,setIndex)=>{
@@ -767,6 +770,19 @@ export default function FitStud() {
             {canMealGen?<button onClick={()=>{setShowMealPlanner(true);setMealPlanStep("questions");setMealPlanError("");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Generate My Meal Plan</button>:<div style={{flex:1,padding:"14px",background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:14,textAlign:"center",fontSize:13,color:"#D4AF37",fontWeight:600}}>📋 Follow your coach's plan</div>}
             <button onClick={()=>{setShowScanner(true);setScanResult(null);setScanError("");setScanMode("food");}} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>📷 Scan Meal</button>
           </div>
+          <button onClick={()=>setShowAddFood(v=>!v)} style={{width:"100%",padding:"12px",background:"rgba(255,255,255,0.04)",border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:showAddFood?10:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>{showAddFood?"✕ Close":"➕ Add food manually"}</button>
+          {showAddFood&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:6,fontFamily:"Montserrat,sans-serif"}}>Add food manually</div>
+            <div style={{fontSize:11,color:t.textMuted,marginBottom:12}}>Type what you ate and it adds to today. Anything the scan missed, you can add here.</div>
+            <input placeholder="Food name (optional)" value={manualFood.name} onChange={e=>setManualFood(f=>({...f,name:e.target.value}))} style={{width:"100%",padding:"11px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:10,color:t.text,fontSize:16,outline:"none",boxSizing:"border-box",marginBottom:10}} />
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              {[{k:"calories",l:"Calories"},{k:"protein",l:"Protein (g)"},{k:"carbs",l:"Carbs (g)"},{k:"fat",l:"Fat (g)"}].map(fld=><div key={fld.k}>
+                <div style={{fontSize:10,color:t.textMuted,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>{fld.l}</div>
+                <input type="number" inputMode="decimal" placeholder="0" value={manualFood[fld.k]} onChange={e=>setManualFood(f=>({...f,[fld.k]:e.target.value}))} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:700,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+              </div>)}
+            </div>
+            <button onClick={addManualFood} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Add to Today</button>
+          </div>}
           <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"Montserrat,sans-serif"}}>Today's Intake</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
