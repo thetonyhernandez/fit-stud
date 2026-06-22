@@ -72,7 +72,7 @@ const EX_ALIAS_RAW={
 const EX_ALIAS=(()=>{const m={};for(const k in EX_ALIAS_RAW){m[keyName(k)]=keyName(EX_ALIAS_RAW[k]);}return m;})();
 // Exercises with no accurate GIF in the library — force the video/"coming soon"
 // fallback instead of letting loose matching show a misleading demo.
-const EX_NODEMO=new Set(["Box Jump","Hip Thrust","Hip Thrusts","Plank","Side Plank"].map(keyName));
+const EX_NODEMO=new Set(["Box Jump","Hip Thrust","Hip Thrusts","Plank","Side Plank","Sumo Squat","Curtsy Lunge","Glute Bridge March","Dead Bug"].map(keyName));
 const EMPTY_WORKOUTS={Sun:[],Mon:[],Tue:[],Wed:[],Thu:[],Fri:[],Sat:[]};
 const EXERCISE_LIBRARY=[
   {category:"Push",icon:"💪",subs:[
