@@ -264,6 +264,10 @@ export default function FitStud() {
   const [assignedMeal,setAssignedMeal]=useState(null);
   const [habits,setHabits]=useState([]);
   const [habitDone,setHabitDone]=useState({});
+  const [checkIns,setCheckIns]=useState([]);
+  const [ciForm,setCiForm]=useState({weight:"",energy:0,sleep:0,adherence:0,note:""});
+  const [ciBusy,setCiBusy]=useState(false);
+  const [ciOpen,setCiOpen]=useState(false);
   const [avatarUrl,setAvatarUrl]=useState(()=>load("fs_avatar",null));
   const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
@@ -333,6 +337,8 @@ export default function FitStud() {
           const hToday=new Date().toISOString().slice(0,10);
           const{data:hls}=await supabase.from("habit_logs").select("habit_id,done").eq("client_id",userId).eq("day",hToday);
           if(hls){const map={};hls.forEach(l=>{map[l.habit_id]=l.done;});setHabitDone(map);}
+          const{data:cis}=await supabase.from("check_ins").select("*").eq("client_id",userId).order("created_at",{ascending:false}).limit(50);
+          if(cis)setCheckIns(cis);
         }catch(e){console.log("Habits load error",e);}
       }catch(e){console.log("Assignments load error",e);}
     }catch(e){console.log("Load error",e);}
@@ -586,6 +592,19 @@ export default function FitStud() {
     setHabitDone(prev=>({...prev,[habitId]:next}));
     try{await supabase.from("habit_logs").upsert({habit_id:habitId,client_id:user.id,day:hToday,done:next},{onConflict:"habit_id,day"});}
     catch(e){console.log("habit toggle error",e);setHabitDone(prev=>({...prev,[habitId]:!next}));}
+  };
+  const submitCheckin=async()=>{
+    if(!user)return;
+    setCiBusy(true);
+    const row={client_id:user.id,coach_id:coachProfile.coach_id||null,weight:ciForm.weight?parseFloat(ciForm.weight):null,energy:ciForm.energy||null,sleep:ciForm.sleep||null,adherence:ciForm.adherence||null,note:(ciForm.note||"").trim()||null};
+    try{
+      const{data,error}=await supabase.from("check_ins").insert(row).select("*").single();
+      if(error)throw error;
+      if(data)setCheckIns(prev=>[data,...prev]);
+      setCiForm({weight:"",energy:0,sleep:0,adherence:0,note:""});
+      setCiOpen(false);
+    }catch(e){console.log("checkin submit error",e);}
+    setCiBusy(false);
   };
   const setOv=(workouts&&workouts._setov)||{};
   const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
@@ -869,6 +888,40 @@ export default function FitStud() {
         const last7vol=allEntries.slice(0,7).map(([key,rec])=>{let vol=0;rec.exercises?.forEach(ex=>{ex.sets?.forEach(s=>{if(s.done)vol+=(parseInt(s.reps)||ex.reps||0)*(parseFloat(s.weight)||0);});});return{label:key.split("-")[3]||"?",vol};}).reverse();
         const maxVol=Math.max(...last7vol.map(d=>d.vol),1);
         return <div style={{padding:"16px"}}>
+          {coachProfile.coach_id&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:ciOpen||checkIns.length?12:0}}>
+              <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontWeight:700,fontFamily:"Montserrat,sans-serif"}}>Weekly Check-in</div>
+              {!ciOpen&&<button onClick={()=>setCiOpen(true)} style={{padding:"8px 14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:10,color:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>＋ New check-in</button>}
+            </div>
+            {ciOpen&&<div>
+              <label style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",display:"block",marginBottom:6}}>Current weight (optional)</label>
+              <input type="number" inputMode="decimal" value={ciForm.weight} onChange={e=>setCiForm(f=>({...f,weight:e.target.value}))} placeholder="e.g. 182" style={inp} />
+              {[["energy","Energy levels"],["sleep","Sleep quality"],["adherence","Stuck to the plan"]].map(([key,label])=>(
+                <div key={key} style={{marginTop:14}}>
+                  <label style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",display:"block",marginBottom:6}}>{label}</label>
+                  <div style={{display:"flex",gap:6}}>{[1,2,3,4,5].map(n=>{const on=ciForm[key]>=n;return <button key={n} onClick={()=>setCiForm(f=>({...f,[key]:n}))} style={{flex:1,padding:"10px 0",borderRadius:10,border:"1px solid "+(on?"#D4AF37":t.cardBorder),background:on?"rgba(212,175,55,0.15)":"transparent",color:on?"#D4AF37":t.textMuted,fontSize:15,fontWeight:700,cursor:"pointer"}}>{n}</button>;})}</div>
+                </div>
+              ))}
+              <label style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",display:"block",margin:"14px 0 6px"}}>How did the week go?</label>
+              <textarea value={ciForm.note} onChange={e=>setCiForm(f=>({...f,note:e.target.value}))} rows={3} placeholder="Wins, struggles, anything your coach should know…" style={{...inp,resize:"none",fontFamily:"inherit"}} />
+              <div style={{display:"flex",gap:10,marginTop:14}}>
+                <button onClick={submitCheckin} disabled={ciBusy} style={{flex:1,padding:"13px",background:ciBusy?"rgba(212,175,55,0.4)":"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:15,fontWeight:800,cursor:ciBusy?"not-allowed":"pointer"}}>{ciBusy?"Submitting…":"Submit check-in"}</button>
+                <button onClick={()=>{setCiOpen(false);}} style={{padding:"13px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,cursor:"pointer"}}>Cancel</button>
+              </div>
+            </div>}
+            {!ciOpen&&checkIns.length>0&&<div>
+              {checkIns.slice(0,3).map(ci=>(
+                <div key={ci.id} style={{borderTop:"1px solid "+t.cardBorder,paddingTop:10,marginTop:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{fontSize:12,fontWeight:700,color:t.text}}>{new Date(ci.created_at).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div>
+                    <div style={{display:"flex",gap:10}}>{ci.weight?<span style={{fontSize:11,color:t.textMuted}}>{ci.weight} lb</span>:null}{ci.adherence?<span style={{fontSize:11,color:t.textMuted}}>Plan {ci.adherence}/5</span>:null}</div>
+                  </div>
+                  {ci.note&&<div style={{fontSize:12.5,color:t.textSub,marginTop:4,whiteSpace:"pre-wrap"}}>{ci.note}</div>}
+                  {ci.coach_feedback?<div style={{marginTop:6,background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.25)",borderRadius:8,padding:"8px 10px"}}><div style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",color:"#D4AF37",fontWeight:700}}>Coach feedback</div><div style={{fontSize:12.5,color:t.text,marginTop:2,whiteSpace:"pre-wrap"}}>{ci.coach_feedback}</div></div>:<div style={{fontSize:11,color:t.textDim,marginTop:6}}>Awaiting coach feedback…</div>}
+                </div>
+              ))}
+            </div>}
+          </div>}
           <div style={{fontSize:16,fontWeight:700,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif"}}>Your Progress</div>
           <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
