@@ -648,10 +648,13 @@ export default function FitStud() {
     setSwapItem({mi,ii,text});setSwapOpts([]);setSwapErr("");setSwapLoading(true);
     try{
       const ctx=assignedMeal?("The overall plan targets about "+(assignedMeal.kcal||"?")+" kcal and "+(assignedMeal.protein||"?")+"g protein per day."):"";
-      const sys="You are a sports nutritionist. Given one food from a meal, suggest 3 alternative foods that closely match its macros and role, with a sensible portion. Return ONLY a JSON array of exactly 3 short strings like \"Food name + portion\". No markdown, no backticks, no extra text.";
-      const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:300,system:sys,messages:[{role:"user",content:"Food to swap: \""+text+"\". "+ctx+" Give 3 macro-matched alternatives."}]})});
-      const data=await res.json();const txt=(data.content&&data.content.find(b=>b.type==="text")||{}).text||"";
-      const arr=JSON.parse(txt.trim());
+      const sys="You are a sports nutritionist who suggests foods matching a given food's macros and role.";
+      const ask="Suggest 3 alternative foods that closely match the macros and role of this food, with a sensible portion: \""+text+"\". "+ctx+" Return ONLY a JSON array of exactly 3 short strings, each like \"Food name + portion\" (for example: \"Greek yogurt - 1 cup\"). No markdown, no backticks, no other text.";
+      const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:400,system:sys,messages:[{role:"user",content:ask}]})});
+      const data=await res.json();
+      let txt=(data.content&&data.content.find(b=>b.type==="text")||{}).text||"";
+      txt=txt.replace(/```json/gi,"").replace(/```/g,"").trim();
+      let arr;try{arr=JSON.parse(txt);}catch(_){const mm=txt.match(/\[[\s\S]*\]/);if(mm)arr=JSON.parse(mm[0]);}
       if(Array.isArray(arr)&&arr.length)setSwapOpts(arr.slice(0,3).map(String));else throw new Error("empty");
     }catch(e){setSwapErr("Could not load swaps. Please try again.");}
     setSwapLoading(false);
