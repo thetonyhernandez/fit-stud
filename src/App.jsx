@@ -962,7 +962,7 @@ export default function FitStud() {
             <button onClick={addManualFood} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>{"Add to "+niceLogDate()}</button>
           </div>}
           <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"Montserrat,sans-serif"}}>Today's Intake</div>
+            <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"Montserrat,sans-serif"}}>{(()=>{const tk=getTodayKey();if(logDate===tk)return "Today's Intake";if(logDate===shiftDate(tk,-1))return "Yesterday's Intake";return "Intake · "+niceLogDate();})()}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[{key:"calories",label:"Calories",unit:"kcal",goal:goals.calories,color:"#F5D070"},{key:"protein",label:"Protein",unit:"g",goal:goals.protein,color:"#ef4444"},{key:"carbs",label:"Carbs",unit:"g",goal:goals.carbs,color:"#f97316"},{key:"fat",label:"Fat",unit:"g",goal:goals.fat,color:"#a78bfa"},{key:"water",label:"Water",unit:"glasses",goal:goals.water,color:"#38bdf8"},{key:"steps",label:"Steps",unit:"steps",goal:goals.steps,color:"#34d399"}].map(item=>{
                 const val=todayN[item.key]||0,pct=Math.min(100,Math.round((val/item.goal)*100));
