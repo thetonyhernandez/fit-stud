@@ -312,7 +312,7 @@ export default function FitStud() {
       }catch(e){console.log("Exercise library load error",e);}
     })();
   },[]);
-  const findExDemo=name=>{if(!exLib)return null;const n=keyName(name);if(!n)return null;if(EX_NODEMO.has(n))return null;const a=EX_ALIAS[n];if(a&&exLib[a])return exLib[a];if(exLib[n])return exLib[n];let best=null,bl=0;for(const k in exLib){if(k.length>=4&&(k.includes(n)||n.includes(k))&&k.length>bl){best=exLib[k];bl=k.length;}}return best;};
+  const findExDemo=name=>{if(!exLib)return null;const n=keyName(name);if(!n)return null;if(EX_NODEMO.has(n))return null;const a=EX_ALIAS[n];if(a&&exLib[a])return exLib[a];if(exLib[n])return exLib[n];return null;};
 
   const loadFromSupabase=async(userId)=>{
     try{
