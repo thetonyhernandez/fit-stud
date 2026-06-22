@@ -573,7 +573,7 @@ export default function FitStud() {
       const mapped=WD[nameKey]||WD[firstWord]||spread[idx]||spread[idx%spread.length]||"Mon";
       routine[mapped]=(day.exercises||[]).map(ex=>{
         const match=exerciseDb.find(e=>e.name.toLowerCase()===ex.name.toLowerCase());
-        return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:"",tempo:ex.tempo||"",rest:ex.rest||"",group:ex.group||""};
+        return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:"",tempo:ex.tempo||"",rest:ex.rest||"",ss:!!ex.ss};
       });
     });
     return routine;
@@ -823,7 +823,7 @@ export default function FitStud() {
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                     <div>
                       <div style={{fontSize:17,fontWeight:700,color:finished?t.accentText:(theme==="light"?"#000":"#FFF")}}>{ex.name}</div>
-                      <div style={{fontSize:12,color:theme==="light"?"#000":"#fff",marginTop:3,textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{setCount} sets · target {ex.reps} reps · {done}/{setCount} done{ex.group?" · superset "+ex.group:""}{ex.tempo?" · tempo "+ex.tempo:""}{ex.rest?" · rest "+ex.rest:""}</div>
+                      <div style={{fontSize:12,color:theme==="light"?"#000":"#fff",marginTop:3,textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{setCount} sets · target {ex.reps} reps · {done}/{setCount} done{ex.ss?" · ⛓ superset":""}{ex.tempo?" · tempo "+ex.tempo:""}{ex.rest?" · rest "+ex.rest:""}</div>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
                       {(()=>{const lib=findLibMatch(ex.name);const vid=ex.video||(lib&&lib.video)||"";return <button onClick={()=>{setVideoPlayer({videoId:vid,title:ex.name,desc:lib&&lib.desc?lib.desc:""});}} style={{background:t.accentLight,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"4px 8px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>▶ Demo</button>;})()}
