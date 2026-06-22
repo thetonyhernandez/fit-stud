@@ -528,7 +528,7 @@ export default function FitStud() {
   const saveToLibrary=()=>{const entry={id:Date.now(),name:FULL_DAYS[DAYS.indexOf(selectedDay)]+" · "+MONTHS[todayMonth]+" "+todayDate,day:selectedDay,date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}))};setLibrary(prev=>[entry,...prev]);};
   const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
   const shiftDate=(key,delta)=>{const d=new Date(key+"T00:00:00");d.setDate(d.getDate()+delta);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
-  const niceLogDate=()=>{if(logDate===getTodayKey())return "Today";const d=new Date(logDate+"T00:00:00");return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});};
+  const niceLogDate=()=>{const tk=getTodayKey();if(logDate===tk)return "Today";if(logDate===shiftDate(tk,-1))return "Yesterday";const d=new Date(logDate+"T00:00:00");return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});};
   const getTodayNutrition=()=>nutrition[getTodayKey()]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0};
   const updateNutrition=(field,val)=>{const key=logDate;setNutrition(prev=>({...prev,[key]:{...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}),[field]:parseFloat(val)||0}}));};
   const addManualFood=()=>{const c=parseFloat(manualFood.calories)||0,p=parseFloat(manualFood.protein)||0,cb=parseFloat(manualFood.carbs)||0,f=parseFloat(manualFood.fat)||0;if(!c&&!p&&!cb&&!f)return;const key=logDate;setNutrition(n=>({...n,[key]:{calories:Math.round((n[key]?.calories||0)+c),protein:Math.round((n[key]?.protein||0)+p),carbs:Math.round((n[key]?.carbs||0)+cb),fat:Math.round((n[key]?.fat||0)+f),water:n[key]?.water||0,steps:n[key]?.steps||0}}));setManualFood({name:"",calories:"",protein:"",carbs:"",fat:""});setShowAddFood(false);};
@@ -884,11 +884,22 @@ export default function FitStud() {
         const goals={calories:2000,protein:150,carbs:200,fat:65,water:8,steps:10000};
         return <div style={{padding:"16px"}}>
           <div style={{fontSize:16,fontWeight:800,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>NUTRITION</div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"6px 8px",marginBottom:14}}>
-            <button onClick={()=>setLogDate(shiftDate(logDate,-1))} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"2px 14px"}}>‹</button>
-            <div style={{textAlign:"center"}}><div style={{fontSize:13,fontWeight:700,color:t.text}}>{niceLogDate()}</div>{logDate!==getTodayKey()&&<button onClick={()=>setLogDate(getTodayKey())} style={{background:"none",border:"none",color:"#D4AF37",fontSize:11,cursor:"pointer",textDecoration:"underline",marginTop:1,padding:0}}>Jump to today</button>}</div>
-            <button onClick={()=>{const tk=getTodayKey();const nx=shiftDate(logDate,1);setLogDate(nx>tk?tk:nx);}} disabled={logDate>=getTodayKey()} style={{background:"none",border:"none",color:logDate>=getTodayKey()?t.cardBorder:t.textMuted,fontSize:22,cursor:logDate>=getTodayKey()?"default":"pointer",padding:"2px 14px"}}>›</button>
-          </div>
+          {(()=>{const tk=getTodayKey();const isToday=logDate===tk;const yKey=shiftDate(tk,-1);const isYest=logDate===yKey;const full=new Date(logDate+"T00:00:00").toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"});const chip=(active)=>({flex:1,padding:"9px",borderRadius:10,border:"1px solid "+(active?"rgba(212,175,55,0.5)":t.cardBorder),background:active?"rgba(212,175,55,0.15)":t.card,color:active?"#D4AF37":t.textSub,fontSize:13,fontWeight:700,cursor:"pointer"});const arrow=(dis)=>({width:42,height:42,flexShrink:0,borderRadius:10,border:"1px solid "+t.cardBorder,background:t.card,color:dis?t.cardBorder:t.text,fontSize:20,cursor:dis?"default":"pointer"});return <div style={{marginBottom:16}}>
+            <div style={{fontSize:11,color:t.textMuted,marginBottom:6,fontWeight:700,letterSpacing:1}}>LOGGING FOR</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <button onClick={()=>setLogDate(shiftDate(logDate,-1))} style={arrow(false)}>‹</button>
+              <div style={{flex:1,textAlign:"center",background:isToday?t.card:"rgba(212,175,55,0.12)",border:"1px solid "+(isToday?t.cardBorder:"rgba(212,175,55,0.45)"),borderRadius:12,padding:"9px"}}>
+                <div style={{fontSize:16,fontWeight:800,color:isToday?t.text:"#D4AF37"}}>{niceLogDate()}</div>
+                <div style={{fontSize:11,color:t.textMuted,marginTop:1}}>{full}</div>
+              </div>
+              <button onClick={()=>{const nx=shiftDate(logDate,1);setLogDate(nx>tk?tk:nx);}} disabled={isToday} style={arrow(isToday)}>›</button>
+            </div>
+            {!isToday&&<div style={{fontSize:11.5,color:"#D4AF37",marginTop:7,fontWeight:600}}>↩ You are adding food to a past day. Tap Today to switch back.</div>}
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <button onClick={()=>setLogDate(yKey)} style={chip(isYest)}>Yesterday</button>
+              <button onClick={()=>setLogDate(tk)} style={chip(isToday)}>Today</button>
+            </div>
+          </div>;})()}
           {assignedMeal&&<div style={{background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your Coach's Meal Plan</div>
             <div style={{fontSize:17,fontWeight:800,color:t.text,marginBottom:10}}>{assignedMeal.name}</div>
