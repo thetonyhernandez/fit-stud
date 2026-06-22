@@ -262,6 +262,8 @@ export default function FitStud() {
   const [coachProfile,setCoachProfile]=useState({coach_id:null,meal_gen:true,workout_gen:true});
   const [assignedProgram,setAssignedProgram]=useState(null);
   const [assignedMeal,setAssignedMeal]=useState(null);
+  const [habits,setHabits]=useState([]);
+  const [habitDone,setHabitDone]=useState({});
   const [avatarUrl,setAvatarUrl]=useState(()=>load("fs_avatar",null));
   const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
@@ -325,6 +327,13 @@ export default function FitStud() {
         const mpA=(asg||[]).find(a=>a.kind==="meal");
         if(wpA){const{data:wp}=await supabase.from("workout_programs").select("*").eq("id",wpA.program_id).maybeSingle();if(wp)setAssignedProgram({...wp,_start_date:wpA.start_date||null,_unlock_mode:wpA.unlock_mode||"auto",_current_week:wpA.current_week||1});}
         if(mpA){const{data:mp}=await supabase.from("meal_plans").select("*").eq("id",mpA.meal_plan_id).maybeSingle();if(mp)setAssignedMeal(mp);}
+        try{
+          const{data:hbs}=await supabase.from("habits").select("*").eq("client_id",userId).eq("active",true).order("sort");
+          if(hbs)setHabits(hbs);
+          const hToday=new Date().toISOString().slice(0,10);
+          const{data:hls}=await supabase.from("habit_logs").select("habit_id,done").eq("client_id",userId).eq("day",hToday);
+          if(hls){const map={};hls.forEach(l=>{map[l.habit_id]=l.done;});setHabitDone(map);}
+        }catch(e){console.log("Habits load error",e);}
       }catch(e){console.log("Assignments load error",e);}
     }catch(e){console.log("Load error",e);}
   };
@@ -570,6 +579,14 @@ export default function FitStud() {
   const activeWeek=assignedProgram?activeWeekIndex(assignedProgram):0;
   const coachDays=assignedProgram?((assignedProgram.weeks&&assignedProgram.weeks.length)?(assignedProgram.weeks[activeWeek]||assignedProgram.structure||[]):(assignedProgram.structure||[])):null;
   const coachRoutine=assignedProgram?programToRoutine(coachDays):null;
+  const toggleHabit=async(habitId)=>{
+    if(!user)return;
+    const hToday=new Date().toISOString().slice(0,10);
+    const next=!habitDone[habitId];
+    setHabitDone(prev=>({...prev,[habitId]:next}));
+    try{await supabase.from("habit_logs").upsert({habit_id:habitId,client_id:user.id,day:hToday,done:next},{onConflict:"habit_id,day"});}
+    catch(e){console.log("habit toggle error",e);setHabitDone(prev=>({...prev,[habitId]:!next}));}
+  };
   const setOv=(workouts&&workouts._setov)||{};
   const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
@@ -686,6 +703,21 @@ export default function FitStud() {
             <span style={{fontSize:11,color:t.textMuted,letterSpacing:1}}>{(()=>{const p=selectedDateKey.split("-").map(Number);const sd=new Date(p[0],p[1]-1,p[2]),tw=new Date(),t0=new Date(tw.getFullYear(),tw.getMonth(),tw.getDate());const diff=Math.round((sd-t0)/86400000);return diff===0?"TODAY":diff===1?"TOMORROW":diff===-1?"YESTERDAY":FULL_DAYS[sd.getDay()].slice(0,3).toUpperCase()+" · "+MONTHS[sd.getMonth()]+" "+p[2];})()}</span>
             <button onClick={()=>shiftSel(1)} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"4px 10px"}}>›</button>
           </div>
+          {habits.length>0&&<div style={{margin:"0 16px 14px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"14px 16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontWeight:700,fontFamily:"Montserrat,sans-serif"}}>Today's Habits</div>
+              <div style={{fontSize:11,color:t.textMuted}}>{habits.filter(h=>habitDone[h.id]).length} / {habits.length} done</div>
+            </div>
+            {habits.map((h,hi)=>{const done=!!habitDone[h.id];return(
+              <div key={h.id} onClick={()=>toggleHabit(h.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:hi<habits.length-1?"1px solid "+t.cardBorder:"none",cursor:"pointer"}}>
+                <div style={{width:26,height:26,borderRadius:8,border:"2px solid "+(done?"#D4AF37":t.textMuted),background:done?"#D4AF37":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{done&&<span style={{color:"#000",fontSize:15,fontWeight:900}}>✓</span>}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:14,fontWeight:600,color:done?t.textMuted:t.text,textDecoration:done?"line-through":"none"}}>{h.name}</div>
+                  {h.target&&<div style={{fontSize:12,color:t.textMuted,marginTop:1}}>{h.target}</div>}
+                </div>
+              </div>
+            );})}
+          </div>}
           <div style={{padding:"0 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <div style={{fontSize:20,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",letterSpacing:1}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
@@ -981,10 +1013,10 @@ export default function FitStud() {
         </div>
       </div>}
       {/* MEAL SCANNER */}
-      {showScanner&&<div style={{position:"fixed",inset:0,background:t.modal,display:"flex",alignItems:"stretch",justifyContent:"center",zIndex:600}}>
-        <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:0,border:"none",height:"100dvh",display:"flex",flexDirection:"column"}}>
-          <div style={{padding:"calc(env(safe-area-inset-top,44px) + 14px) 20px 12px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}><div><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>SCAN YOUR MEAL</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>AI estimates calories and macros</div></div><button onClick={()=>setShowScanner(false)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
-          <div style={{overflowY:"auto",flex:1,padding:"20px 20px calc(env(safe-area-inset-bottom,0px) + 24px)"}}>
+      {showScanner&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",backdropFilter:"blur(16px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:600}}>
+        <div style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"88vh",display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"16px 20px 12px",borderBottom:"1px solid "+t.cardBorder,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}><div><div style={{fontSize:15,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>SCAN YOUR MEAL</div><div style={{fontSize:11,color:t.textMuted,marginTop:2}}>AI estimates calories and macros</div></div><button onClick={()=>setShowScanner(false)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,width:34,height:34,color:t.textSub,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
+          <div style={{overflowY:"auto",flex:1,padding:"20px"}}>
             {!scanResult&&!scanLoading&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
               <div style={{display:"flex",gap:6,background:t.toggleBg,borderRadius:12,padding:4}}>
                 {[["food","\ud83c\udf7d Food"],["barcode","\u2590\u2590 Barcode"],["label","\ud83c\udff7 Label"]].map(([m,lbl])=><button key={m} onClick={()=>{setScanError("");setScanMode(m);if(m==="barcode")ensureBarcodeLib().catch(()=>{});}} style={{flex:1,padding:"9px 4px",borderRadius:9,border:"none",cursor:"pointer",background:scanMode===m?t.accent:"transparent",color:scanMode===m?"#000":t.textMuted,fontSize:12,fontWeight:700}}>{lbl}</button>)}
