@@ -323,7 +323,7 @@ export default function FitStud() {
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
         const wpA=(asg||[]).find(a=>a.kind==="workout");
         const mpA=(asg||[]).find(a=>a.kind==="meal");
-        if(wpA){const{data:wp}=await supabase.from("workout_programs").select("*").eq("id",wpA.program_id).maybeSingle();if(wp)setAssignedProgram(wp);}
+        if(wpA){const{data:wp}=await supabase.from("workout_programs").select("*").eq("id",wpA.program_id).maybeSingle();if(wp)setAssignedProgram({...wp,_start_date:wpA.start_date||null,_unlock_mode:wpA.unlock_mode||"auto",_current_week:wpA.current_week||1});}
         if(mpA){const{data:mp}=await supabase.from("meal_plans").select("*").eq("id",mpA.meal_plan_id).maybeSingle();if(mp)setAssignedMeal(mp);}
       }catch(e){console.log("Assignments load error",e);}
     }catch(e){console.log("Load error",e);}
@@ -557,7 +557,19 @@ export default function FitStud() {
     return routine;
   };
 
-  const coachRoutine=assignedProgram?programToRoutine(assignedProgram.structure):null;
+  const activeWeekIndex=(prog)=>{
+    const wks=prog&&prog.weeks;
+    if(!Array.isArray(wks)||wks.length<=1)return 0;
+    const total=wks.length;
+    if(prog._unlock_mode==="manual")return Math.min(Math.max((prog._current_week||1)-1,0),total-1);
+    if(!prog._start_date)return 0;
+    const start=new Date(prog._start_date+"T00:00:00");
+    const diff=Math.floor((Date.now()-start.getTime())/86400000);
+    return Math.min(Math.max(Math.floor(diff/7),0),total-1);
+  };
+  const activeWeek=assignedProgram?activeWeekIndex(assignedProgram):0;
+  const coachDays=assignedProgram?((assignedProgram.weeks&&assignedProgram.weeks.length)?(assignedProgram.weeks[activeWeek]||assignedProgram.structure||[]):(assignedProgram.structure||[])):null;
+  const coachRoutine=assignedProgram?programToRoutine(coachDays):null;
   const setOv=(workouts&&workouts._setov)||{};
   const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
@@ -692,7 +704,7 @@ export default function FitStud() {
               <div style={{fontSize:18}}>👟</div>
               <div>
                 <div style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700}}>Coach's Program</div>
-                <div style={{fontSize:13,fontWeight:700,color:t.text}}>{assignedProgram.name}</div>
+                <div style={{fontSize:13,fontWeight:700,color:t.text}}>{assignedProgram.name}{assignedProgram.weeks&&assignedProgram.weeks.length>1?<span style={{marginLeft:8,fontSize:11,fontWeight:700,color:"#D4AF37",background:"rgba(212,175,55,0.14)",borderRadius:999,padding:"2px 9px"}}>Week {activeWeek+1} of {assignedProgram.weeks.length}</span>:null}</div>
               </div>
             </div>}
             {!assignedProgram&&!canWorkoutGen&&<div style={{textAlign:"center",padding:"32px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16}}><div style={{fontSize:28,marginBottom:8}}>🏋️</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your program soon.</div></div>}
