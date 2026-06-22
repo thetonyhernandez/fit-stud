@@ -68,6 +68,10 @@ const EX_ALIAS_RAW={
   "Battle Ropes":"Battling Ropes","Battle Ropes / Row Machine":"Battling Ropes",
   "Cable Glute Kickback":"Cable Kickback",
   "Cable Woodchopper":"Cable Twist","Cable Woodchoppers":"Cable Twist",
+  "Walking Lunges":"Walking Lunge",
+  "Burpees":"Burpee",
+  "Ab Wheel Rollout":"Wheel Rollout",
+  "Walking":"Walking On Incline Treadmill","Cycling":"Stationary Bike Run V. 3",
 };
 const EX_ALIAS=(()=>{const m={};for(const k in EX_ALIAS_RAW){m[keyName(k)]=keyName(EX_ALIAS_RAW[k]);}return m;})();
 // Exercises with no accurate GIF in the library — force the video/"coming soon"
