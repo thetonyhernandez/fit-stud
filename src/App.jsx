@@ -316,6 +316,7 @@ export default function FitStud() {
       if(h.data?.history)setHistory(h.data.history);
       if(l.data?.library)setLibrary(l.data.library);
       try{const{data:meas}=await supabase.from("user_measurements").select("measurements").eq("user_id",userId).maybeSingle();if(meas?.measurements)setMeasurements(meas.measurements);}catch(e){}
+      try{const{data:nut}=await supabase.from("user_nutrition").select("nutrition").eq("user_id",userId).maybeSingle();if(nut?.nutrition)setNutrition(nut.nutrition);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
       supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
       try{
@@ -382,6 +383,7 @@ export default function FitStud() {
   useEffect(()=>{if(user)saveToSupabase("user_history","history",history);},[history,user]);
   useEffect(()=>{if(user)saveToSupabase("user_library","library",library);},[library,user]);
   useEffect(()=>{if(user&&measurements.length)saveToSupabase("user_measurements","measurements",measurements);},[measurements,user]);
+  useEffect(()=>{if(user&&nutrition&&Object.keys(nutrition).length)saveToSupabase("user_nutrition","nutrition",nutrition);},[nutrition,user]);
   useEffect(()=>{if(!user)return;const nw=new Date(),todayAbbr=DAYS[nw.getDay()],tk=dayKeyOf(nw),utcK=new Date().toISOString().slice(0,10);if(setData.__date!==tk&&setData.__date!==utcK)return;const exs=activeWorkouts[todayAbbr]||[];if(!exs.length)return;const getS=(exId,i)=>setData[todayAbbr+"-"+exId+"-"+i]||{};const hasData=exs.some(ex=>Array.from({length:ex.sets},(_,i)=>getS(ex.id,i)).some(x=>x.done||x.reps||x.weight));if(!hasData)return;const key=tk+"-"+todayAbbr;const id=setTimeout(()=>{setHistory(prev=>{if(prev[key]&&prev[key].finished)return prev;return{...prev,[key]:{day:todayAbbr,fullDay:FULL_DAYS[DAYS.indexOf(todayAbbr)],date:MONTHS[nw.getMonth()]+" "+nw.getDate()+", "+nw.getFullYear(),exercises:exs.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getS(ex.id,i))})),completedAt:prev[key]?.completedAt||new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),autosaved:true}};});},1500);return ()=>clearTimeout(id);},[setData,user]);
 
   const uploadAvatar=async(file)=>{
