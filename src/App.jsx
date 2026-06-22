@@ -265,6 +265,7 @@ export default function FitStud() {
   const [measurements,setMeasurements]=useState(()=>load("fs_measurements",[]));
   const [weighInput,setWeighInput]=useState("");
   const [coachProfile,setCoachProfile]=useState({coach_id:null,meal_gen:true,workout_gen:true});
+  const [maxes,setMaxes]=useState({});
   const [assignedProgram,setAssignedProgram]=useState(null);
   const [assignedMeal,setAssignedMeal]=useState(null);
   const [habits,setHabits]=useState([]);
@@ -335,6 +336,7 @@ export default function FitStud() {
       if(l.data?.library)setLibrary(l.data.library);
       try{const{data:meas}=await supabase.from("user_measurements").select("measurements").eq("user_id",userId).maybeSingle();if(meas?.measurements)setMeasurements(meas.measurements);}catch(e){}
       try{const{data:nut}=await supabase.from("user_nutrition").select("nutrition").eq("user_id",userId).maybeSingle();if(nut?.nutrition)setNutrition(nut.nutrition);}catch(e){}
+      try{const{data:mx}=await supabase.from("user_maxes").select("maxes").eq("user_id",userId).maybeSingle();if(mx?.maxes)setMaxes(mx.maxes);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
       supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
       try{
@@ -580,7 +582,7 @@ export default function FitStud() {
       const mapped=WD[nameKey]||WD[firstWord]||spread[idx]||spread[idx%spread.length]||"Mon";
       routine[mapped]=(day.exercises||[]).map(ex=>{
         const match=exerciseDb.find(e=>e.name.toLowerCase()===ex.name.toLowerCase());
-        return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:"",tempo:ex.tempo||"",rest:ex.rest||"",ss:!!ex.ss};
+        return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:"",tempo:ex.tempo||"",rest:ex.rest||"",ss:!!ex.ss,pct:parseFloat(ex.pct)||0,wkInc:parseFloat(ex.wkInc)||0};
       });
     });
     return routine;
@@ -599,6 +601,9 @@ export default function FitStud() {
   const activeWeek=assignedProgram?activeWeekIndex(assignedProgram):0;
   const coachDays=assignedProgram?((assignedProgram.weeks&&assignedProgram.weeks.length)?(assignedProgram.weeks[activeWeek]||assignedProgram.structure||[]):(assignedProgram.structure||[])):null;
   const coachRoutine=assignedProgram?programToRoutine(coachDays):null;
+  const workWeight=(ex)=>{if(!ex.pct)return null;const wp=Math.round(ex.pct+(ex.wkInc||0)*activeWeek);const m=maxes[keyName(ex.name)];if(!m||m<=0)return{wp,need:true};return{wp,weight:Math.round(m*wp/100/5)*5};};
+  const persistMaxes=async()=>{if(!user)return;try{await supabase.from("user_maxes").upsert({user_id:user.id,coach_id:coachProfile.coach_id||null,maxes,updated_at:new Date().toISOString()},{onConflict:"user_id"});}catch(e){}};
+  const pctLifts=(()=>{if(!coachRoutine)return[];const seen={},out=[];Object.values(coachRoutine).forEach(arr=>arr.forEach(ex=>{if(ex.pct){const k=keyName(ex.name);if(!seen[k]){seen[k]=1;out.push({key:k,name:ex.name});}}}));return out;})();
   const toggleHabit=async(habitId)=>{
     if(!user)return;
     const hToday=new Date().toISOString().slice(0,10);
@@ -811,6 +816,11 @@ export default function FitStud() {
                 <div style={{fontSize:13,fontWeight:700,color:t.text}}>{assignedProgram.name}{assignedProgram.weeks&&assignedProgram.weeks.length>1?<span style={{marginLeft:8,fontSize:11,fontWeight:700,color:"#D4AF37",background:"rgba(212,175,55,0.14)",borderRadius:999,padding:"2px 9px"}}>Week {activeWeek+1} of {assignedProgram.weeks.length}</span>:null}</div>
               </div>
             </div>}
+            {assignedProgram&&!isPastSelected&&pctLifts.length>0&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"14px",marginBottom:8}}>
+              <div style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your 1-Rep Maxes</div>
+              <div style={{fontSize:12,color:t.textMuted,marginBottom:10}}>Enter your best single-rep weight so the app can set your working weights. Update anytime.</div>
+              {pctLifts.map(lf=><div key={lf.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:8}}><div style={{fontSize:13,fontWeight:600,color:t.text}}>{lf.name}</div><div style={{display:"flex",alignItems:"center",gap:6}}><input type="number" inputMode="decimal" value={maxes[lf.key]||""} onChange={e=>setMaxes({...maxes,[lf.key]:parseFloat(e.target.value)||0})} onBlur={persistMaxes} placeholder="0" style={{width:72,padding:"8px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:8,color:t.text,fontSize:15,fontWeight:700,outline:"none",textAlign:"center"}} /><span style={{fontSize:12,color:t.textMuted}}>lb</span></div></div>)}
+            </div>}
             {!assignedProgram&&!canWorkoutGen&&<div style={{textAlign:"center",padding:"32px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16}}><div style={{fontSize:28,marginBottom:8}}>🏋️</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your program soon.</div></div>}
             {!isPastSelected&&activeExercisesForDay.length===0&&!assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>🏋️</div>Rest day or tap + Add</div>}
             {!isPastSelected&&activeExercisesForDay.length===0&&assignedProgram&&<div style={{textAlign:"center",padding:"40px 20px",color:t.textMuted,fontSize:14,border:"1.5px dashed "+t.cardBorder,borderRadius:20}}><div style={{fontSize:32,marginBottom:10}}>😴</div><div style={{fontWeight:700,color:t.text,marginBottom:4}}>Rest day</div>No workout today in your coach's program. Tap another day to see your training.</div>}
@@ -830,7 +840,7 @@ export default function FitStud() {
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                     <div>
                       <div style={{fontSize:17,fontWeight:700,color:finished?t.accentText:(theme==="light"?"#000":"#FFF")}}>{ex.name}</div>
-                      <div style={{fontSize:12,color:theme==="light"?"#000":"#fff",marginTop:3,textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{setCount} sets · target {ex.reps} reps · {done}/{setCount} done{ex.ss?" · superset":""}{ex.tempo?" · tempo "+ex.tempo:""}{ex.rest?" · rest "+ex.rest:""}</div>
+                      <div style={{fontSize:12,color:theme==="light"?"#000":"#fff",marginTop:3,textShadow:theme==="light"?"none":"0 1px 4px rgba(0,0,0,0.8)"}}>{setCount} sets · target {ex.reps} reps · {done}/{setCount} done{ex.ss?" · superset":""}{ex.tempo?" · tempo "+ex.tempo:""}{ex.rest?" · rest "+ex.rest:""}{(()=>{const ww=ex.pct?workWeight(ex):null;return ww?(ww.need?" · "+ww.wp+"% 1RM · set your max below":" · "+ww.wp+"% → "+ww.weight+" lb"):"";})()}</div>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
                       {(()=>{const lib=findLibMatch(ex.name);const vid=ex.video||(lib&&lib.video)||"";return <button onClick={()=>{setVideoPlayer({videoId:vid,title:ex.name,desc:lib&&lib.desc?lib.desc:""});}} style={{background:t.accentLight,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"4px 8px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>▶ Demo</button>;})()}
