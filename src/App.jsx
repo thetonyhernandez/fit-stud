@@ -251,6 +251,7 @@ export default function FitStud() {
   const [mealPlanError,setMealPlanError]=useState("");
   const [touchSwipeStart,setTouchSwipeStart]=useState(null);
   const [nutrition,setNutrition]=useState(()=>load("fs_nutrition",{}));
+  const [logDate,setLogDate]=useState(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");});
   const [nutritionPeriod,setNutritionPeriod]=useState("daily");
   const [showAddFood,setShowAddFood]=useState(false);
   const [manualFood,setManualFood]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
@@ -520,9 +521,11 @@ export default function FitStud() {
   };
   const saveToLibrary=()=>{const entry={id:Date.now(),name:FULL_DAYS[DAYS.indexOf(selectedDay)]+" · "+MONTHS[todayMonth]+" "+todayDate,day:selectedDay,date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}))};setLibrary(prev=>[entry,...prev]);};
   const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const shiftDate=(key,delta)=>{const d=new Date(key+"T00:00:00");d.setDate(d.getDate()+delta);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const niceLogDate=()=>{if(logDate===getTodayKey())return "Today";const d=new Date(logDate+"T00:00:00");return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});};
   const getTodayNutrition=()=>nutrition[getTodayKey()]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0};
-  const updateNutrition=(field,val)=>{const key=getTodayKey();setNutrition(prev=>({...prev,[key]:{...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}),[field]:parseFloat(val)||0}}));};
-  const addManualFood=()=>{const c=parseFloat(manualFood.calories)||0,p=parseFloat(manualFood.protein)||0,cb=parseFloat(manualFood.carbs)||0,f=parseFloat(manualFood.fat)||0;if(!c&&!p&&!cb&&!f)return;const key=getTodayKey();setNutrition(n=>({...n,[key]:{calories:Math.round((n[key]?.calories||0)+c),protein:Math.round((n[key]?.protein||0)+p),carbs:Math.round((n[key]?.carbs||0)+cb),fat:Math.round((n[key]?.fat||0)+f),water:n[key]?.water||0,steps:n[key]?.steps||0}}));setManualFood({name:"",calories:"",protein:"",carbs:"",fat:""});setShowAddFood(false);};
+  const updateNutrition=(field,val)=>{const key=logDate;setNutrition(prev=>({...prev,[key]:{...(prev[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0}),[field]:parseFloat(val)||0}}));};
+  const addManualFood=()=>{const c=parseFloat(manualFood.calories)||0,p=parseFloat(manualFood.protein)||0,cb=parseFloat(manualFood.carbs)||0,f=parseFloat(manualFood.fat)||0;if(!c&&!p&&!cb&&!f)return;const key=logDate;setNutrition(n=>({...n,[key]:{calories:Math.round((n[key]?.calories||0)+c),protein:Math.round((n[key]?.protein||0)+p),carbs:Math.round((n[key]?.carbs||0)+cb),fat:Math.round((n[key]?.fat||0)+f),water:n[key]?.water||0,steps:n[key]?.steps||0}}));setManualFood({name:"",calories:"",protein:"",carbs:"",fat:""});setShowAddFood(false);};
   const logWeight=(weightVal,dateStr)=>{const w=parseFloat(weightVal);if(!w||w<=0)return;const d=dateStr||new Date().toISOString().slice(0,10);setMeasurements(prev=>{const others=(prev||[]).filter(m=>m.date!==d);return [...others,{date:d,weight:w}].sort((a,b)=>a.date<b.date?-1:1);});};
   const isTimeBased=(name)=>["sled","battle rope","farmer carry","farmer carries","cardio","run","sprint","plank","carry","carries","bike","rower","jump rope"].some(k=>name.toLowerCase().includes(k));
   const getLastRecord=(exName,setIndex)=>{
@@ -862,11 +865,16 @@ export default function FitStud() {
       )}
       {/* NUTRITION */}
       {view==="nutrition"&&(()=>{
-        const todayN=getTodayNutrition();
+        const todayN=nutrition[logDate]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0};
         const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");return{key,day:DAYS[d.getDay()],...(nutrition[key]||{calories:0,protein:0,carbs:0,fat:0,water:0,steps:0})};});
         const goals={calories:2000,protein:150,carbs:200,fat:65,water:8,steps:10000};
         return <div style={{padding:"16px"}}>
           <div style={{fontSize:16,fontWeight:800,color:t.text,marginBottom:12,fontFamily:"Montserrat,sans-serif",letterSpacing:1}}>NUTRITION</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"6px 8px",marginBottom:14}}>
+            <button onClick={()=>setLogDate(shiftDate(logDate,-1))} style={{background:"none",border:"none",color:t.textMuted,fontSize:22,cursor:"pointer",padding:"2px 14px"}}>‹</button>
+            <div style={{textAlign:"center"}}><div style={{fontSize:13,fontWeight:700,color:t.text}}>{niceLogDate()}</div>{logDate!==getTodayKey()&&<button onClick={()=>setLogDate(getTodayKey())} style={{background:"none",border:"none",color:"#D4AF37",fontSize:11,cursor:"pointer",textDecoration:"underline",marginTop:1,padding:0}}>Jump to today</button>}</div>
+            <button onClick={()=>{const tk=getTodayKey();const nx=shiftDate(logDate,1);setLogDate(nx>tk?tk:nx);}} disabled={logDate>=getTodayKey()} style={{background:"none",border:"none",color:logDate>=getTodayKey()?t.cardBorder:t.textMuted,fontSize:22,cursor:logDate>=getTodayKey()?"default":"pointer",padding:"2px 14px"}}>›</button>
+          </div>
           {assignedMeal&&<div style={{background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)",borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontFamily:"Montserrat,sans-serif",fontWeight:700,marginBottom:4}}>Your Coach's Meal Plan</div>
             <div style={{fontSize:17,fontWeight:800,color:t.text,marginBottom:10}}>{assignedMeal.name}</div>
@@ -924,7 +932,7 @@ export default function FitStud() {
                 <input type="number" inputMode="decimal" placeholder="0" value={manualFood[fld.k]} onChange={e=>setManualFood(f=>({...f,[fld.k]:e.target.value}))} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:700,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
               </div>)}
             </div>
-            <button onClick={addManualFood} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Add to Today</button>
+            <button onClick={addManualFood} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>{"Add to "+niceLogDate()}</button>
           </div>}
           <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"Montserrat,sans-serif"}}>Today's Intake</div>
@@ -1169,7 +1177,7 @@ export default function FitStud() {
               {scanResult.imageUrl&&<div style={{width:"100%",borderRadius:16,overflow:"hidden",marginBottom:16,maxHeight:200}}><img src={scanResult.imageUrl} style={{width:"100%",height:"100%",objectFit:"cover"}} alt="meal" /></div>}
               <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"14px 16px",marginBottom:12}}><div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:4}}>{scanResult.meal_name}</div><div style={{fontSize:12,color:t.textMuted,marginBottom:12}}>{scanResult.description}</div>{scanResult.foods?.map((food,i)=><div key={i} style={{fontSize:12,color:t.textMuted,marginBottom:6,paddingLeft:8}}><div style={{fontWeight:600,color:t.text}}>• {food.amount} {food.name}</div><div style={{paddingLeft:12,marginTop:2}}>{food.calories} cal · {food.protein||0}g protein · {food.carbs||0}g carbs · {food.fat||0}g fat{food.fiber?` · ${food.fiber}g fiber`:""}</div></div>)}</div>
               {scanResult.totals&&<div style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:14,padding:"14px 16px",marginBottom:16}}><div style={{fontSize:11,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>Estimated Totals</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[{l:"Calories",v:scanResult.totals.calories,c:"#F5D070"},{l:"Protein",v:(scanResult.totals.protein||0)+"g",c:"#ef4444"},{l:"Carbs",v:(scanResult.totals.carbs||0)+"g",c:"#f97316"},{l:"Fat",v:(scanResult.totals.fat||0)+"g",c:"#a78bfa"},{l:"Fiber",v:(scanResult.totals.fiber||0)+"g",c:"#34d399"},{l:"Sugar",v:(scanResult.totals.sugar||0)+"g",c:"#fb923c"}].map(m=><div key={m.l} style={{textAlign:"center",padding:"10px",background:t.card,borderRadius:10}}><div style={{fontSize:18,fontWeight:800,color:m.c}}>{m.v}</div><div style={{fontSize:10,color:t.textMuted}}>{m.l}</div></div>)}</div>{scanResult.confidence_note&&<div style={{fontSize:11,color:t.textMuted,marginTop:10,fontStyle:"italic"}}>{scanResult.confidence_note}</div>}</div>}
-              <div style={{display:"flex",gap:10}}><button onClick={()=>{if(scanResult.totals){const key=getTodayKey();setNutrition(n=>({...n,[key]:{calories:(n[key]?.calories||0)+(scanResult.totals.calories||0),protein:(n[key]?.protein||0)+(scanResult.totals.protein||0),carbs:(n[key]?.carbs||0)+(scanResult.totals.carbs||0),fat:(n[key]?.fat||0)+(scanResult.totals.fat||0),water:n[key]?.water||0,steps:n[key]?.steps||0}}));}setShowScanner(false);setView("nutrition");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer"}}>Add to Today</button><button onClick={()=>setScanResult(null)} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,cursor:"pointer"}}>Retake</button></div>
+              <div style={{display:"flex",gap:10}}><button onClick={()=>{if(scanResult.totals){const key=logDate;setNutrition(n=>({...n,[key]:{calories:(n[key]?.calories||0)+(scanResult.totals.calories||0),protein:(n[key]?.protein||0)+(scanResult.totals.protein||0),carbs:(n[key]?.carbs||0)+(scanResult.totals.carbs||0),fat:(n[key]?.fat||0)+(scanResult.totals.fat||0),water:n[key]?.water||0,steps:n[key]?.steps||0}}));}setShowScanner(false);setView("nutrition");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer"}}>{"Add to "+niceLogDate()}</button><button onClick={()=>setScanResult(null)} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,cursor:"pointer"}}>Retake</button></div>
             </div>}
           </div>
         </div>
