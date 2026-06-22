@@ -268,6 +268,8 @@ export default function FitStud() {
   const [ciForm,setCiForm]=useState({weight:"",energy:0,sleep:0,adherence:0,note:""});
   const [ciBusy,setCiBusy]=useState(false);
   const [ciOpen,setCiOpen]=useState(false);
+  const [groceryChecked,setGroceryChecked]=useState(()=>{try{return JSON.parse(localStorage.getItem("fs_grocery")||"{}");}catch(e){return {};}});
+  const [showGrocery,setShowGrocery]=useState(false);
   const [avatarUrl,setAvatarUrl]=useState(()=>load("fs_avatar",null));
   const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
@@ -606,6 +608,23 @@ export default function FitStud() {
     }catch(e){console.log("checkin submit error",e);}
     setCiBusy(false);
   };
+  const buildGroceryList=(mp)=>{
+    const map=new Map();
+    ((mp&&mp.structure)||[]).forEach(meal=>{
+      ((meal&&meal.items)||[]).forEach(raw=>{
+        let line=String(raw||"").trim().replace(/^[-•*]\s*/,"");
+        if(!line)return;
+        let part=line;const c=line.indexOf(":");if(c>-1&&c<40)part=line.slice(c+1);
+        part.split(/,| or /i).forEach(tok=>{
+          let f=tok.replace(/\([^)]*\)/g,"").trim().replace(/[.;]+$/,"").trim();
+          if(f&&f.length>1){const k=f.toLowerCase();if(!map.has(k))map.set(k,f);}
+        });
+      });
+    });
+    return Array.from(map.values());
+  };
+  const toggleGrocery=(key)=>{setGroceryChecked(prev=>{const next={...prev,[key]:!prev[key]};try{localStorage.setItem("fs_grocery",JSON.stringify(next));}catch(e){}return next;});};
+  const clearGrocery=()=>{setGroceryChecked({});try{localStorage.setItem("fs_grocery","{}");}catch(e){}};
   const setOv=(workouts&&workouts._setov)||{};
   const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
@@ -834,6 +853,19 @@ export default function FitStud() {
               <div style={{fontSize:13,fontWeight:700,color:"#D4AF37",marginBottom:6}}>{meal.name}</div>
               {(meal.items||[]).map((item,ii)=><div key={ii} style={{fontSize:12,color:t.textMuted,padding:"2px 0"}}>• {item}</div>)}
             </div>)}
+            {(()=>{const gl=buildGroceryList(assignedMeal);if(!gl.length)return null;const checked=gl.filter(f=>groceryChecked[f.toLowerCase()]).length;return <div style={{marginTop:4}}>
+              <button onClick={()=>setShowGrocery(v=>!v)} style={{width:"100%",padding:"12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>🛒 {showGrocery?"Hide grocery list":"Grocery list"}{!showGrocery&&checked>0?" ("+checked+"/"+gl.length+")":""}</button>
+              {showGrocery&&<div style={{marginTop:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:11,letterSpacing:1,textTransform:"uppercase",color:"#D4AF37",fontWeight:700}}>Shopping list · {checked}/{gl.length}</div>
+                  {checked>0&&<button onClick={clearGrocery} style={{background:"none",border:"none",color:t.textMuted,fontSize:12,cursor:"pointer",textDecoration:"underline"}}>Uncheck all</button>}
+                </div>
+                {gl.map((f,fi)=>{const on=!!groceryChecked[f.toLowerCase()];return <div key={fi} onClick={()=>toggleGrocery(f.toLowerCase())} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:fi<gl.length-1?"1px solid "+t.cardBorder:"none",cursor:"pointer"}}>
+                  <div style={{width:22,height:22,borderRadius:6,border:"2px solid "+(on?"#D4AF37":t.textMuted),background:on?"#D4AF37":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{on&&<span style={{color:"#000",fontSize:13,fontWeight:900}}>✓</span>}</div>
+                  <span style={{fontSize:13.5,color:on?t.textMuted:t.text,textDecoration:on?"line-through":"none"}}>{f}</span>
+                </div>;})}
+              </div>}
+            </div>;})()}
             {!canMealGen&&<div style={{fontSize:12,color:t.textMuted,marginTop:4,textAlign:"center"}}>Follow your coach's meal plan above</div>}
           </div>}
           {!assignedMeal&&!canMealGen&&<div style={{textAlign:"center",padding:"28px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16,marginBottom:16}}><div style={{fontSize:28,marginBottom:8}}>🥗</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your meal plan soon.</div></div>}
