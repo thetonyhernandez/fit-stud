@@ -258,6 +258,7 @@ export default function FitStud() {
   const [logDate,setLogDate]=useState(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");});
   const [nutritionPeriod,setNutritionPeriod]=useState("daily");
   const [showAddFood,setShowAddFood]=useState(false);
+  const [mealOpen,setMealOpen]=useState(false);
   const [manualFood,setManualFood]=useState({name:"",calories:"",protein:"",carbs:"",fat:""});
   const [showProfile,setShowProfile]=useState(false);
   const [profileTab,setProfileTab]=useState("info");
@@ -909,7 +910,8 @@ export default function FitStud() {
                 <div style={{fontSize:9,color:t.textMuted,textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{m.l}</div>
               </div>)}
             </div>
-            {(assignedMeal.structure||[]).map((meal,mi)=><div key={mi} style={{marginBottom:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
+            <button onClick={()=>setMealOpen(v=>!v)} style={{width:"100%",padding:"12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:mealOpen?10:0}}><span>🍽 {(assignedMeal.structure||[]).length} {(assignedMeal.structure||[]).length===1?"meal":"meals"}</span><span style={{color:t.textMuted}}>{mealOpen?"▴ Hide":"▾ View meals"}</span></button>
+            {mealOpen&&(assignedMeal.structure||[]).map((meal,mi)=><div key={mi} style={{marginBottom:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
               <div style={{fontSize:13,fontWeight:700,color:"#D4AF37",marginBottom:6}}>{meal.name}</div>
               {(meal.items||[]).map((item,ii)=>{const sw=getSwap(mi,ii,item);const shown=sw||item;return <div key={ii} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"3px 0"}}>
                 <div style={{fontSize:12,color:t.textMuted,flex:1,minWidth:0}}>• {shown}{sw?<span style={{marginLeft:6,fontSize:9,color:"#D4AF37",background:"rgba(212,175,55,0.15)",borderRadius:6,padding:"1px 5px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:700}}>swapped</span>:null}</div>
@@ -946,10 +948,10 @@ export default function FitStud() {
             {canMealGen?<button onClick={()=>{setShowMealPlanner(true);setMealPlanStep("questions");setMealPlanError("");}} style={{flex:1,padding:"14px",background:"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:14,color:"#000",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"Montserrat,sans-serif"}}>Generate My Meal Plan</button>:<div style={{flex:1,padding:"14px",background:"rgba(212,175,55,0.08)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:14,textAlign:"center",fontSize:13,color:"#D4AF37",fontWeight:600}}>📋 Follow your coach's plan</div>}
             <button onClick={()=>{setShowScanner(true);setScanResult(null);setScanError("");setScanMode("food");}} style={{padding:"14px 16px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>📷 Scan Meal</button>
           </div>
-          <button onClick={()=>setShowAddFood(v=>!v)} style={{width:"100%",padding:"12px",background:"rgba(255,255,255,0.04)",border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:showAddFood?10:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>{showAddFood?"✕ Close":"➕ Add food manually"}</button>
+          <button onClick={()=>setShowAddFood(v=>!v)} style={{width:"100%",padding:"12px",background:"rgba(255,255,255,0.04)",border:"1px solid "+t.cardBorder,borderRadius:14,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:showAddFood?10:16,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}><span style={{display:"flex",alignItems:"center",gap:6}}>{showAddFood?"✕ Close":"➕ Add food manually"}</span>{!showAddFood&&<span style={{fontSize:11.5,fontWeight:700,color:logDate===getTodayKey()?t.textMuted:"#D4AF37"}}>Adds to {niceLogDate()} · {new Date(logDate+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>}</button>
           {showAddFood&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:700,color:t.accentText,letterSpacing:2,textTransform:"uppercase",marginBottom:6,fontFamily:"Montserrat,sans-serif"}}>Add food manually</div>
-            <div style={{fontSize:11,color:t.textMuted,marginBottom:12}}>Type what you ate and it adds to today. Anything the scan missed, you can add here.</div>
+            <div style={{fontSize:11,color:t.textMuted,marginBottom:12}}>Type what you ate and it adds to {niceLogDate()}. Anything the scan missed, you can add here.</div>
             <input placeholder="Food name (optional)" value={manualFood.name} onChange={e=>setManualFood(f=>({...f,name:e.target.value}))} style={{width:"100%",padding:"11px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:10,color:t.text,fontSize:16,outline:"none",boxSizing:"border-box",marginBottom:10}} />
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
               {[{k:"calories",l:"Calories"},{k:"protein",l:"Protein (g)"},{k:"carbs",l:"Carbs (g)"},{k:"fat",l:"Fat (g)"}].map(fld=><div key={fld.k}>
