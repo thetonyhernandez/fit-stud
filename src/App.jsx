@@ -270,6 +270,11 @@ export default function FitStud() {
   const [ciOpen,setCiOpen]=useState(false);
   const [groceryChecked,setGroceryChecked]=useState(()=>{try{return JSON.parse(localStorage.getItem("fs_grocery")||"{}");}catch(e){return {};}});
   const [showGrocery,setShowGrocery]=useState(false);
+  const [swaps,setSwaps]=useState(()=>{try{return JSON.parse(localStorage.getItem("fs_swaps")||"{}");}catch(e){return {};}});
+  const [swapItem,setSwapItem]=useState(null);
+  const [swapOpts,setSwapOpts]=useState([]);
+  const [swapLoading,setSwapLoading]=useState(false);
+  const [swapErr,setSwapErr]=useState("");
   const [avatarUrl,setAvatarUrl]=useState(()=>load("fs_avatar",null));
   const [progressPhotos,setProgressPhotos]=useState(()=>load("fs_progress_photos",{}));
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
@@ -625,6 +630,28 @@ export default function FitStud() {
   };
   const toggleGrocery=(key)=>{setGroceryChecked(prev=>{const next={...prev,[key]:!prev[key]};try{localStorage.setItem("fs_grocery",JSON.stringify(next));}catch(e){}return next;});};
   const clearGrocery=()=>{setGroceryChecked({});try{localStorage.setItem("fs_grocery","{}");}catch(e){}};
+  const getSwap=(mi,ii,text)=>{const pid=assignedMeal&&assignedMeal.id;const p=pid&&swaps[pid];if(!p)return null;const s=p[mi+":"+ii];return (s&&s.from===text)?s.to:null;};
+  const openSwap=async(mi,ii,text)=>{
+    setSwapItem({mi,ii,text});setSwapOpts([]);setSwapErr("");setSwapLoading(true);
+    try{
+      const ctx=assignedMeal?("The overall plan targets about "+(assignedMeal.kcal||"?")+" kcal and "+(assignedMeal.protein||"?")+"g protein per day."):"";
+      const sys="You are a sports nutritionist. Given one food from a meal, suggest 3 alternative foods that closely match its macros and role, with a sensible portion. Return ONLY a JSON array of exactly 3 short strings like \"Food name + portion\". No markdown, no backticks, no extra text.";
+      const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:300,system:sys,messages:[{role:"user",content:"Food to swap: \""+text+"\". "+ctx+" Give 3 macro-matched alternatives."}]})});
+      const data=await res.json();const txt=(data.content&&data.content.find(b=>b.type==="text")||{}).text||"";
+      const arr=JSON.parse(txt.trim());
+      if(Array.isArray(arr)&&arr.length)setSwapOpts(arr.slice(0,3).map(String));else throw new Error("empty");
+    }catch(e){setSwapErr("Could not load swaps. Please try again.");}
+    setSwapLoading(false);
+  };
+  const applySwap=(to)=>{
+    const pid=assignedMeal&&assignedMeal.id;if(!swapItem||!pid)return;
+    setSwaps(prev=>{const next={...prev};const p={...(next[pid]||{})};p[swapItem.mi+":"+swapItem.ii]={from:swapItem.text,to:to};next[pid]=p;try{localStorage.setItem("fs_swaps",JSON.stringify(next));}catch(e){}return next;});
+    setSwapItem(null);setSwapOpts([]);
+  };
+  const revertSwap=(mi,ii)=>{
+    const pid=assignedMeal&&assignedMeal.id;if(!pid)return;
+    setSwaps(prev=>{const next={...prev};const p={...(next[pid]||{})};delete p[mi+":"+ii];next[pid]=p;try{localStorage.setItem("fs_swaps",JSON.stringify(next));}catch(e){}return next;});
+  };
   const setOv=(workouts&&workouts._setov)||{};
   const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
@@ -851,7 +878,10 @@ export default function FitStud() {
             </div>
             {(assignedMeal.structure||[]).map((meal,mi)=><div key={mi} style={{marginBottom:10,background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,padding:"12px 14px"}}>
               <div style={{fontSize:13,fontWeight:700,color:"#D4AF37",marginBottom:6}}>{meal.name}</div>
-              {(meal.items||[]).map((item,ii)=><div key={ii} style={{fontSize:12,color:t.textMuted,padding:"2px 0"}}>• {item}</div>)}
+              {(meal.items||[]).map((item,ii)=>{const sw=getSwap(mi,ii,item);const shown=sw||item;return <div key={ii} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"3px 0"}}>
+                <div style={{fontSize:12,color:t.textMuted,flex:1,minWidth:0}}>• {shown}{sw?<span style={{marginLeft:6,fontSize:9,color:"#D4AF37",background:"rgba(212,175,55,0.15)",borderRadius:6,padding:"1px 5px",textTransform:"uppercase",letterSpacing:0.5,fontWeight:700}}>swapped</span>:null}</div>
+                {sw?<button onClick={()=>revertSwap(mi,ii)} style={{background:"none",border:"none",color:t.textMuted,fontSize:11,cursor:"pointer",textDecoration:"underline",flexShrink:0}}>undo</button>:<button onClick={()=>openSwap(mi,ii,item)} style={{background:"none",border:"1px solid "+t.cardBorder,color:t.textMuted,fontSize:10,cursor:"pointer",borderRadius:6,padding:"2px 7px",flexShrink:0}}>swap</button>}
+              </div>;})}
             </div>)}
             {(()=>{const gl=buildGroceryList(assignedMeal);if(!gl.length)return null;const checked=gl.filter(f=>groceryChecked[f.toLowerCase()]).length;return <div style={{marginTop:4}}>
               <button onClick={()=>setShowGrocery(v=>!v)} style={{width:"100%",padding:"12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:12,color:t.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>🛒 {showGrocery?"Hide grocery list":"Grocery list"}{!showGrocery&&checked>0?" ("+checked+"/"+gl.length+")":""}</button>
@@ -867,6 +897,16 @@ export default function FitStud() {
               </div>}
             </div>;})()}
             {!canMealGen&&<div style={{fontSize:12,color:t.textMuted,marginTop:4,textAlign:"center"}}>Follow your coach's meal plan above</div>}
+          </div>}
+          {swapItem&&<div onClick={()=>setSwapItem(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:t.card,borderTop:"1px solid "+t.cardBorder,borderRadius:"20px 20px 0 0",padding:"20px",width:"100%",maxWidth:480,maxHeight:"70vh",overflowY:"auto"}}>
+              <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontWeight:700,marginBottom:4}}>Swap food</div>
+              <div style={{fontSize:14,color:t.text,fontWeight:600,marginBottom:14}}>{swapItem.text}</div>
+              {swapLoading&&<div style={{textAlign:"center",padding:"20px",color:t.textMuted,fontSize:13}}>Finding similar options…</div>}
+              {swapErr&&<div style={{color:"#ef4444",fontSize:13,marginBottom:10}}>{swapErr}</div>}
+              {!swapLoading&&swapOpts.map((o,oi)=><button key={oi} onClick={()=>applySwap(o)} style={{width:"100%",textAlign:"left",padding:"13px 14px",background:"rgba(212,175,55,0.06)",border:"1px solid "+t.cardBorder,borderRadius:12,color:t.text,fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:8}}>{o}</button>)}
+              <button onClick={()=>setSwapItem(null)} style={{width:"100%",padding:"12px",background:"none",border:"1px solid "+t.cardBorder,borderRadius:12,color:t.textMuted,fontSize:13,cursor:"pointer",marginTop:4}}>Cancel</button>
+            </div>
           </div>}
           {!assignedMeal&&!canMealGen&&<div style={{textAlign:"center",padding:"28px 20px",background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.2)",borderRadius:16,marginBottom:16}}><div style={{fontSize:28,marginBottom:8}}>🥗</div><div style={{fontSize:14,fontWeight:600,color:"#D4AF37"}}>Your coach will assign your meal plan soon.</div></div>}
           <div style={{display:"flex",gap:10,marginBottom:16}}>
