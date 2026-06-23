@@ -339,7 +339,7 @@ export default function FitStud() {
       try{const{data:nut}=await supabase.from("user_nutrition").select("nutrition").eq("user_id",userId).maybeSingle();if(nut?.nutrition)setNutrition(nut.nutrition);}catch(e){}
       try{const{data:mx}=await supabase.from("user_maxes").select("maxes").eq("user_id",userId).maybeSingle();if(mx?.maxes)setMaxes(mx.maxes);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
-      supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
+      supabase.from("messages").select("*").eq("client_id",userId).or("deliver_at.is.null,deliver_at.lte."+new Date().toISOString()).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
       try{
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
         const wpA=(asg||[]).find(a=>a.kind==="workout");
@@ -362,7 +362,7 @@ export default function FitStud() {
   const loadMessages=async(userId)=>{
     setMessagesLoading(true);
     try{
-      const{data}=await supabase.from("messages").select("*").eq("client_id",userId).order("created_at",{ascending:true});
+      const{data}=await supabase.from("messages").select("*").eq("client_id",userId).or("deliver_at.is.null,deliver_at.lte."+new Date().toISOString()).order("created_at",{ascending:true});
       if(data)setCoachMessages(data);
     }catch(e){console.log("Messages load error",e);}
     setMessagesLoading(false);
