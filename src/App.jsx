@@ -391,17 +391,19 @@ export default function FitStud() {
     localStorage.setItem("fs_last_opened_day",dayKeyOf(new Date()));
   },[]);
 
+  const loadedUserRef=useRef(null);
   useEffect(()=>{
     const authTimeout=setTimeout(()=>setAuthLoading(false),5000);
     supabase.auth.getSession().then(({data:{session}})=>{
       clearTimeout(authTimeout);
       setUser(session?.user??null);setAuthLoading(false);
-      if(session?.user)loadFromSupabase(session.user.id);
+      if(session?.user){if(loadedUserRef.current!==session.user.id){loadedUserRef.current=session.user.id;loadFromSupabase(session.user.id);}}
       else setShowAuth(true);
     }).catch(()=>{clearTimeout(authTimeout);setAuthLoading(false);setShowAuth(true);});
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
       setUser(session?.user??null);
-      if(session?.user)loadFromSupabase(session.user.id);
+      if(session?.user){if(loadedUserRef.current!==session.user.id){loadedUserRef.current=session.user.id;loadFromSupabase(session.user.id);}}
+      else loadedUserRef.current=null;
     });
     return()=>subscription.unsubscribe();
   },[]);
