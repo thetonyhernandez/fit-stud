@@ -267,6 +267,12 @@ export default function FitStud() {
   const [weighInput,setWeighInput]=useState("");
   const [coachProfile,setCoachProfile]=useState({coach_id:null,meal_gen:true,workout_gen:true});
   const [maxes,setMaxes]=useState({});
+  const [health,setHealth]=useState({});
+  const [hForm,setHForm]=useState({steps:"",resting_hr:"",active_energy:"",exercise_min:""});
+  const [healthEntryOpen,setHealthEntryOpen]=useState(false);
+  const [healthConnectOpen,setHealthConnectOpen]=useState(false);
+  const [syncToken,setSyncToken]=useState("");
+  const [hBusy,setHBusy]=useState(false);
   const [assignedProgram,setAssignedProgram]=useState(null);
   const [assignedMeal,setAssignedMeal]=useState(null);
   const [habits,setHabits]=useState([]);
@@ -339,6 +345,8 @@ export default function FitStud() {
       try{const{data:nut}=await supabase.from("user_nutrition").select("nutrition").eq("user_id",userId).maybeSingle();if(nut?.nutrition)setNutrition(nut.nutrition);}catch(e){}
       try{const{data:mx}=await supabase.from("user_maxes").select("maxes").eq("user_id",userId).maybeSingle();if(mx?.maxes)setMaxes(mx.maxes);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
+      try{const{data:hd}=await supabase.from("health_data").select("*").eq("user_id",userId).order("day",{ascending:false}).limit(14);if(hd){const hm={};hd.forEach(r=>{hm[r.day]=r;});setHealth(hm);}}catch(e){}
+      try{const cId=(p.data&&p.data.coach_id)||null;let{data:tk}=await supabase.from("health_tokens").select("token,coach_id").eq("user_id",userId).maybeSingle();if(!tk){const ins=await supabase.from("health_tokens").insert({user_id:userId,coach_id:cId}).select("token").maybeSingle();tk=ins.data;}else if(cId&&!tk.coach_id){await supabase.from("health_tokens").update({coach_id:cId}).eq("user_id",userId);}if(tk&&tk.token)setSyncToken(tk.token);}catch(e){}
       supabase.from("messages").select("*").eq("client_id",userId).or("deliver_at.is.null,deliver_at.lte."+new Date().toISOString()).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
       try{
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
@@ -612,6 +620,14 @@ export default function FitStud() {
     setHabitDone(prev=>({...prev,[habitId]:next}));
     try{await supabase.from("habit_logs").upsert({habit_id:habitId,client_id:user.id,day:hToday,done:next},{onConflict:"habit_id,day"});}
     catch(e){console.log("habit toggle error",e);setHabitDone(prev=>({...prev,[habitId]:!next}));}
+  };
+  const saveHealth=async()=>{
+    if(!user)return; setHBusy(true);
+    const day=getTodayKey();
+    const num=(v)=>(v===""||v==null)?null:(parseInt(v)||null);
+    const row={user_id:user.id,coach_id:coachProfile.coach_id||null,day,steps:num(hForm.steps),resting_hr:num(hForm.resting_hr),active_energy:num(hForm.active_energy),exercise_min:num(hForm.exercise_min),source:"manual",updated_at:new Date().toISOString()};
+    try{await supabase.from("health_data").upsert(row,{onConflict:"user_id,day"});setHealth(prev=>({...prev,[day]:{...(prev[day]||{}),...row}}));setHealthEntryOpen(false);}catch(e){}
+    setHBusy(false);
   };
   const submitCheckin=async()=>{
     if(!user)return;
@@ -998,6 +1014,43 @@ export default function FitStud() {
         const last7vol=allEntries.slice(0,7).map(([key,rec])=>{let vol=0;rec.exercises?.forEach(ex=>{ex.sets?.forEach(s=>{if(s.done)vol+=(parseInt(s.reps)||ex.reps||0)*(parseFloat(s.weight)||0);});});return{label:key.split("-")[3]||"?",vol};}).reverse();
         const maxVol=Math.max(...last7vol.map(d=>d.vol),1);
         return <div style={{padding:"16px"}}>
+          {(()=>{const hKey=getTodayKey();const hToday=health[hKey]||{};const inpS={width:"100%",padding:"11px",background:"rgba(255,255,255,0.05)",border:"1px solid "+t.cardBorder,borderRadius:10,color:t.text,fontSize:15,fontWeight:600,outline:"none",boxSizing:"border-box"};const tile=(label,val)=>(<div style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"12px 14px"}}><div style={{fontSize:11,color:t.textMuted}}>{label}</div><div style={{fontSize:22,fontWeight:800,color:t.text,marginTop:2}}>{(val!=null&&val!=="")?val:"—"}</div></div>);const url="https://coach.getfitstud.com/api/health-sync";return <div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontWeight:700,fontFamily:"Montserrat,sans-serif"}}>Health · Today</div>
+              <button onClick={()=>{if(!healthEntryOpen){setHForm({steps:hToday.steps??"",resting_hr:hToday.resting_hr??"",active_energy:hToday.active_energy??"",exercise_min:hToday.exercise_min??""});}setHealthEntryOpen(v=>!v);}} style={{padding:"8px 14px",background:healthEntryOpen?t.card:"linear-gradient(135deg,#D4AF37,#B8941F)",border:healthEntryOpen?"1px solid "+t.cardBorder:"none",borderRadius:10,color:healthEntryOpen?t.textSub:"#000",fontSize:13,fontWeight:800,cursor:"pointer"}}>{healthEntryOpen?"Close":"＋ Log"}</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {tile("Steps",hToday.steps)}
+              {tile("Resting HR",hToday.resting_hr)}
+              {tile("Active kcal",hToday.active_energy)}
+              {tile("Exercise min",hToday.exercise_min)}
+            </div>
+            {hToday.source==="apple_health"&&<div style={{fontSize:11,color:t.textDim,marginTop:8}}>↻ Synced from Apple Health</div>}
+            {healthEntryOpen&&<div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
+              {[["steps","Steps"],["resting_hr","Resting heart rate"],["active_energy","Active calories (kcal)"],["exercise_min","Exercise minutes"]].map(([k,label])=>(
+                <div key={k}><label style={{fontSize:11,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",display:"block",marginBottom:4}}>{label}</label><input type="number" inputMode="numeric" value={hForm[k]} onChange={e=>setHForm(ff=>({...ff,[k]:e.target.value}))} placeholder="—" style={inpS} /></div>
+              ))}
+              <button onClick={saveHealth} disabled={hBusy} style={{padding:"13px",background:hBusy?"rgba(212,175,55,0.4)":"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:15,fontWeight:800,cursor:hBusy?"not-allowed":"pointer"}}>{hBusy?"Saving…":"Save today"}</button>
+            </div>}
+            <button onClick={()=>setHealthConnectOpen(v=>!v)} style={{width:"100%",marginTop:12,padding:"11px",background:"transparent",border:"1px dashed "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,fontWeight:600,cursor:"pointer"}}>Connect Apple Health (auto-sync) {healthConnectOpen?"▴":"▾"}</button>
+            {healthConnectOpen&&<div style={{marginTop:10,background:"rgba(255,255,255,0.03)",border:"1px solid "+t.cardBorder,borderRadius:12,padding:"14px"}}>
+              <div style={{fontSize:12.5,color:t.textSub,lineHeight:1.6,marginBottom:10}}>Auto-send your steps and heart rate from Apple Health once a day using the iPhone Shortcuts app. One-time setup:</div>
+              <ol style={{margin:0,paddingLeft:18,color:t.textSub,fontSize:12.5,lineHeight:1.7}}>
+                <li>Open the Shortcuts app and create a new Automation that runs daily.</li>
+                <li>Add Find Health Samples (Steps), then Get Contents of URL.</li>
+                <li>Set Method to POST, paste the URL below, and send a JSON body with your token and the numbers.</li>
+              </ol>
+              <div style={{marginTop:12}}>
+                <div style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",color:t.textMuted,marginBottom:4}}>Endpoint URL</div>
+                <div style={{display:"flex",gap:8}}><input readOnly value={url} onFocus={e=>e.target.select()} style={{...inpS,fontSize:12}} /><button onClick={()=>{navigator.clipboard&&navigator.clipboard.writeText(url);}} style={{padding:"0 12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,color:t.textSub,fontSize:12,cursor:"pointer"}}>Copy</button></div>
+              </div>
+              <div style={{marginTop:10}}>
+                <div style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",color:t.textMuted,marginBottom:4}}>Your sync token</div>
+                <div style={{display:"flex",gap:8}}><input readOnly value={syncToken||"loading…"} onFocus={e=>e.target.select()} style={{...inpS,fontSize:12}} /><button onClick={()=>{navigator.clipboard&&syncToken&&navigator.clipboard.writeText(syncToken);}} style={{padding:"0 12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,color:t.textSub,fontSize:12,cursor:"pointer"}}>Copy</button></div>
+              </div>
+              <div style={{fontSize:11,color:t.textDim,marginTop:10}}>Example body: {"{ \"token\": \"YOUR_TOKEN\", \"steps\": 8000, \"resting_hr\": 58 }"}</div>
+            </div>}
+          </div>;})()}
           {coachProfile.coach_id&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:ciOpen||checkIns.length?12:0}}>
               <div style={{fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#D4AF37",fontWeight:700,fontFamily:"Montserrat,sans-serif"}}>Weekly Check-in</div>
