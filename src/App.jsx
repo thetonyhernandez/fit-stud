@@ -1032,24 +1032,6 @@ export default function FitStud() {
               ))}
               <button onClick={saveHealth} disabled={hBusy} style={{padding:"13px",background:hBusy?"rgba(212,175,55,0.4)":"linear-gradient(135deg,#D4AF37,#B8941F)",border:"none",borderRadius:12,color:"#000",fontSize:15,fontWeight:800,cursor:hBusy?"not-allowed":"pointer"}}>{hBusy?"Saving…":"Save today"}</button>
             </div>}
-            <button onClick={()=>setHealthConnectOpen(v=>!v)} style={{width:"100%",marginTop:12,padding:"11px",background:"transparent",border:"1px dashed "+t.cardBorder,borderRadius:12,color:t.textSub,fontSize:13,fontWeight:600,cursor:"pointer"}}>Connect Apple Health (auto-sync) {healthConnectOpen?"▴":"▾"}</button>
-            {healthConnectOpen&&<div style={{marginTop:10,background:"rgba(255,255,255,0.03)",border:"1px solid "+t.cardBorder,borderRadius:12,padding:"14px"}}>
-              <div style={{fontSize:12.5,color:t.textSub,lineHeight:1.6,marginBottom:10}}>Auto-send your steps and heart rate from Apple Health once a day using the iPhone Shortcuts app. One-time setup:</div>
-              <ol style={{margin:0,paddingLeft:18,color:t.textSub,fontSize:12.5,lineHeight:1.7}}>
-                <li>Open the Shortcuts app and create a new Automation that runs daily.</li>
-                <li>Add Find Health Samples (Steps), then Get Contents of URL.</li>
-                <li>Set Method to POST, paste the URL below, and send a JSON body with your token and the numbers.</li>
-              </ol>
-              <div style={{marginTop:12}}>
-                <div style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",color:t.textMuted,marginBottom:4}}>Endpoint URL</div>
-                <div style={{display:"flex",gap:8}}><input readOnly value={url} onFocus={e=>e.target.select()} style={{...inpS,fontSize:12}} /><button onClick={()=>{navigator.clipboard&&navigator.clipboard.writeText(url);}} style={{padding:"0 12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,color:t.textSub,fontSize:12,cursor:"pointer"}}>Copy</button></div>
-              </div>
-              <div style={{marginTop:10}}>
-                <div style={{fontSize:10,letterSpacing:1,textTransform:"uppercase",color:t.textMuted,marginBottom:4}}>Your sync token</div>
-                <div style={{display:"flex",gap:8}}><input readOnly value={syncToken||"loading…"} onFocus={e=>e.target.select()} style={{...inpS,fontSize:12}} /><button onClick={()=>{navigator.clipboard&&syncToken&&navigator.clipboard.writeText(syncToken);}} style={{padding:"0 12px",background:t.card,border:"1px solid "+t.cardBorder,borderRadius:10,color:t.textSub,fontSize:12,cursor:"pointer"}}>Copy</button></div>
-              </div>
-              <div style={{fontSize:11,color:t.textDim,marginTop:10}}>Example body: {"{ \"token\": \"YOUR_TOKEN\", \"steps\": 8000, \"resting_hr\": 58 }"}</div>
-            </div>}
           </div>;})()}
           {coachProfile.coach_id&&<div style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:16,padding:"16px",marginBottom:20}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:ciOpen||checkIns.length?12:0}}>
