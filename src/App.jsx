@@ -3,7 +3,14 @@ import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = "https://txddetoycdwoatruhojs.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4ZGRldG95Y2R3b2F0cnVob2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwOTIxNTAsImV4cCI6MjA5NTY2ODE1MH0.Od-MYlkLSPh8S7LYwzchgJig2r0iOzbPyNrMyDpIcMw";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+  },
+});
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const FULL_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
