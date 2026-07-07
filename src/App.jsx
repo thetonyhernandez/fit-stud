@@ -272,6 +272,7 @@ export default function FitStud() {
   const [measurements,setMeasurements]=useState(()=>load("fs_measurements",[]));
   const [weighInput,setWeighInput]=useState("");
   const [coachProfile,setCoachProfile]=useState({coach_id:null,meal_gen:true,workout_gen:true});
+  const [brand,setBrand]=useState(null);
   const [maxes,setMaxes]=useState({});
   const [health,setHealth]=useState({});
   const [hForm,setHForm]=useState({steps:"",resting_hr:"",active_energy:"",exercise_min:""});
@@ -351,6 +352,7 @@ export default function FitStud() {
       try{const{data:nut}=await supabase.from("user_nutrition").select("nutrition").eq("user_id",userId).maybeSingle();if(nut?.nutrition)setNutrition(nut.nutrition);}catch(e){}
       try{const{data:mx}=await supabase.from("user_maxes").select("maxes").eq("user_id",userId).maybeSingle();if(mx?.maxes)setMaxes(mx.maxes);}catch(e){}
       if(p.data){setCoachProfile({coach_id:p.data.coach_id||null,meal_gen:p.data.meal_gen!==false,workout_gen:p.data.workout_gen!==false});if(p.data.coach_id)setShowSetup(false);}
+      try{const{data:cb}=await supabase.rpc("get_coach_branding");const row=Array.isArray(cb)?cb[0]:cb;if(row&&row.plan==="whitelabel"&&(row.logo_url||row.business_name)){setBrand({name:row.business_name||"",logo:row.logo_url||"",primary:row.primary_color||"",accent:row.accent_color||""});}else{setBrand(null);}}catch(e){}
       try{const{data:hd}=await supabase.from("health_data").select("*").eq("user_id",userId).order("day",{ascending:false}).limit(14);if(hd){const hm={};hd.forEach(r=>{hm[r.day]=r;});setHealth(hm);}}catch(e){}
       try{const cId=(p.data&&p.data.coach_id)||null;let{data:tk}=await supabase.from("health_tokens").select("token,coach_id").eq("user_id",userId).maybeSingle();if(!tk){const ins=await supabase.from("health_tokens").insert({user_id:userId,coach_id:cId}).select("token").maybeSingle();tk=ins.data;}else if(cId&&!tk.coach_id){await supabase.from("health_tokens").update({coach_id:cId}).eq("user_id",userId);}if(tk&&tk.token)setSyncToken(tk.token);}catch(e){}
       supabase.from("messages").select("*").eq("client_id",userId).or("deliver_at.is.null,deliver_at.lte."+new Date().toISOString()).order("created_at",{ascending:true}).then(({data})=>{if(data)setCoachMessages(data);}).catch(()=>{});
@@ -759,8 +761,7 @@ export default function FitStud() {
       <div style={{flexShrink:0,padding:"12px 20px 12px",paddingTop:"calc(env(safe-area-inset-top, 44px) + 8px)",borderBottom:"1px solid "+t.headerBorder,background:t.header,zIndex:10}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
-            <div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div>
-            <div style={{fontSize:9,letterSpacing:3,textTransform:"uppercase",color:t.accentText,fontFamily:"Montserrat,sans-serif",fontWeight:600,lineHeight:1,marginTop:3}}>FORGE YOUR LEGACY</div>
+            {brand&&brand.logo?<img src={brand.logo} alt={brand.name||"logo"} style={{maxHeight:34,maxWidth:190,objectFit:"contain",display:"block"}} />:(brand&&brand.name?<div style={{fontSize:23,fontWeight:900,letterSpacing:2,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1.05}}>{brand.name}</div>:<><div style={{fontSize:24,fontWeight:900,letterSpacing:3,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",lineHeight:1}}>FITSTUD</div><div style={{fontSize:9,letterSpacing:3,textTransform:"uppercase",color:t.accentText,fontFamily:"Montserrat,sans-serif",fontWeight:600,lineHeight:1,marginTop:3}}>FORGE YOUR LEGACY</div></>)}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {syncStatus==="saving"&&<div style={{fontSize:10,color:t.textMuted}}>Saving...</div>}
