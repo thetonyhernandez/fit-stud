@@ -219,6 +219,8 @@ export default function FitStud() {
   const [dragOver,setDragOver]=useState(null);
   const [touchStartY,setTouchStartY]=useState(null);
   const dragIndexRef=useRef(null);
+  const dragScrollRef=useRef(null);
+  const dragYRef=useRef(0);
   const [moveModal,setMoveModal]=useState(null);
   const [history,setHistory]=useState(()=>load("fs_history",{}));
   const [showHistory,setShowHistory]=useState(false);
@@ -432,7 +434,7 @@ export default function FitStud() {
   useEffect(()=>{if(user)saveToSupabase("user_library","library",library);},[library,user]);
   useEffect(()=>{if(user&&measurements.length)saveToSupabase("user_measurements","measurements",measurements);},[measurements,user]);
   useEffect(()=>{if(user&&nutrition&&Object.keys(nutrition).length)saveToSupabase("user_nutrition","nutrition",nutrition);},[nutrition,user]);
-  useEffect(()=>{if(!user)return;const nw=new Date(),todayAbbr=DAYS[nw.getDay()],tk=dayKeyOf(nw),utcK=new Date().toISOString().slice(0,10);if(setData.__date!==tk&&setData.__date!==utcK)return;const exs=activeWorkouts[todayAbbr]||[];if(!exs.length)return;const getS=(exId,i)=>setData[todayAbbr+"-"+exId+"-"+i]||{};const hasData=exs.some(ex=>Array.from({length:ex.sets},(_,i)=>getS(ex.id,i)).some(x=>x.done||x.reps||x.weight));if(!hasData)return;const key=tk+"-"+todayAbbr;const id=setTimeout(()=>{setHistory(prev=>{if(prev[key]&&prev[key].finished)return prev;return{...prev,[key]:{day:todayAbbr,fullDay:FULL_DAYS[DAYS.indexOf(todayAbbr)],date:MONTHS[nw.getMonth()]+" "+nw.getDate()+", "+nw.getFullYear(),exercises:exs.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getS(ex.id,i))})),completedAt:prev[key]?.completedAt||new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),autosaved:true}};});},1500);return ()=>clearTimeout(id);},[setData,user]);
+  useEffect(()=>{if(!user)return;const nw=new Date(),todayAbbr=DAYS[nw.getDay()],tk=dayKeyOf(nw),utcK=new Date().toISOString().slice(0,10);if(setData.__date!==tk&&setData.__date!==utcK)return;const exs=activeWorkouts[todayAbbr]||[];if(!exs.length)return;const getS=(exId,i)=>setData[todayAbbr+"-"+exId+"-"+i]||{};const hasData=exs.some(ex=>Array.from({length:ex.sets},(_,i)=>getS(ex.id,i)).some(x=>x.done||x.reps||x.weight));if(!hasData)return;const key=tk+"-"+todayAbbr;const id=setTimeout(()=>{setHistory(prev=>{if(prev[key]&&prev[key].finished)return prev;return{...prev,[key]:{day:todayAbbr,fullDay:FULL_DAYS[DAYS.indexOf(todayAbbr)],date:MONTHS[nw.getMonth()]+" "+nw.getDate()+", "+nw.getFullYear(),exercises:exs.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getS(ex.id,i))})).filter(ex=>ex.sets.some(s=>s&&(s.done||s.reps||s.weight))),completedAt:prev[key]?.completedAt||new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),autosaved:true}};});},1500);return ()=>clearTimeout(id);},[setData,user]);
 
   const uploadAvatar=async(file)=>{
     if(!user||!file)return;setUploadingAvatar(true);
@@ -534,15 +536,63 @@ export default function FitStud() {
   const handleDragEnd=()=>{
     const di=dragIndexRef.current;
     setDragOver(prev=>{
-      if(di!==null&&prev!==null&&di!==prev){setWorkouts(w=>{const list=[...(w[selectedDay]||[])];const[moved]=list.splice(di,1);list.splice(prev,0,moved);return{...w,[selectedDay]:list};});}
+      if(di!==null&&prev!==null&&di!==prev){
+        if(assignedProgram){
+          // Coach-assigned days are rendered from the program, so remember the order separately.
+          const cur=(activeWorkouts[selectedDay]||[]).map(x=>x.name);
+          const list=[...cur];const[moved]=list.splice(di,1);list.splice(prev,0,moved);
+          setWorkouts(w=>({...(w||{}),_ordov:{...((w&&w._ordov)||{}),[selectedDay]:list}}));
+        }else{
+          setWorkouts(w=>{const list=[...(w[selectedDay]||[])];const[moved]=list.splice(di,1);list.splice(prev,0,moved);return{...w,[selectedDay]:list};});
+        }
+      }
       return null;
     });
     setDragIndex(null);dragIndexRef.current=null;
   };
+  const stopAutoScroll=()=>{if(dragScrollRef.current){cancelAnimationFrame(dragScrollRef.current);dragScrollRef.current=null;}};
+  const autoScrollTick=()=>{
+    const el=document.getElementById("fs-scroll");
+    if(!el||dragIndexRef.current===null){dragScrollRef.current=null;return;}
+    const y=dragYRef.current,topZone=110,botZone=window.innerHeight-130;
+    let dy=0;
+    if(y<topZone)dy=-Math.min(22,(topZone-y)/4+5);
+    else if(y>botZone)dy=Math.min(22,(y-botZone)/4+5);
+    if(dy!==0){el.scrollTop+=dy;pickDragOver(y);}
+    dragScrollRef.current=requestAnimationFrame(autoScrollTick);
+  };
+  const pickDragOver=(y)=>{
+    const cards=document.querySelectorAll("[data-excard]");
+    let idx=null;
+    cards.forEach((c,ci)=>{const r=c.getBoundingClientRect();if(y>=r.top&&y<=r.bottom)idx=ci;});
+    if(idx===null&&cards.length){
+      const first=cards[0].getBoundingClientRect(),last=cards[cards.length-1].getBoundingClientRect();
+      if(y<first.top)idx=0;else if(y>last.bottom)idx=cards.length-1;
+    }
+    if(idx!==null)setDragOver(idx);
+  };
+  const onHandleDown=(exIdx,e)=>{
+    e.preventDefault();e.stopPropagation();
+    try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
+    setDragIndex(exIdx);dragIndexRef.current=exIdx;setDragOver(exIdx);
+    dragYRef.current=e.clientY;
+    if(!dragScrollRef.current)dragScrollRef.current=requestAnimationFrame(autoScrollTick);
+    try{if(navigator.vibrate)navigator.vibrate(10);}catch(_){}
+  };
+  const onHandleMove=(e)=>{
+    if(dragIndexRef.current===null)return;
+    e.preventDefault();e.stopPropagation();
+    dragYRef.current=e.clientY;pickDragOver(e.clientY);
+  };
+  const onHandleUp=(e)=>{
+    if(dragIndexRef.current===null)return;
+    if(e&&e.preventDefault)e.preventDefault();
+    stopAutoScroll();handleDragEnd();
+  };
   const moveToDay=(ex,targetDay)=>{setWorkouts(prev=>({...prev,[selectedDay]:(prev[selectedDay]||[]).filter(e=>e.id!==ex.id),[targetDay]:[...(prev[targetDay]||[]),ex]}));setMoveModal(null);};
   const saveToHistory=()=>{
     const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay;
-    setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),finished:true}}));
+    setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})).filter(ex=>ex.sets.some(s=>s&&(s.done||s.reps||s.weight))),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),finished:true}}));
   };
   const saveToLibrary=()=>{const entry={id:Date.now(),name:FULL_DAYS[DAYS.indexOf(selectedDay)]+" · "+MONTHS[todayMonth]+" "+todayDate,day:selectedDay,date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:exercises.map(ex=>({name:ex.name,sets:ex.sets,reps:ex.reps,video:ex.video||""}))};setLibrary(prev=>[entry,...prev]);};
   const getTodayKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
@@ -720,7 +770,17 @@ export default function FitStud() {
     setSwaps(prev=>{const next={...prev};const p={...(next[pid]||{})};delete p[mi+":"+ii];next[pid]=p;try{localStorage.setItem("fs_swaps",JSON.stringify(next));}catch(e){}return next;});
   };
   const setOv=(workouts&&workouts._setov)||{};
-  const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=(coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;});return a;},{}):(workouts||EMPTY_WORKOUTS);
+  const ordOv=(workouts&&workouts._ordov)||{};
+  const applyOrder=(list,d)=>{
+    const ord=ordOv[d];
+    if(!Array.isArray(ord)||!ord.length)return list;
+    const byName={};list.forEach(x=>{(byName[x.name]=byName[x.name]||[]).push(x);});
+    const out=[];
+    ord.forEach(n=>{if(byName[n]&&byName[n].length)out.push(byName[n].shift());});
+    list.forEach(x=>{if(out.indexOf(x)<0)out.push(x);});
+    return out;
+  };
+  const activeWorkouts=assignedProgram?DAYS.reduce((a,d)=>{a[d]=applyOrder((coachRoutine[d]||[]).map(ex=>{const k=d+":"+ex.name;return setOv[k]!=null?{...ex,sets:setOv[k]}:ex;}),d);return a;},{}):(workouts||EMPTY_WORKOUTS);
   const activeExercisesForDay=activeWorkouts[selectedDay]||[];
   const todayKeyStr=dayKeyOf(new Date());
   const isPastSelected=selectedDateKey<todayKeyStr;
@@ -882,9 +942,9 @@ export default function FitStud() {
               const ro=isPastSelected;const setCount=ro?(Array.isArray(ex.sets)?ex.sets.length:0):ex.sets;const getSV=i=>ro?(ex.sets[i]||{}):getSet(ex.id,i);
               const done=ro?(Array.isArray(ex.sets)?ex.sets.filter(x=>x.done).length:0):doneCount(ex.id,ex.sets),finished=setCount>0&&done===setCount;
               return(
-                <div key={ex.id||("p"+exIdx)} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:dragIndex===exIdx?0.4:1,transition:"all 0.15s",outline:dragOver===exIdx&&dragIndex!==exIdx?"3px solid "+t.accentSolid:"none",outlineOffset:2}}>
+                <div key={ex.id||("p"+exIdx)} data-excard style={{background:finished?t.cardActive:t.card,border:"1px solid "+(finished?t.accentSolid:t.cardBorder),borderRadius:20,padding:"16px",opacity:1,position:"relative",zIndex:dragIndex===exIdx?60:1,transform:dragIndex===exIdx?"scale(1.03)":"none",boxShadow:dragIndex===exIdx?"0 16px 38px rgba(0,0,0,0.6)":"none",transition:dragIndex===exIdx?"transform 0.12s ease":"all 0.15s",outline:dragOver===exIdx&&dragIndex!==exIdx?"3px solid "+t.accentSolid:"none",outlineOffset:2}}>
                   {!ro&&editMode&&<div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
-                    <div draggable onDragStart={()=>{setDragIndex(exIdx);dragIndexRef.current=exIdx;}} onDragOver={e=>{e.preventDefault();setDragOver(exIdx);}} onDragEnd={handleDragEnd} onMouseDown={e=>e.preventDefault()} onTouchStart={e=>{e.stopPropagation();e.preventDefault();setDragIndex(exIdx);dragIndexRef.current=exIdx;}} onTouchMove={e=>{e.preventDefault();const y=e.touches[0].clientY;const cards=document.querySelectorAll("[data-excard]");cards.forEach((card,ci)=>{const rect=card.getBoundingClientRect();if(y>=rect.top&&y<=rect.bottom)setDragOver(ci);});}} onTouchEnd={e=>{e.stopPropagation();handleDragEnd();}} style={{display:"flex",flexDirection:"column",gap:4,padding:"12px 14px",background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,cursor:"grab",alignItems:"center",touchAction:"none",userSelect:"none",WebkitUserSelect:"none",WebkitTouchCallout:"none"}}>
+                    <div onPointerDown={e=>onHandleDown(exIdx,e)} onPointerMove={onHandleMove} onPointerUp={onHandleUp} onPointerCancel={onHandleUp} onContextMenu={e=>e.preventDefault()} style={{display:"flex",flexDirection:"column",gap:4,padding:"12px 14px",background:dragIndex===exIdx?t.accentSolid:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,cursor:dragIndex===exIdx?"grabbing":"grab",alignItems:"center",touchAction:"none",userSelect:"none",WebkitUserSelect:"none",WebkitTouchCallout:"none"}}>
                       {[0,1,2].map(i=><div key={i} style={{width:20,height:2.5,background:t.accentText,borderRadius:1}} />)}
                     </div>
                     <button onClick={()=>setMoveModal(ex)} style={{background:t.accentMuted,border:"1px solid "+t.accentBorder,borderRadius:8,padding:"6px 12px",color:t.accentText,fontSize:11,fontWeight:600,cursor:"pointer"}}>Move day →</button>
@@ -915,7 +975,7 @@ export default function FitStud() {
                         <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.accentMuted,borderRadius:8,padding:"4px 2px",minHeight:40,border:"1px solid "+t.accentBorder}}>
                           {last?<><span style={{fontSize:11,fontWeight:700,color:t.textSub,lineHeight:1.2}}>{last.reps||"—"}</span><span style={{fontSize:9,color:t.accentText,lineHeight:1.2}}>{last.weight?last.weight+"lb":"bw"}</span></>:<span style={{fontSize:12,color:t.accentText,fontWeight:700}}>—</span>}
                         </div>
-                        <input type="number" inputMode="numeric" readOnly={ro} placeholder="0" value={ro?(s.reps||ex.reps):(s.reps===0||s.reps==="0"||!s.reps?"":s.reps)} onChange={e=>{if(!ro)updateSet(ex.id,i,"reps",e.target.value);}} onFocus={()=>{if(ro)return;const sc=document.getElementById("fs-scroll");if(sc){const y=sc.scrollTop;setTimeout(()=>{sc.scrollTop=y;},30);}}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
+                        <input type="number" inputMode="numeric" readOnly={ro} placeholder="0" value={ro?(s.reps||""):(s.reps===0||s.reps==="0"||!s.reps?"":s.reps)} onChange={e=>{if(!ro)updateSet(ex.id,i,"reps",e.target.value);}} onFocus={()=>{if(ro)return;const sc=document.getElementById("fs-scroll");if(sc){const y=sc.scrollTop;setTimeout(()=>{sc.scrollTop=y;},30);}}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
                         <input type="number" inputMode="decimal" readOnly={ro} placeholder="0" value={s.weight||""} onChange={e=>{if(!ro)updateSet(ex.id,i,"weight",e.target.value);}} onFocus={()=>{if(ro)return;const sc=document.getElementById("fs-scroll");if(sc){const y=sc.scrollTop;setTimeout(()=>{sc.scrollTop=y;},30);}}} style={{width:"100%",padding:"10px 4px",background:t.input,border:"1px solid "+t.inputBorder,borderRadius:10,color:t.text,fontSize:16,fontWeight:600,outline:"none",textAlign:"center",boxSizing:"border-box"}} />
                         <button onClick={()=>{if(!ro)toggleDone(ex.id,i);}} style={{width:40,height:40,borderRadius:10,border:s.done?"none":"2px solid rgba(212,175,55,0.5)",background:s.done?t.accent:t.card,color:s.done?"#fff":"rgba(212,175,55,0.7)",fontSize:18,fontWeight:700,cursor:ro?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{s.done?"✓":"○"}</button>
                       </div>;
@@ -926,7 +986,7 @@ export default function FitStud() {
             })}
           </div>
           {!isPastSelected&&activeExercisesForDay.length>0&&<div style={{padding:"20px 16px 8px"}}>
-            <button onClick={()=>{ const _exToSave=activeExercisesForDay; const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay; setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:_exToSave.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),finished:true}})); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
+            <button onClick={()=>{ const _exToSave=activeExercisesForDay; const key=todayYear+"-"+String(todayMonth+1).padStart(2,"0")+"-"+String(todayDate).padStart(2,"0")+"-"+selectedDay; setHistory(prev=>({...prev,[key]:{day:selectedDay,fullDay:FULL_DAYS[DAYS.indexOf(selectedDay)],date:MONTHS[todayMonth]+" "+todayDate+", "+todayYear,exercises:_exToSave.map(ex=>({...ex,sets:Array.from({length:ex.sets},(_,i)=>getSet(ex.id,i))})).filter(ex=>ex.sets.some(s=>s&&(s.done||s.reps||s.weight))),completedAt:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),finished:true}})); saveToLibrary(); setWorkoutFinished(true); setShowCongrats(true);}} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 20px rgba(212,175,55,0.4)",letterSpacing:1,fontFamily:"Montserrat,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>SAVE & FINISH</button>
             {!allDone&&<div style={{textAlign:"center",fontSize:11,color:t.textMuted,marginTop:8}}>You can finish anytime — your progress is saved</div>}
           </div>}
         </div>
@@ -1241,7 +1301,7 @@ export default function FitStud() {
       {showHistory&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(12px)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:500}} onClick={()=>{setShowHistory(false);setHistoryDetail(null);}}>
         <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:t.modal,borderRadius:"24px 24px 0 0",padding:"24px 20px 48px",border:"1px solid "+t.cardBorder,borderBottom:"none",maxHeight:"88vh",overflowY:"auto"}}>
           <div style={{width:36,height:4,background:"#334155",borderRadius:2,margin:"0 auto 20px"}} />
-          {historyDetail?(<><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}><button onClick={()=>setHistoryDetail(null)} style={{background:"rgba(255,255,255,0.06)",border:"none",borderRadius:8,padding:"6px 10px",color:"#94a3b8",fontSize:13,cursor:"pointer"}}>← Back</button><div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{history[historyDetail].fullDay}</div><div style={{fontSize:12,color:"#64748b"}}>{history[historyDetail].date} · {history[historyDetail].completedAt}</div></div></div>{history[historyDetail].exercises.map((ex,ei)=><div key={ei} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:10}}><div style={{fontSize:15,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>{ex.name}</div>{ex.sets.map((s,si)=><div key={si} style={{display:"flex",gap:12,fontSize:12,color:"#64748b",marginBottom:4}}><span style={{color:"#475569",minWidth:32}}>S{si+1}</span><span>{s.reps||ex.reps} reps</span>{s.weight&&<span style={{color:"#a5b4fc"}}>{s.weight} lbs</span>}{s.done&&<span style={{color:"#34d399"}}>✓</span>}</div>)}</div>)}</>):(<><div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>📖 Workout History</div><div style={{fontSize:13,color:"#64748b",marginBottom:20}}>All completed workouts</div>{Object.keys(history).length===0?<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:13}}><div style={{fontSize:32,marginBottom:10}}>🗂️</div>No history yet.</div>:Object.entries(history).sort((a,b)=>b[0].localeCompare(a[0])).map(([key,rec])=><button key={key} onClick={()=>setHistoryDetail(key)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",marginBottom:8,textAlign:"left"}}><div><div style={{fontSize:14,fontWeight:700,color:"#f1f5f9"}}>{rec.fullDay}</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{rec.date} · {rec.completedAt}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{rec.exercises.length} exercises</div></div><div style={{fontSize:20,color:"#334155"}}>›</div></button>)}</>)}
+          {historyDetail?(<><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}><button onClick={()=>setHistoryDetail(null)} style={{background:"rgba(255,255,255,0.06)",border:"none",borderRadius:8,padding:"6px 10px",color:"#94a3b8",fontSize:13,cursor:"pointer"}}>← Back</button><div><div style={{fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{history[historyDetail].fullDay}</div><div style={{fontSize:12,color:"#64748b"}}>{history[historyDetail].date} · {history[historyDetail].completedAt}</div></div></div>{history[historyDetail].exercises.map((ex,ei)=><div key={ei} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",marginBottom:10}}><div style={{fontSize:15,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>{ex.name}</div>{ex.sets.map((s,si)=><div key={si} style={{display:"flex",gap:12,fontSize:12,color:"#64748b",marginBottom:4}}><span style={{color:"#475569",minWidth:32}}>S{si+1}</span><span>{s.reps?s.reps+" reps":"— not logged"}</span>{s.weight&&<span style={{color:"#a5b4fc"}}>{s.weight} lbs</span>}{s.done&&<span style={{color:"#34d399"}}>✓</span>}</div>)}</div>)}</>):(<><div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>📖 Workout History</div><div style={{fontSize:13,color:"#64748b",marginBottom:20}}>All completed workouts</div>{Object.keys(history).length===0?<div style={{textAlign:"center",padding:"40px 20px",color:"#334155",fontSize:13}}><div style={{fontSize:32,marginBottom:10}}>🗂️</div>No history yet.</div>:Object.entries(history).sort((a,b)=>b[0].localeCompare(a[0])).map(([key,rec])=><button key={key} onClick={()=>setHistoryDetail(key)} style={{background:t.card,border:"1px solid "+t.cardBorder,borderRadius:14,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",marginBottom:8,textAlign:"left"}}><div><div style={{fontSize:14,fontWeight:700,color:"#f1f5f9"}}>{rec.fullDay}</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{rec.date} · {rec.completedAt}</div><div style={{fontSize:11,color:"#475569",marginTop:2}}>{rec.exercises.length} exercises</div></div><div style={{fontSize:20,color:"#334155"}}>›</div></button>)}</>)}
         </div>
       </div>}
       {/* MEAL SCANNER */}
