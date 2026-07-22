@@ -360,7 +360,7 @@ export default function FitStud() {
         const{data:asg}=await supabase.from("assignments").select("*").eq("client_id",userId);
         const wpA=(asg||[]).find(a=>a.kind==="workout");
         const mpA=(asg||[]).find(a=>a.kind==="meal");
-        if(wpA){const{data:wp}=await supabase.from("workout_programs").select("*").eq("id",wpA.program_id).maybeSingle();if(wp)setAssignedProgram({...wp,_start_date:wpA.start_date||null,_unlock_mode:wpA.unlock_mode||"auto",_current_week:wpA.current_week||1});}
+        if(wpA){const{data:wp}=await supabase.from("workout_programs").select("*").eq("id",wpA.program_id).maybeSingle();if(wp)setAssignedProgram({...wp,_start_date:wpA.start_date||null,_unlock_mode:wpA.unlock_mode||"auto",_current_week:wpA.current_week||1,_schedule:(wpA.schedule&&typeof wpA.schedule==="object")?wpA.schedule:null});}
         if(mpA){const{data:mp}=await supabase.from("meal_plans").select("*").eq("id",mpA.meal_plan_id).maybeSingle();if(mp)setAssignedMeal(mp);}
         try{
           const{data:hbs}=await supabase.from("habits").select("*").eq("client_id",userId).eq("active",true).order("sort");
@@ -589,20 +589,45 @@ export default function FitStud() {
   const findLibMatch=name=>{const n=normName(name);if(!n)return null;let m=exerciseDb.find(e=>normName(e.name)===n);if(!m)m=exerciseDb.find(e=>{const en=normName(e.name);return en&&(en.includes(n)||n.includes(en));});return m||null;};
   const findFormGuide=name=>{const n=normName(name);if(!n)return null;const keys=Object.keys(FORM_GUIDE);for(const k of keys){if(FORM_GUIDE[k].match.some(a=>a===n))return FORM_GUIDE[k];}let best=null,bl=0;for(const k of keys){for(const a of FORM_GUIDE[k].match){if((n.includes(a)||a.includes(n))&&a.length>bl){best=FORM_GUIDE[k];bl=a.length;}}}return best;};
 
-  const programToRoutine=(structure)=>{
+  const programToRoutine=(structure,schedule)=>{
     const routine={};let uid=900000;
     const WD={sun:"Sun",sunday:"Sun",mon:"Mon",monday:"Mon",tue:"Tue",tues:"Tue",tuesday:"Tue",wed:"Wed",weds:"Wed",wednesday:"Wed",thu:"Thu",thur:"Thu",thurs:"Thu",thursday:"Thu",fri:"Fri",friday:"Fri",sat:"Sat",saturday:"Sat"};
     const SPREAD={1:["Mon"],2:["Mon","Thu"],3:["Mon","Wed","Fri"],4:["Mon","Tue","Thu","Fri"],5:["Mon","Tue","Wed","Thu","Fri"],6:["Mon","Tue","Wed","Thu","Fri","Sat"],7:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]};
+    const WDIDX=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
     const days=(structure||[]);
+    const buildEx=(day)=>(day&&day.exercises?day.exercises:[]).filter(Boolean).map(ex=>{
+      const exName=String((ex&&ex.name)||"");
+      const match=exerciseDb.find(e=>e.name.toLowerCase()===exName.toLowerCase());
+      return{id:uid++,name:exName,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:"",tempo:ex.tempo||"",rest:ex.rest||"",ss:!!ex.ss,sg:ex.sg||"",pct:parseFloat(ex.pct)||0,wkInc:parseFloat(ex.wkInc)||0};
+    });
+    // If the coach set a schedule in their planner, that wins.
+    if(schedule&&typeof schedule==="object"){
+      let used=false;
+      for(let wd=0;wd<7;wd++){
+        if(!Object.prototype.hasOwnProperty.call(schedule,wd)&&!Object.prototype.hasOwnProperty.call(schedule,String(wd)))continue;
+        const raw=schedule[wd]!==undefined?schedule[wd]:schedule[String(wd)];
+        if(raw===null||raw===undefined||raw==="rest")continue;
+        const di=parseInt(raw,10);
+        if(isNaN(di)||di<0||di>=days.length)continue;
+        routine[WDIDX[wd]]=buildEx(days[di]);used=true;
+      }
+      if(used)return routine;
+    }
+    // Otherwise fall back to spreading the days across the week (never overwrite a taken day).
     const spread=SPREAD[Math.min(days.length,7)]||["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const taken={};
+    const freeDay=(want)=>{
+      if(want&&!taken[want])return want;
+      for(let i=0;i<WDIDX.length;i++){if(!taken[WDIDX[i]])return WDIDX[i];}
+      return want||"Mon";
+    };
     days.forEach((day,idx)=>{
-      const nameKey=String(day.name||"").trim().toLowerCase();
+      const nameKey=String((day&&day.name)||"").trim().toLowerCase();
       const firstWord=nameKey.split(/[^a-z]+/)[0];
-      const mapped=WD[nameKey]||WD[firstWord]||spread[idx]||spread[idx%spread.length]||"Mon";
-      routine[mapped]=(day.exercises||[]).map(ex=>{
-        const match=exerciseDb.find(e=>e.name.toLowerCase()===ex.name.toLowerCase());
-        return{id:uid++,name:ex.name,reps:parseInt(ex.reps,10)||12,sets:ex.sets||3,video:match?match.video:"",tempo:ex.tempo||"",rest:ex.rest||"",ss:!!ex.ss,sg:ex.sg||"",pct:parseFloat(ex.pct)||0,wkInc:parseFloat(ex.wkInc)||0};
-      });
+      const want=WD[nameKey]||WD[firstWord]||spread[idx]||spread[idx%spread.length]||"Mon";
+      const mapped=freeDay(want);
+      taken[mapped]=true;
+      routine[mapped]=buildEx(day);
     });
     return routine;
   };
@@ -619,7 +644,7 @@ export default function FitStud() {
   };
   const activeWeek=assignedProgram?activeWeekIndex(assignedProgram):0;
   const coachDays=assignedProgram?((assignedProgram.weeks&&assignedProgram.weeks.length)?(assignedProgram.weeks[activeWeek]||assignedProgram.structure||[]):(assignedProgram.structure||[])):null;
-  const coachRoutine=assignedProgram?programToRoutine(coachDays):null;
+  const coachRoutine=assignedProgram?programToRoutine(coachDays,assignedProgram._schedule):null;
   const workWeight=(ex)=>{if(!ex.pct)return null;const wp=Math.round(ex.pct+(ex.wkInc||0)*activeWeek);const m=maxes[keyName(ex.name)];if(!m||m<=0)return{wp,need:true};return{wp,weight:Math.round(m*wp/100/5)*5};};
   const persistMaxes=async()=>{if(!user)return;try{await supabase.from("user_maxes").upsert({user_id:user.id,coach_id:coachProfile.coach_id||null,maxes,updated_at:new Date().toISOString()},{onConflict:"user_id"});}catch(e){}};
   const pctLifts=(()=>{if(!coachRoutine)return[];const seen={},out=[];Object.values(coachRoutine).forEach(arr=>arr.forEach(ex=>{if(ex.pct){const k=keyName(ex.name);if(!seen[k]){seen[k]=1;out.push({key:k,name:ex.name});}}}));return out;})();
