@@ -253,6 +253,9 @@ export default function FitStud() {
   const [authEmail,setAuthEmail]=useState("");
   const [authPassword,setAuthPassword]=useState("");
   const [authError,setAuthError]=useState("");
+  const [diag,setDiag]=useState("");
+  const [diagBusy,setDiagBusy]=useState(false);
+  const [resetBusy,setResetBusy]=useState(false);
   const [authSubmitting,setAuthSubmitting]=useState(false);
   const [syncStatus,setSyncStatus]=useState("idle");
   const [workoutFinished,setWorkoutFinished]=useState(false);
@@ -539,6 +542,49 @@ export default function FitStud() {
   };
   useEffect(()=>{if(!showScanner||scanMode!=="barcode")stopBarcodeScan();},[showScanner,scanMode]);
   const handleSignUp=async()=>{if(!authEmail||!authPassword)return;setAuthSubmitting(true);setAuthError("");const{error}=await supabase.auth.signUp({email:authEmail,password:authPassword});if(error)setAuthError(error.message);else{setShowAuth(false);setAuthEmail("");setAuthPassword("");}setAuthSubmitting(false);};
+  // Turns an opaque "Load failed" into facts: is a service worker still
+  // hijacking requests, is the device online, is the auth server reachable.
+  const runDiag=async()=>{
+    setDiagBusy(true);const out=[];
+    try{
+      const ctrl=(navigator.serviceWorker&&navigator.serviceWorker.controller)?true:false;
+      let regs=[];
+      try{regs=(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)?await navigator.serviceWorker.getRegistrations():[];}catch(e){}
+      out.push("Service worker: "+(ctrl?"ACTIVE — this is what breaks login":"none"));
+      out.push("Registered workers: "+regs.length);
+    }catch(e){out.push("Service worker: could not check");}
+    try{
+      let ck=0;
+      if(window.caches&&caches.keys){const k=await caches.keys();ck=(k||[]).length;}
+      out.push("Cached bundles: "+ck);
+    }catch(e){}
+    out.push("Device online: "+(navigator.onLine?"yes":"NO — no internet"));
+    try{
+      const t0=Date.now();
+      const r=await fetch(SUPABASE_URL+"/auth/v1/health",{method:"GET",headers:{apikey:SUPABASE_KEY}});
+      out.push("Auth server: HTTP "+r.status+" ("+(Date.now()-t0)+"ms)");
+      if(r.status>=500)out.push("  -> Supabase is down or paused");
+    }catch(e){
+      out.push("Auth server: UNREACHABLE");
+      out.push("  -> "+((e&&e.message)||"blocked before it left the phone"));
+    }
+    setDiag(out.join("\n"));setDiagBusy(false);
+  };
+  // Self-repair: strip every service worker + cache off this device, then reload.
+  const resetApp=async()=>{
+    setResetBusy(true);
+    try{
+      if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        for(const r of (regs||[])){try{await r.unregister();}catch(e){}}
+      }
+    }catch(e){}
+    try{
+      if(window.caches&&caches.keys){const keys=await caches.keys();for(const k of (keys||[])){try{await caches.delete(k);}catch(e){}}}
+    }catch(e){}
+    try{sessionStorage.removeItem("fs_sw_killed");}catch(e){}
+    setTimeout(()=>{try{location.reload(true);}catch(e){location.reload();}},400);
+  };
   const handleLogin=async()=>{if(!authEmail||!authPassword)return;setAuthSubmitting(true);setAuthError("");const{error}=await supabase.auth.signInWithPassword({email:authEmail,password:authPassword});if(error)setAuthError(error.message);else{setShowAuth(false);setAuthEmail("");setAuthPassword("");}setAuthSubmitting(false);};
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);};
 
@@ -1472,6 +1518,17 @@ export default function FitStud() {
           <input type="password" placeholder="Password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){authMode==="login"?handleLogin():handleSignUp();}}} style={{width:"100%",padding:"16px 18px",background:"rgba(212,175,55,0.06)",border:"1.5px solid rgba(212,175,55,0.2)",borderRadius:14,color:"#fff",fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"Poppins,sans-serif"}} />
         </div>
         {authError&&<div style={{color:"#f87171",fontSize:13,marginBottom:10,textAlign:"center",width:"100%",maxWidth:360}}>{authError}</div>}
+        {authError&&/load failed|failed to fetch|network|timeout/i.test(authError)&&(
+          <div style={{width:"100%",maxWidth:360,marginBottom:12,background:"#141414",border:"1px solid #2a2a2a",borderRadius:12,padding:14}}>
+            <div style={{color:"#D4AF37",fontSize:12.5,fontWeight:700,marginBottom:6}}>This is a connection problem, not your password.</div>
+            <div style={{color:"#9a9a9a",fontSize:12,lineHeight:1.5,marginBottom:10}}>Tap Repair to strip the old offline cache off this device, then log in again.</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <button onClick={resetApp} disabled={resetBusy} style={{flex:1,minWidth:130,background:"#D4AF37",color:"#0B0B0B",border:"none",borderRadius:10,padding:"11px 14px",fontWeight:800,fontSize:13.5,cursor:"pointer"}}>{resetBusy?"Repairing…":"Repair & reload"}</button>
+              <button onClick={runDiag} disabled={diagBusy} style={{flex:1,minWidth:110,background:"transparent",color:"#e5e5e5",border:"1px solid #2a2a2a",borderRadius:10,padding:"11px 14px",fontWeight:700,fontSize:13.5,cursor:"pointer"}}>{diagBusy?"Testing…":"Test connection"}</button>
+            </div>
+            {diag&&<pre style={{whiteSpace:"pre-wrap",wordBreak:"break-word",color:"#cfcfcf",fontSize:11.5,lineHeight:1.55,background:"#0B0B0B",border:"1px solid #2a2a2a",borderRadius:8,padding:10,marginTop:10,fontFamily:"ui-monospace,Menlo,monospace"}}>{diag}</pre>}
+          </div>
+        )}
         <button onClick={authMode==="login"?handleLogin:handleSignUp} disabled={!!authSubmitting} style={{width:"100%",maxWidth:360,padding:"18px",marginTop:8,background:authSubmitting?"rgba(212,175,55,0.3)":"linear-gradient(135deg,#D4AF37 0%,#F5E070 40%,#D4AF37 60%,#B8941F 100%)",border:"none",borderRadius:14,color:"#000",fontSize:16,fontWeight:900,cursor:authSubmitting?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:2,fontFamily:"Montserrat,sans-serif",boxShadow:"0 4px 28px rgba(212,175,55,0.35)"}}>
           {authSubmitting?<><span style={{display:"inline-block",width:18,height:18,border:"2px solid rgba(0,0,0,0.3)",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />{authMode==="login"?"Logging in...":"Creating account..."}</>:authMode==="login"?"LOGIN →":"CREATE ACCOUNT →"}
         </button>
@@ -1479,7 +1536,7 @@ export default function FitStud() {
           {authMode==="login"?"No account? ":"Have an account? "}
           <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#D4AF37",cursor:"pointer",fontWeight:700}}>{authMode==="login"?"Sign up free":"Login"}</span>
         </div>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#3f3f46",letterSpacing:1}}>v7</div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#3f3f46",letterSpacing:1}}>v8</div>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
       </div>}
 
