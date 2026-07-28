@@ -11,6 +11,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     storage: typeof window !== "undefined" ? window.localStorage : undefined,
   },
 });
+const AUTH_STORAGE_KEY = "sb-txddetoycdwoatruhojs-auth-token";
+// True when this device still holds a saved session. Used so a flaky network
+// never dumps a logged-in client back to the login screen.
+function hasStoredSession() {
+  try {
+    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return false;
+    const p = JSON.parse(raw);
+    return !!(p && (p.refresh_token || (p.currentSession && p.currentSession.refresh_token)));
+  } catch (e) { return false; }
+}
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const FULL_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -403,19 +414,43 @@ export default function FitStud() {
 
   const loadedUserRef=useRef(null);
   useEffect(()=>{
-    const authTimeout=setTimeout(()=>setAuthLoading(false),5000);
+    let cancelled=false;
+    const useSession=(session)=>{
+      setUser(session.user);setShowAuth(false);setAuthLoading(false);
+      if(loadedUserRef.current!==session.user.id){loadedUserRef.current=session.user.id;loadFromSupabase(session.user.id);}
+    };
+    // A saved session exists but the network call failed — retry instead of
+    // showing the login screen. Only a genuinely dead token logs you out.
+    const retryAuth=async(n)=>{
+      if(cancelled||n>4){if(!cancelled&&!hasStoredSession())setShowAuth(true);return;}
+      await new Promise(r=>setTimeout(r,n*1500));
+      if(cancelled)return;
+      try{
+        const{data,error}=await supabase.auth.refreshSession();
+        if(cancelled)return;
+        if(data&&data.session&&data.session.user){useSession(data.session);return;}
+        if(error&&/invalid|expired|revoked|not found/i.test(error.message||"")){setUser(null);loadedUserRef.current=null;setShowAuth(true);return;}
+      }catch(e){}
+      retryAuth(n+1);
+    };
+    const noSession=()=>{
+      setAuthLoading(false);
+      if(hasStoredSession()){retryAuth(1);}      // keep them in, keep trying
+      else{setUser(null);setShowAuth(true);}     // truly signed out
+    };
+    // Don't flash the login screen just because the network is slow.
+    const authTimeout=setTimeout(()=>{if(!cancelled){setAuthLoading(false);if(!hasStoredSession())setShowAuth(true);}},8000);
     supabase.auth.getSession().then(({data:{session}})=>{
-      clearTimeout(authTimeout);
-      setUser(session?.user??null);setAuthLoading(false);
-      if(session?.user){if(loadedUserRef.current!==session.user.id){loadedUserRef.current=session.user.id;loadFromSupabase(session.user.id);}}
-      else setShowAuth(true);
-    }).catch(()=>{clearTimeout(authTimeout);setAuthLoading(false);setShowAuth(true);});
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
-      setUser(session?.user??null);
-      if(session?.user){if(loadedUserRef.current!==session.user.id){loadedUserRef.current=session.user.id;loadFromSupabase(session.user.id);}}
-      else loadedUserRef.current=null;
+      clearTimeout(authTimeout); if(cancelled)return;
+      if(session&&session.user)useSession(session); else noSession();
+    }).catch(()=>{clearTimeout(authTimeout);if(!cancelled)noSession();});
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(session&&session.user){useSession(session);return;}
+      // A null session here is usually a background refresh that couldn't reach
+      // the network. Only an explicit sign-out actually logs the client out.
+      if(event==="SIGNED_OUT"){setUser(null);loadedUserRef.current=null;setShowAuth(true);}
     });
-    return()=>subscription.unsubscribe();
+    return()=>{cancelled=true;subscription.unsubscribe();};
   },[]);
 
   const saveToSupabase=useCallback(async(table,field,data)=>{
@@ -1444,6 +1479,7 @@ export default function FitStud() {
           {authMode==="login"?"No account? ":"Have an account? "}
           <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#D4AF37",cursor:"pointer",fontWeight:700}}>{authMode==="login"?"Sign up free":"Login"}</span>
         </div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#3f3f46",letterSpacing:1}}>v7</div>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
       </div>}
 
