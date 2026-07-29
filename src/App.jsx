@@ -26,6 +26,26 @@ const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const FULL_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAY_FOCUS = { Mon:"🦵 Heavy Leg Day",Tue:"💪 Chest & Triceps",Wed:"🔙 Back & Biceps",Thu:"⚡ Full Body Functional",Fri:"🍑 Glute & Leg Day",Sat:"😴 Rest Day",Sun:"😴 Rest Day" };
+// The header used to be hardcoded per weekday, so a Wednesday always read
+// "Back & Biceps" even when the coach had assigned legs. These derive the real
+// name from the coach's own workout, matching the coach calendar exactly.
+function calDayCategoryC(day){
+  const t=(((day&&day.name)||"")+" "+(((day&&day.exercises)||[]).map(e=>(e&&e.name)||"").join(" "))).toLowerCase();
+  if(/squat|lunge|\bleg\b|quad|hamstring|glute|calf|calv|deadlift|hip thrust/.test(t))return"legs";
+  if(/bench|chest|\bfly\b|\bdip\b|tricep|shoulder|overhead|push|press/.test(t))return"push";
+  if(/\brow\b|pull|\blat\b|curl|bicep|\bback\b|chin|face pull/.test(t))return"pull";
+  if(/\bab\b|abs|core|plank|crunch|oblique|twist|hollow/.test(t))return"core";
+  if(/cardio|\brun\b|jog|bike|cycle|treadmill|burpee|jump rope|hike|walk|sprint|row erg|conditioning/.test(t))return"cardio";
+  return"other";
+}
+const CAT_EMOJI_C={legs:"🦵",push:"💪",pull:"🔙",core:"🔥",cardio:"🏃",other:"🏋️"};
+function calDayLabelC(day){
+  const n=(((day&&day.name)||"")).trim();
+  const generic=/^(mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sun)(day)?$/i.test(n)||/^day\s*\d+$/i.test(n)||n==="";
+  const cat=calDayCategoryC(day);
+  const words={legs:"Legs",push:"Push",pull:"Pull",core:"Core",cardio:"Cardio",other:"Workout"};
+  return (CAT_EMOJI_C[cat]||"🏋️")+" "+(generic?(words[cat]||"Workout"):n);
+}
 const DEFAULT_WORKOUTS = {
   Mon:[{id:1,name:"Deadlifts",sets:5,reps:6,video:"XxWcirHIwVo"},{id:2,name:"Walking Lunges",sets:4,reps:20,video:"kRzcRkKy1ns"},{id:3,name:"Leg Extensions",sets:4,reps:13,video:"YyvSfVjQeL0"},{id:4,name:"Seated Hamstring Curl",sets:4,reps:13,video:"y19_9B0s2uA"},{id:5,name:"Standing Calf Raises",sets:5,reps:17,video:"gwLzBv9RP30"},{id:6,name:"Goblet Squats",sets:4,reps:12,video:"MeIiIdhvXT4"},{id:7,name:"Hip Abductor Machine",sets:4,reps:15,video:"G_8LItOiZ0Q"},{id:8,name:"Hip Adductor Machine",sets:4,reps:15,video:"G_8LItOiZ0Q"},{id:9,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
   Tue:[{id:10,name:"Flat Bench Press",sets:5,reps:6,video:"dblHPPUfRtE"},{id:11,name:"Incline Dumbbell Press",sets:4,reps:10,video:"8iPEnn-ltC8"},{id:12,name:"Chest Fly / Cable Fly",sets:4,reps:12,video:"Iwe6AmxVf7o"},{id:13,name:"Push-Ups",sets:3,reps:15,video:"IODxDxX7oi4"},{id:14,name:"Tricep Rope Pushdowns",sets:4,reps:12,video:"vB5OHsJ3EME"},{id:15,name:"Overhead Tricep Extensions",sets:4,reps:12,video:"_gsUck-7M74"},{id:16,name:"Dips",sets:3,reps:12,video:"2z8JmcrW-As"},{id:17,name:"Dumbbell Shoulder Press",sets:4,reps:10,video:"qEwKCR5JCog"},{id:18,name:"Weighted Russian Twists",sets:4,reps:20,video:"wkD8rjkodUI"}],
@@ -740,7 +760,7 @@ export default function FitStud() {
         if(raw===null||raw===undefined||raw==="rest")continue;
         const di=parseInt(raw,10);
         if(isNaN(di)||di<0||di>=days.length)continue;
-        routine[WDIDX[wd]]=buildEx(days[di]);used=true;
+        routine[WDIDX[wd]]=buildEx(days[di]);routine[WDIDX[wd]]._label=calDayLabelC(days[di]);used=true;
       }
       if(used)return routine;
     }
@@ -758,7 +778,7 @@ export default function FitStud() {
       const want=WD[nameKey]||WD[firstWord]||spread[idx]||spread[idx%spread.length]||"Mon";
       const mapped=freeDay(want);
       taken[mapped]=true;
-      routine[mapped]=buildEx(day);
+      routine[mapped]=buildEx(day);routine[mapped]._label=calDayLabelC(day);
     });
     return routine;
   };
@@ -993,7 +1013,7 @@ export default function FitStud() {
           <div style={{padding:"0 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <div style={{fontSize:20,fontWeight:800,color:t.text,fontFamily:"Montserrat,sans-serif",textTransform:"uppercase",letterSpacing:1}}>{FULL_DAYS[DAYS.indexOf(selectedDay)]}</div>
-              <div style={{fontSize:15,fontWeight:600,color:t.accentText,marginTop:2}}>{DAY_FOCUS[selectedDay]}</div>
+              <div style={{fontSize:15,fontWeight:600,color:t.accentText,marginTop:2}}>{assignedProgram ? ((coachRoutine && coachRoutine[selectedDay] && coachRoutine[selectedDay]._label) ? coachRoutine[selectedDay]._label : "😴 Rest Day") : DAY_FOCUS[selectedDay]}</div>
               <div style={{fontSize:12,color:"#475569",marginTop:2}}>{exercises.length} exercise{exercises.length!==1?"s":""}</div>
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -1536,7 +1556,7 @@ export default function FitStud() {
           {authMode==="login"?"No account? ":"Have an account? "}
           <span onClick={()=>setAuthMode(authMode==="login"?"signup":"login")} style={{color:"#D4AF37",cursor:"pointer",fontWeight:700}}>{authMode==="login"?"Sign up free":"Login"}</span>
         </div>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#3f3f46",letterSpacing:1}}>v8</div>
+        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#3f3f46",letterSpacing:1}}>v9</div>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#D4AF37,transparent)"}} />
       </div>}
 
