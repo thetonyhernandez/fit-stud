@@ -32,8 +32,8 @@ const DAY_FOCUS = { Mon:"🦵 Heavy Leg Day",Tue:"💪 Chest & Triceps",Wed:"�
 function calDayCategoryC(day){
   const t=(((day&&day.name)||"")+" "+(((day&&day.exercises)||[]).map(e=>(e&&e.name)||"").join(" "))).toLowerCase();
   if(/squat|lunge|\bleg\b|quad|hamstring|glute|calf|calv|deadlift|hip thrust/.test(t))return"legs";
+  if(/\brow\b|pull|\blat\b|curl|bicep|\bback\b|chin|face pull|shrug/.test(t))return"pull";
   if(/bench|chest|\bfly\b|\bdip\b|tricep|shoulder|overhead|push|press/.test(t))return"push";
-  if(/\brow\b|pull|\blat\b|curl|bicep|\bback\b|chin|face pull/.test(t))return"pull";
   if(/\bab\b|abs|core|plank|crunch|oblique|twist|hollow/.test(t))return"core";
   if(/cardio|\brun\b|jog|bike|cycle|treadmill|burpee|jump rope|hike|walk|sprint|row erg|conditioning/.test(t))return"cardio";
   return"other";
